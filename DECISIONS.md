@@ -156,3 +156,39 @@
 ## D-0024 · Configurable Project Status Flow · 2026-10-23 · Phase 7
 - Decision: Add a per-vault setting for the Project Status Flow field and order in Project Register/Storyboard. The owner's field is stage; order is Foraged → Dried → Ground → Brewed → Distilled → Bottled.
 - Impact: Theme settings expose field and multiline ordered values. Storyboard Projects and Project Register use the same configured property, display labels and filter order. All configured flow tabs remain available even when empty; other existing statuses follow alphabetically and missing values appear under Unassigned. Defaults apply to older settings. No property/value rewrite or alias migration; older Foraging/Grinding/Brewing/Distilling remain separate authored values until explicitly edited. World card status behavior remains unchanged.
+
+
+## D-0025 · Clean panels and script character dropdown · 2026-10-23 · Scripts
+- Decision: Remove the automatically inserted “Panel Description:” label. Offer a character dropdown when /d is used, including plain and wikilink characters. Owner additionally confirmed that frontmatter characters must qualify before appearing in dialogue.
+- Impact: /p selects New panel without a label; the insert-panel command likewise creates a clean quoted body. /d retains editable SPEAKER and opens a local, keyboard/mouse picker when candidates exist. Sources are Characters/Character frontmatter, prior speakers and known character-note names/aliases mentioned in script body. Character-tagged notes qualify for recognition; unrelated links and unused vault characters do not. Existing speaker styling takes precedence over declarations/mentions, preserving plain text versus wikilinks. Choice selects Dialogue for immediate writing; Escape permits a new name. No model, template execution, new dependency or default OS shortcut. Existing notes remain unchanged.
+
+## D-0026 · Review a script template before creation workflow · 2026-10-23 · Scripts
+- Decision: Provide a script template in the disposable test vault's template folder for owner review. Defer the folder navigator “Create a New Script” action and configurable script template until the owner is happy with the template.
+- Impact: `_templates/Comic Script.md` contains recognition/order/cast metadata, a brief, a collapsible writing and shortcut guide, and one titled page with location, panel, dialogue, title lettering and artist note. Uses ordinary Markdown and existing fictional vault links. Template paths stay excluded from script recognition. No production code or settings changed.
+
+## D-0027 · Generic script template with blank properties · 2026-10-23 · Scripts
+- Decision: Owner clarified the template must be a reusable starting point for any script, with no story-specific content and empty frontmatter values.
+- Impact: Replaces D-0026's fictional scene and populated properties with generic PAGE TITLE, INT. LOCATION, CHARACTER/dialogue, panel, lettering and note placeholders. Retains a collapsible shortcut/writing guide. Recommended property keys have null values; role/format are omitted to allow recognition in a Scripts folder, with instructions for setting both when used elsewhere. Folder creation and template setting remain deferred until approval.
+
+## D-0028 · Configured template and two script creation entry points · 2026-10-23 · Scripts
+- Decision: Owner accepted the generic template after editing it and requested a script template location setting, Create a New Script in folder right-click menus, and a New Script button below the active sidebar list.
+- Impact: Supersedes the D-0026/D-0027 creation gate. A shared native name/grouping dialog copies the configured Markdown template into the clicked folder or active list's last parent folder. It preserves edited template body/unrelated fields, fills title/identity/group/predecessor fields in the new note, appends within its group and opens it for writing. Blank grouping means Top-level; the active specific grouping is prefilled. Per-vault Scripts setting supports typing/browsing and follows renames. No executable template expansion, external services, model calls, default hotkeys or compile/export work. Original creative vaults remain untouched.
+
+## D-0029 · Authoring controls, New Entry and configurable vault setup · 2026-10-23 · Phase 7
+- Decision: Owner requested a double-click session-only timer edit, no mid-session edits, searchable reference selection, default-closed sidebar pages, New Entry on all menu pages, type/subtype choices and configurable canon/folder/template routing with their numbered setup as default. Also requested suggestions for vault items, used property names and status values while retaining freehand statuses.
+- Impact: A started session stays locked while paused until completion/Reset; the runtime duration never overwrites countdown preferences. Clock ticks update text in place to preserve double-clicks/focus. Home pins use a typed dropdown; Librarian references also offer a type filter. New Entry uses ordered type/subtype selectors and a title/destination/template form, matching templates locally and optionally creating missing folders. Theme → Vault setup beneath Vault type configures canon types, global/project folders, templates, project root and subtype routes; save/cancel/defaults/folder creation are explicit. Configured classifications replace numeric-folder assumptions while retaining legacy recognition. Project/subtype creation is scoped to its project; scripts reuse existing safe creation, retaining custom-folder project scope via a plain Project path. Template bodies and unrelated metadata remain intact; conflicting classification tags are replaced with the chosen type. Source moves, template execution, new dependencies, cloud access, compile/export and Librarian performance changes remain outside scope.
+
+
+## D-0030 · Simplify template and status settings · 2026-10-23 · Phase 7
+- Decision: Owner requested removing Browse beside Script template location and removing the separate Add a status to the flow control. Keep template dropdown suggestions and the typed status list.
+- Impact: Template selection now uses only the existing suggested path input; obsolete picker code is removed. Project Status Flow retains the property-name suggestions and editable ordered textarea, with no separate add-status field/button. Stored settings, templates and notes are unchanged. Supersedes those UI details in D-0028/D-0029.
+
+
+## D-0031 · Compact pinned-reference editing · 2026-10-23 · Phase 7
+- Decision: Owner requested only Edit beside Pinned References by default; reveal selector text and a dropdown input on editing, with the same soft corner radius as other page boxes.
+- Impact: Home header has right-aligned Edit; editing reveals Select a reference/project and the existing typing dropdown, plus unpin controls. Done hides editing controls while keeping pinned cards visible. Edit mode is view-local, survives pin redraws and closes when changing pages or reloading. The input uses the shared page-card 8px radius. Applies to Storyboard Pinned Projects as well; Librarian reference selection is unchanged.
+
+
+## D-0032 · Consistent settings columns · 2026-10-23 · Phase 7
+- Decision: Owner requested a shared boundary between explanatory text and controls, with equal-width text boxes. Preserve toggle/button sizing and alignment.
+- Impact: Theme, Scripts and Librarian settings use two proportional columns with a 24px gap. Labels/descriptions wrap in the left two-thirds; text/number inputs, suggestions, selectors and textareas fill the right third. Textareas resize vertically only. Toggle/button widgets retain native dimensions and right alignment. Styles are scoped to the main module settings, leaving entry/setup dialogs unchanged.

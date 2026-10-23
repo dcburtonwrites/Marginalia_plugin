@@ -200,8 +200,11 @@ try {
     await first
       .getByRole("button", { name: "Expand or collapse Page 1", exact: true })
       .getAttribute("aria-expanded"),
-    "true",
+    "false",
   );
+  assert.equal(await first.getByRole("button", {name:"1  The arrival",exact:true}).isVisible(),false);
+  await first.getByRole("button",{name:"Expand or collapse Page 1",exact:true}).click();
+  assert.equal(await first.getByRole("button", {name:"1  The arrival",exact:true}).isVisible(),true);
   await first
     .getByRole("button", { name: "Expand or collapse Page 1", exact: true })
     .click();
@@ -474,6 +477,55 @@ try {
   await page.getByRole("combobox", {name:"Project or grouping"}).selectOption({label:"Copper Sky · All groupings"});
   await page.locator(".marginalia-project-script").nth(2).waitFor();
   await page.screenshot({ path: resolve(folder, "script-studio-session.png") });
+  // Create from the active grouping, using the same native modal/controller as the plugin.
+  await page.getByRole("combobox", {name:"Project or grouping"}).selectOption({label:"Copper Sky > Draft"});
+  const addScript = page.getByRole("button", {name:"New Script",exact:true});
+  const addBox = await addScript.boundingBox();
+  const lastScriptBox = await page.locator(".marginalia-script-file").last().boundingBox();
+  assert.ok(addBox.y >= lastScriptBox.y + lastScriptBox.height, "creation button follows the active list");
+  await addScript.click();
+  let creation = page.getByRole("dialog");
+  await creation.getByRole("textbox",{name:"Script name",exact:true}).fill("Created Script");
+  assert.equal(await creation.getByLabel("Grouping",{exact:true}).inputValue(),"Draft");
+  await creation.getByRole("button",{name:"Create script",exact:true}).click();
+  assert.match(await creation.getByRole("alert").textContent(), /script template/);
+  await creation.getByRole("button",{name:"Cancel",exact:true}).click();
+  await page.getByRole("button",{name:"Writing settings",exact:true}).click();
+  await page.getByLabel("Script template location",{exact:true}).fill("_templates/Script.md");
+  await page.getByRole("button",{name:"Close settings",exact:true}).click();
+  await addScript.click();
+  creation = page.getByRole("dialog");
+  await creation.getByRole("textbox",{name:"Script name",exact:true}).fill("Created Script");
+  await creation.getByRole("button",{name:"Create script",exact:true}).click();
+  await page.locator(".marginalia-script-name").filter({hasText:"Created Script"}).waitFor();
+  assert.deepEqual(await scriptNames(),["Opening","After the Bell","Created Script"]);
+  assert.match(await page.getByRole("textbox",{name:"Script editor",exact:true}).inputValue(), /Location: INT\. LOCATION/);
+  const createdTexts = await page.evaluate(()=>JSON.parse(localStorage.getItem("script-texts")));
+  assert.match(createdTexts["Projects/Copper Sky/Scripts/Created Script.md"], /Preceded By: "\[\[Projects\/Copper Sky\/Scripts\/After the Bell\]\]"/);
+  await addScript.click();
+  creation = page.getByRole("dialog");
+  await creation.getByRole("textbox",{name:"Script name",exact:true}).fill("Created Script");
+  await creation.getByRole("button",{name:"Create script",exact:true}).click();
+  assert.match(await creation.getByRole("alert").textContent(), /already exists/);
+  await creation.getByRole("button",{name:"Cancel",exact:true}).click();
+  await page.reload();
+  await page.locator(".marginalia-script-name").filter({hasText:"Created Script"}).waitFor();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem("writing-data")).preferences.scriptTemplate), "_templates/Script.md");
+  await page.getByRole("button",{name:"Reset timer",exact:true}).click();
+  await page.getByRole("button",{name:"Countdown remaining",exact:true}).dblclick();
+  let timerDialog=page.getByRole("dialog");
+  await timerDialog.getByRole("spinbutton",{name:"Session timer minutes",exact:true}).fill("7");
+  await timerDialog.getByRole("button",{name:"Set timer",exact:true}).click();
+  assert.equal(await page.locator(".marginalia-writing-clock").textContent(),"07:00");
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem("writing-data")).preferences.countdownMinutes),1);
+  await page.getByRole("button",{name:"Start timer",exact:true}).click();
+  await page.getByRole("button",{name:"Countdown remaining",exact:true}).dblclick();
+  assert.equal(await page.getByRole("dialog").count(),0);
+  await page.getByRole("button",{name:"Pause timer",exact:true}).click();
+  await page.getByRole("button",{name:"Countdown remaining",exact:true}).dblclick();
+  assert.equal(await page.getByRole("dialog").count(),0);
+  await page.getByRole("button",{name:"Reset timer",exact:true}).click();
+  assert.equal(await page.locator(".marginalia-writing-clock").textContent(),"01:00");
   assert.deepEqual(errors, []);
   console.log(
     "UI checks passed: Studio project/group selection, scoped sidebar, countdown, persisted daily goals, visibility settings, script outline, separate arrows/names, project reading, predecessor fill/drag persistence, conflict repair, light/dark, 300px pane, context pin, review, sources, insertion harness, chat, library and empty state.",

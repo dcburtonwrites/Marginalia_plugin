@@ -1,6 +1,9 @@
 import { AppPage, WorkspaceFeature, PAGES } from "../src/workspace/feature.ts";
 import { readWorkspace } from "../src/workspace/model.ts";
-import { TFolder } from "obsidian";
+import { TFolder, TFile, stringifyYaml, parseYaml } from "obsidian";
+import { readWriting } from "../src/scripts/writing.ts";
+import { ScriptController, scriptMetadata } from "../src/scripts/controller.ts";
+import { VaultSetupModal } from "../src/workspace/setup.ts";
 const storyboard = location.search.includes("storyboard");
 const sources = [
   [
@@ -60,14 +63,12 @@ const files = sources.map(([path, fields, body], i) => {
   const p = storyboard
     ? path.replace("08 Projects/Copper Sky", "Copper Sky")
     : path;
-  return {
-    path: p,
-    basename: p.split("/").at(-1)!.replace(/\.md$/, ""),
+  return Object.assign(new TFile(p), {
     fields,
     body,
     text: body,
     stat: { mtime: 10000 + i, ctime: 100 + i },
-  };
+  });
 });
 const folders = [
   ...new Set(
@@ -93,6 +94,15 @@ const app: any = {
   vault: {
     getMarkdownFiles: () => files,
     cachedRead: async (f: any) => f.body,
+    read: async (f: any) => f.body.startsWith("---\n") ? f.body : `---\n${stringifyYaml(f.fields)}---\n${f.body}`,
+    getAbstractFileByPath: (path: string) => files.find(f=>f.path===path) ?? folders.find(f=>f.path===path),
+    createFolder: async (path: string) => { const folder=new TFolder(path);folders.push(folder);emitVault("create",folder);return folder; },
+    delete: async (file: any) => {const list=file instanceof TFolder ? folders : files;list.splice(list.indexOf(file),1);emitVault("delete",file);},
+    create: async (path: string, text: string) => {
+      if(files.some(f=>f.path===path)) throw new Error("Already exists");
+      const file=Object.assign(new TFile(path),{body:text,text,fields:scriptMetadata(text),stat:{mtime:Date.now(),ctime:Date.now()}});
+      files.push(file);emitVault("create",file);return file;
+    },
     getAllLoadedFiles: () => [...files, ...folders],
     getName: () => "Copper Sky workspace",
     on: (name: string, callback: (...args: any[]) => void) => {
@@ -102,7 +112,9 @@ const app: any = {
   },
   metadataCache: {
     getFileCache: (f: any) => ({ frontmatter: f.fields }),
+    getFirstLinkpathDest: (link:string)=>files.find(file=>file.path.replace(/\.md$/,"")===link || file.basename===link),
     on: () => ({}),
+    iterateAllLeaves: () => {},
   },
   workspace: {
     on: () => ({}),
@@ -126,6 +138,8 @@ const owner: any = {
   workspaceSettings: readWorkspace({
     vaultType: storyboard ? "Storyboard" : "World",
   }),
+  writing:readWriting(undefined),
+  scriptOrders:{},
   activeText: () => undefined,
   savePluginData: async () => {
     localStorage.setItem(
@@ -145,12 +159,19 @@ const owner: any = {
 const leaf: any = {
   view: undefined,
   setViewState: async (s: any) => view.setState(s.state, { history: false }),
+  openFile: async (file: any)=>{document.querySelector("#opened")!.textContent=file.path;},
 };
+const controller = new ScriptController(owner);
+controller.openStudio=owner.scriptController.openStudio;
+controller.select=owner.scriptController.select;
+owner.scriptController=controller;
 const view = new AppPage({ app, contentEl: container } as any, owner);
 leaf.view = view;
 const feature = new WorkspaceFeature(owner);
 owner.themeFeature = feature;
 (window as any).workspaceFixture = {
+  setup:()=>new VaultSetupModal(owner).open(),
+  sources:()=>Object.fromEntries(files.map(file=>[file.path,file.body])),
   setStatusFlow(field: string, order: string[]) {
     owner.workspaceSettings = readWorkspace({
       ...owner.workspaceSettings,

@@ -3,16 +3,18 @@ import {
   MarkdownView,
   Notice,
   TFile,
+  TFolder,
   type Plugin,
   type WorkspaceLeaf,
   type Editor,
 } from "obsidian";
 import { ScriptController, scriptMetadata } from "./controller.ts";
 import { StudioView, STUDIO } from "./studio.ts";
-import { scriptShortcutExtension } from "./shortcut-extension.ts";
+import { createScriptShortcutExtension } from "./shortcut-extension.ts";
 import { scriptFoldingExtension } from "./folding.ts";
 import { renderSessionFooter } from "./session-ui.ts";
-import { selectedGroups, type WritingData } from "./writing.ts";
+import { openNewScript } from "./creation.ts";
+import { selectedGroups, clockLabel, type WritingData } from "./writing.ts";
 import { ProjectView, PROJECT } from "./project.ts";
 import { el, button } from "../ui/sidebar.ts";
 import {
@@ -36,7 +38,7 @@ export interface ScriptHost extends Plugin {
 export const SCRIPTS = "marginalia-scripts";
 
 export function registerScripts(plugin: ScriptHost) {
-  plugin.registerEditorExtension([scriptFoldingExtension, scriptShortcutExtension]);
+  plugin.registerEditorExtension([scriptFoldingExtension, createScriptShortcutExtension(plugin.app)]);
   const controller = (plugin.scriptController ??= new ScriptController(plugin));
   plugin.registerView(STUDIO, (leaf) => new StudioView(leaf, controller));
   plugin.registerView(PROJECT, (leaf) => new ProjectView(leaf, controller));
@@ -64,6 +66,11 @@ export function registerScripts(plugin: ScriptHost) {
       if (leaf.view instanceof StudioView) void leaf.view.draw();
   };
   controller.onChange = redraw;
+  plugin.registerEvent(plugin.app.workspace.on("file-menu", (menu, file) => {
+    if (!(file instanceof TFolder)) return;
+    menu.addItem(item => item.setTitle("Create a New Script").setIcon("file-plus")
+      .onClick(() => openNewScript(controller, file.path)));
+  }));
   let timerTicks = 0;
   plugin.registerInterval(
     window.setInterval(() => {
@@ -182,6 +189,9 @@ export function registerScripts(plugin: ScriptHost) {
     plugin.app.vault.on("rename", (file, old) => {
       controller.session.rename(old, file.path);
       plugin.scriptOrders = renameOrders(plugin.scriptOrders, old, file.path);
+      const preferences = controller.session.data.preferences;
+      if (preferences.scriptTemplate === old || preferences.scriptTemplate.startsWith(old + "/"))
+        preferences.scriptTemplate = file.path + preferences.scriptTemplate.slice(old.length);
       void plugin
         .savePluginData()
         .catch(() => new Notice("Could not save renamed script order."));
@@ -250,6 +260,7 @@ export class ScriptsView extends ItemView {
   controller: ScriptController;
   collapsed = new Set<string>();
   expanded = new Set<string>();
+  expandedPages = new Set<string>();
   revision = 0;
   closed = false;
   saving = false;
@@ -514,9 +525,9 @@ export class ScriptsView extends ItemView {
                 file.children,
                 page.title,
                 pageKey,
-                !this.collapsed.has(pageKey),
+                this.expandedPages.has(pageKey),
                 () => visit(script.path, page.line),
-                (value) => remember(pageKey, value),
+                (value) => { value ? this.expandedPages.add(pageKey) : this.expandedPages.delete(pageKey); },
                 "marginalia-script-page",
               );
               pageRow.name.title = `Page ${page.local}${page.slots === 2 ? "–" + (page.local + 1) : ""}`;
@@ -540,6 +551,15 @@ export class ScriptsView extends ItemView {
             }
           }
         }
+      }
+      if (selection) {
+        const add = button("New Script", () => {
+          void this.controller.creationFolder().then(folder =>
+            openNewScript(this.controller, folder, selection.group),
+          ).catch(error => new Notice(String(error)));
+        }, "marginalia-new-script");
+        add.dataset.key = "new-script";
+        root.append(add);
       }
       this.drawFooter();
       if (focused)
@@ -587,6 +607,14 @@ export class ScriptsView extends ItemView {
     const controls = this.contentEl.querySelector<HTMLElement>(".marginalia-fold-controls");
     if (controls) this.renderFoldControls(controls);
     const previous = this.contentEl.querySelector(".marginalia-writing-footer");
+    const session = this.controller.session;
+    const signature = JSON.stringify([session.data.selection, session.data.preferences,
+      session.progress(), session.running, session.data.timerStarted, session.remaining() === 0]);
+    if (previous instanceof HTMLElement && previous.dataset.state === signature) {
+      const clock = previous.querySelector(".marginalia-writing-clock");
+      if (clock) clock.textContent = clockLabel(session.remaining());
+      return;
+    }
     const focused = previous?.contains(document.activeElement)
       ? (document.activeElement as HTMLElement)?.dataset.key
       : null;
@@ -596,6 +624,7 @@ export class ScriptsView extends ItemView {
         .catch(() => new Notice("Could not save writing session."));
       this.drawFooter();
     });
+    footer.dataset.state = signature;
     if (previous) previous.replaceWith(footer);
     else this.contentEl.append(footer);
     if (focused)

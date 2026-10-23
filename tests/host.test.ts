@@ -1,6 +1,7 @@
 import { history, undo } from "@codemirror/commands";
 import { commitShortcut, handleScriptEnter } from "../src/scripts/shortcut-extension.ts";
 import { planShortcut } from "../src/scripts/shortcuts.ts";
+import {speakerPicker,openSpeakerPicker,chooseSpeaker,speakerKeys} from "../src/scripts/speaker-picker.ts";
 import { EditorState } from "@codemirror/state";
 import { codeFolding, foldedRanges } from "@codemirror/language";
 import { editorViews } from "../src/scripts/folding.ts";
@@ -8,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { App } from "obsidian";
 import Marginalia from "../src/main.ts";
-import { MarkdownView, TFile } from "./obsidian-mock.ts";
+import { MarkdownView, TFile, TFolder } from "./obsidian-mock.ts";
 import { setAnswer } from "./ollama-mock.ts";
 import { encode, makeExpansion } from "../src/core/storage.ts";
 import { retrieve } from "../src/core/retrieval.ts";
@@ -633,6 +634,39 @@ test("Enter shortcut handler leaves composition, multiple carets and selected te
  ]) assert.equal(handleScriptEnter({state,composing:false} as any),false);
  assert.equal(handleScriptEnter({composing:true} as any),false);
 });
+test("dialogue picker filters and accepts a linked speaker, selects Dialogue, and preserves isolated Undo",()=>{
+ const text="## Page 1\n\n/d";
+ const edit=planShortcut({path:"Project/Scripts/Test.md",text,metadata:{}},text.length)!;
+ const candidate={id:"Mira.md",name:"Mira",insert:"[[Mira|Mira]]",path:"Mira.md"};
+ let state=EditorState.create({doc:text,selection:{anchor:text.length},extensions:[history(),speakerPicker]});
+ const dispatch=(spec:any)=>{state=state.update(spec).state;};
+ const view={get state(){return state;},dispatch,composing:false};
+ commitShortcut(view as any,edit,[openSpeakerPicker.of({from:edit.anchor,to:edit.head,candidates:[candidate],query:"",selected:0})]);
+ dispatch({changes:{from:edit.anchor,to:edit.head,insert:"mi"},selection:{anchor:edit.anchor+2}});
+ assert.equal(state.field(speakerPicker)?.query,"mi");
+ assert.equal(chooseSpeaker(view as any),true);
+ assert.match(state.doc.toString(),/\*\*\[\[Mira\|Mira\]\]:\*\* Dialogue/);
+ assert.equal(state.sliceDoc(state.selection.main.from,state.selection.main.to),"Dialogue");
+ assert.equal(state.field(speakerPicker),null);
+ assert.ok(undo({state,dispatch:(tr:any)=>{state=tr.state;}} as any));
+ assert.match(state.doc.toString(),/\*\*mi:\*\*/);
+});
+test("picker Escape and edits outside its range close without rewriting source",()=>{
+ const text="**SPEAKER:** Dialogue";let state=EditorState.create({doc:text,selection:{anchor:2,head:9},extensions:[speakerPicker]});
+ const dispatch=(spec:any)=>{state=state.update(spec).state;};const view={get state(){return state;},dispatch,composing:false};
+ const open=()=>dispatch({effects:openSpeakerPicker.of({from:2,to:9,candidates:[{id:"M",name:"Mira",insert:"Mira"}],query:"",selected:0})});
+ open();assert.equal(speakerKeys.find(k=>k.key==="Escape")!.run!(view as any),true);assert.equal(state.field(speakerPicker),null);assert.equal(state.doc.toString(),text);
+ open();dispatch({changes:{from:text.length,insert:"!"}});assert.equal(state.field(speakerPicker),null);
+});
+test("speaker arrows cycle and accepting no match leaves a typed new name unchanged",()=>{
+ const doc="**SPEAKER:** Dialogue";let state=EditorState.create({doc,selection:{anchor:2,head:9},extensions:[speakerPicker]});
+ const dispatch=(spec:any)=>{state=state.update(spec).state;};const view={get state(){return state;},dispatch,composing:false};
+ dispatch({effects:openSpeakerPicker.of({from:2,to:9,candidates:[{id:"M",name:"Mira",insert:"Mira"},{id:"O",name:"Orin",insert:"Orin"}],query:"",selected:0})});
+ speakerKeys.find(k=>k.key==="ArrowUp")!.run!(view as any);assert.equal(state.field(speakerPicker)?.selected,1);
+ speakerKeys.find(k=>k.key==="ArrowDown")!.run!(view as any);assert.equal(state.field(speakerPicker)?.selected,0);
+ dispatch({changes:{from:2,to:9,insert:"New Person"},selection:{anchor:12}});
+ const before=state.doc.toString();assert.equal(chooseSpeaker(view as any),false);assert.equal(state.doc.toString(),before);assert.equal(state.field(speakerPicker),null);
+});
 
 
 test("workspace module choices save alongside writing and AI settings",async()=>{
@@ -644,4 +678,247 @@ test("disabled Librarian rejects stale generation actions before retrieval",asyn
 });
 test("module save failure restores the prior choice without changing runtime features",async()=>{
  const {plugin}=host();let applied=false;plugin.applyModules=()=>{applied=true;};plugin.saveData=async()=>{throw new Error("Disk unavailable");};await assert.rejects(()=>plugin.setModule("scripts",false),/Disk unavailable/);assert.equal(plugin.workspaceSettings.modules.scripts,true);assert.equal(applied,false);
+});
+
+async function creationHost() {
+  const h = await orderHost();
+  await h.controller.fillMissing(await h.controller.groups());
+  const template = new TFile('_templates/Script.md');
+  const source = '---\nTitle:\nGroup:\nPages:\nCharacters:\nCustom: "keep me"\n---\n\n> [!tip]- Guide\n> Edited by the author.\n\n## Page 1 — PAGE TITLE\n\nSide: Right\n\nLocation: INT. LOCATION\n\n> [!panel]\n> Write here.\n\n<% literal template code %>\n';
+  h.files.push(template);
+  h.sources.set(template.path, source);
+  const folders = ['/', 'Project', 'Project/Scripts', 'Elsewhere', '_templates', 'Archive', '.hidden'].map(p=>new TFolder(p));
+  h.app.vault.getAbstractFileByPath = (path: string) => h.files.find(f=>f.path===path) ?? folders.find(f=>f.path===path);
+  h.app.vault.create = async (path: string, text: string) => {
+    if (h.app.vault.getAbstractFileByPath(path)) throw new Error('File already exists');
+    const file = new TFile(path);
+    h.files.push(file);
+    h.sources.set(path, text);
+    return file;
+  };
+  const opened: string[] = [];
+  h.app.workspace.getLeaf = () => ({openFile: async (file: TFile)=>{ opened.push(file.path); }});
+  h.controller.openStudio = async () => {};
+  h.controller.plugin.savePluginData = async () => {};
+  h.controller.session.data.preferences.scriptTemplate = template.path;
+  h.controller.session.ready = true;
+  h.controller.session.data.selection = {scope:'Project', group:'Draft'};
+  return {...h, template, source, folders, opened};
+}
+
+test('script creation preserves the edited template body and unrelated properties, appends in order and opens the note', async () => {
+  const h = await creationHost();
+  const before = new Map(h.sources);
+  const file = await h.controller.createScript('Project/Scripts', 'New Script.md', 'Draft');
+  const text = h.sources.get(file.path)!;
+  const metadata = h.scriptMetadata(text);
+  assert.equal(metadata.Title, 'New Script');
+  assert.equal(metadata.role, 'manuscript');
+  assert.equal(metadata.format, 'comic-script');
+  assert.equal(metadata.Group, 'Draft');
+  assert.equal(metadata['Preceded By'], '[[Project/Scripts/B]]');
+  assert.equal(metadata.Pages, null);
+  assert.equal(metadata.Custom, 'keep me');
+  assert.equal(text.slice(text.indexOf('> [!tip]')), h.source.slice(h.source.indexOf('> [!tip]')));
+  for(const [path, source] of before) assert.equal(h.sources.get(path), source);
+  assert.deepEqual(h.opened, [file.path]);
+  const groups = await h.controller.groups();
+  assert.deepEqual(groups[0].sequences.flat().map(s=>s.path), ['Project/Scripts/A.md','Project/Scripts/B.md',file.path]);
+  assert.equal(h.controller.session.data.daily.vault, 0, 'copied scaffolding earns no writing credit');
+  assert.equal(h.controller.busy, false);
+});
+
+test('folder creation works outside Scripts and for an empty destination; sidebar destination follows its active list', async () => {
+  const h = await creationHost();
+  assert.equal(await h.controller.creationFolder(), 'Project/Scripts');
+  h.controller.session.data.selection = {scope:'Project'};
+  await h.controller.createScript('Project/Scripts', 'Project Wide', 'Draft');
+  assert.deepEqual(h.controller.session.data.selection, {scope:'Project'}, 'all-groupings selection stays broad');
+  const file = await h.controller.createScript('Elsewhere', 'First');
+  assert.equal(h.scriptMetadata(h.sources.get(file.path)!)['Preceded By'], '');
+  assert.deepEqual(h.controller.session.data.selection, {scope:'Elsewhere',group:'Top-level'});
+  assert.equal(await h.controller.creationFolder(), 'Elsewhere');
+  const root = await h.controller.createScript('/', 'Root Script');
+  assert.equal(root.path, 'Root Script.md');
+});
+
+test('creation rejects missing templates, malformed YAML, collisions, unsafe paths and order conflicts without writing', async () => {
+  const h = await creationHost();
+  const before = new Map(h.sources);
+  for (const name of ['', '../escape', 'nested/name', 'bad:name', '.hidden', 'bad#anchor', 'bad|link'])
+    await assert.rejects(h.controller.createScript('Project/Scripts',name,'Draft'), /script name/);
+  for (const folder of ['missing','_templates','Archive','.hidden'])
+    await assert.rejects(h.controller.createScript(folder,'Rejected','Draft'));
+  await assert.rejects(h.controller.createScript('Project/Scripts','A','Draft'), /already exists/);
+  h.controller.session.data.preferences.scriptTemplate = 'missing.md';
+  await assert.rejects(h.controller.createScript('Project/Scripts','Rejected','Draft'), /template/);
+  h.controller.session.data.preferences.scriptTemplate = h.template.path;
+  h.sources.set(h.template.path, '---\nUnclosed: yes\n');
+  await assert.rejects(h.controller.createScript('Project/Scripts','Rejected','Draft'), /frontmatter/);
+  assert.equal(h.controller.busy, false);
+  h.sources.set(h.template.path, h.source);
+  h.sources.set('Project/Scripts/B.md', '---\nGroup: Draft\nPreceded By: "[[Missing]]"\n---\n## Page 1');
+  await assert.rejects(h.controller.createScript('Project/Scripts','Rejected','Draft'), /ordering warnings/);
+  h.sources.set('Project/Scripts/B.md', before.get('Project/Scripts/B.md')!);
+  assert.deepEqual(h.sources, before);
+});
+
+test('creation handles a simultaneous filename collision, storage failure and repeated request safely', async () => {
+  const h = await creationHost();
+  const create = h.app.vault.create;
+  h.app.vault.create = async () => { throw new Error('Disk full'); };
+  await assert.rejects(h.controller.createScript('Project/Scripts','New','Draft'), /Disk full/);
+  assert.equal(h.controller.busy, false);
+  h.app.vault.create = async (path: string, text: string) => {
+    const file = new TFile(path);
+    h.files.push(file);
+    h.sources.set(path,'External note');
+    return create(path,text);
+  };
+  await assert.rejects(h.controller.createScript('Project/Scripts','New','Draft'), /already exists/);
+  assert.equal(h.sources.get('Project/Scripts/New.md'),'External note');
+  h.app.vault.create = create;
+  await assert.rejects(h.controller.createScript('Project/Scripts','New','Draft'), /already exists/);
+});
+
+test('concurrent creation is serialized and a post-create preference failure cannot turn success into a retry', async () => {
+  const h = await creationHost();
+  const create = h.app.vault.create;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  h.app.vault.create = async (path: string, text: string) => { await gate; return create(path,text); };
+  const first = h.controller.createScript('Project/Scripts','First','Draft');
+  await assert.rejects(h.controller.createScript('Project/Scripts','Second','Draft'), /in progress/);
+  release();
+  await first;
+  h.controller.plugin.savePluginData = async () => { throw new Error('Preferences unavailable'); };
+  const warn = console.warn;
+  try {
+    console.warn = () => {};
+    const file = await h.controller.createScript('Project/Scripts','Third','Draft');
+    assert.equal(h.sources.has(file.path), true);
+    assert.equal(h.scriptMetadata(h.sources.get(file.path)!)['Preceded By'], '[[Project/Scripts/First]]');
+  } finally { console.warn = warn; }
+  assert.equal(h.controller.busy, false);
+});
+
+async function entryHost() {
+  const h=await creationHost();
+  const {readWorkspace}=await import('../src/workspace/model.ts');
+  const owner:any=h.controller.plugin;
+  owner.workspaceSettings=readWorkspace(undefined);
+  owner.scriptController=h.controller;
+  owner.activeText=()=>undefined;
+  owner.themeFeature={refresh:()=>{}};
+  h.app.vault.getAllLoadedFiles=()=>[...h.files,...h.folders];
+  h.app.vault.createFolder=async(path:string)=> {
+    if(h.app.vault.getAbstractFileByPath(path)) throw new Error('Already exists');
+    const folder=new TFolder(path);h.folders.push(folder);return folder;
+  };
+  h.app.vault.delete=async(file:any)=>{const index=h.folders.indexOf(file);if(index>=0)h.folders.splice(index,1);};
+  return {...h,owner};
+}
+
+test('New Entry preserves template source, merges tags, creates requested folders, and never moves original notes', async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const baseline=new Map(h.sources);
+  const request:any={kind:'Canon',subtype:'Character',title:'New Character',folder:'World/People',template:h.template.path,createFolders:true};
+  const file=await createEntry(h.owner,request);
+  const text=h.sources.get(file.path)!;
+  const metadata=h.scriptMetadata(text);
+  assert.equal(file.path,'World/People/New Character.md');
+  assert.deepEqual(metadata.tags,['character']);
+  assert.equal(metadata.Title,'New Character');
+  assert.equal(text.slice(text.indexOf('> [!tip]')),h.source.slice(h.source.indexOf('> [!tip]')));
+  assert.equal(h.folders.some(f=>f.path==='World/People'),true);
+  for(const [path,source] of baseline) assert.equal(h.sources.get(path),source);
+  assert.equal(h.controller.session.data.daily.vault,0);
+  await assert.rejects(createEntry(h.owner,request),/already exists/);
+  await assert.rejects(createEntry(h.owner,{...request,title:'Bad',folder:'../outside'}),/vault-relative/);
+  await assert.rejects(createEntry(h.owner,{...request,title:'Bad',template:'Missing.md'}),/existing Markdown/);
+  await assert.rejects(createEntry(h.owner,{...request,title:'Bad',folder:'Absent',createFolders:false}),/does not exist/);
+});
+
+test('New Project creates an overview in its own folder; project subtypes remain in that project',async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const base:any={kind:'Project',subtype:'New Project',title:'New Book',folder:'08 Projects',template:'',createFolders:true};
+  const overview=await createEntry(h.owner,base);
+  assert.equal(overview.path,'08 Projects/New Book/Overview.md');
+  assert.deepEqual(h.scriptMetadata(h.sources.get(overview.path)!).tags,['project-parent']);
+  await assert.rejects(createEntry(h.owner,base),/already exists/);
+  const request={...base,subtype:'Note',title:'Notes',folder:'08 Projects/New Book',project:'08 Projects/New Book'};
+  const note=await createEntry(h.owner,request);
+  assert.equal(note.path,'08 Projects/New Book/Notes.md');
+  await assert.rejects(createEntry(h.owner,{...request,title:'Elsewhere',folder:'Elsewhere'}),/within the selected project/);
+  await assert.rejects(createEntry(h.owner,{...request,title:'Missing project',project:'Gone'}),/existing project/);
+});
+
+test('New Entry script uses the chosen template without changing the script-template setting',async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const file=await createEntry(h.owner,{kind:'Project',subtype:'Script',title:'Another Script',folder:'Project/Scripts',template:h.template.path,createFolders:false,project:'Project'});
+  assert.equal(h.scriptMetadata(h.sources.get(file.path)!)['Preceded By'],'[[Project/Scripts/B]]');
+  assert.equal(h.controller.session.data.preferences.scriptTemplate,h.template.path);
+  h.owner.workspaceSettings.modules.scripts=false;
+  await assert.rejects(createEntry(h.owner,{kind:'Project',subtype:'Script',title:'Disabled',folder:'Project/Scripts',template:h.template.path,createFolders:false,project:'Project'}),/Enable Scripts/);
+});
+
+test('entry creation rolls back only its empty new folders when file creation fails',async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const before=h.folders.map(f=>f.path);
+  h.app.vault.create=async()=>{throw new Error('Disk full');};
+  await assert.rejects(createEntry(h.owner,{kind:'Brainstorm',subtype:'Brainstorm',title:'Idea',folder:'Missing/Ideas',template:'',createFolders:true}),/Disk full/);
+  assert.deepEqual(h.folders.map(f=>f.path),before);
+});
+
+test('entry defaults resolve matching templates and metadata suggestions remain local and field-specific',async()=> {
+  const h=await entryHost();
+  const {entryDefaults,templateMatch}=await import('../src/workspace/creation.ts');
+  const {propertyNames,propertyValues,vaultFolders}=await import('../src/ui/suggest.ts');
+  assert.equal(templateMatch(['_templates/Character.md'],'_templates/Canon/Character.md','Character'),'_templates/Character.md');
+  assert.equal(templateMatch(['_templates/Comic Script.md'],'','Script'),'_templates/Comic Script.md');
+  assert.equal(templateMatch(['Notes/Character.md'],'','Character'),'');
+  assert.equal(entryDefaults(h.owner.workspaceSettings,'Project','Script','Project').folder,'Project/Scripts');
+  assert.ok(propertyNames(h.app).includes('Group'));
+  assert.deepEqual(propertyValues(h.app,'GROUP'),['Draft']);
+  assert.ok(vaultFolders(h.app).includes('Project'));
+});
+
+test('configured project script folders retain project identity for both creation entry points',async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const first=await createEntry(h.owner,{kind:'Project',subtype:'Script',title:'Custom Folder',folder:'Project/Manuscripts',template:h.template.path,createFolders:true,project:'Project'});
+  assert.equal(h.scriptMetadata(h.sources.get(first.path)!).Project,'Project');
+  assert.deepEqual(h.controller.session.data.selection,{scope:'Project',group:'Draft'});
+  const second=await h.controller.createScript('Project/Manuscripts','Next Custom','Draft');
+  const group=(await h.controller.groups()).find(group=>group.scope==='Project'&&group.group==='Draft')!;
+  assert.deepEqual(group.sequences.flat().map(script=>script.path),['Project/Scripts/A.md','Project/Scripts/B.md',first.path,second.path]);
+});
+
+test('a multiword custom canon type replaces template classification tags while preserving unrelated tags',async()=> {
+  const h=await entryHost();
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  const {entryType}=await import('../src/workspace/model.ts');
+  h.owner.workspaceSettings.canonTypes.push({name:'Magic Creature',folder:'World/Creatures',projectFolder:'Creatures',template:h.template.path});
+  h.sources.set(h.template.path,'---\ntags: ["character","important"]\n---\n\nAuthor template body.');
+  const file=await createEntry(h.owner,{kind:'Canon',subtype:'Magic Creature',title:'Creature',folder:'World/Creatures',template:h.template.path,createFolders:true});
+  const metadata=h.scriptMetadata(h.sources.get(file.path)!);
+  assert.deepEqual(metadata.tags,['important','magic-creature']);
+  assert.equal(entryType(file.path,metadata.tags as string[],h.owner.workspaceSettings.canonTypes),'Magic Creature');
+  assert.equal(entryType('Project/Creatures/Creature.md',['character'],h.owner.workspaceSettings.canonTypes),'Magic Creature');
+});
+
+test('Storyboard New Entry creates root projects and keeps global canon folders out of the project register',async()=> {
+  const h=await entryHost();
+  const {readWorkspace,projects}=await import('../src/workspace/model.ts');
+  const {createEntry}=await import('../src/workspace/creation.ts');
+  h.owner.workspaceSettings=readWorkspace({vaultType:'Storyboard'});
+  const project=await createEntry(h.owner,{kind:'Project',subtype:'New Project',title:'Board',folder:'/',template:'',createFolders:true});
+  assert.equal(project.path,'Board/Overview.md');
+  const person=await createEntry(h.owner,{kind:'Canon',subtype:'Character',title:'Person',folder:'02 Character',template:'',createFolders:true});
+  const entries=[project,person].map(file=>({path:file.path,name:file.basename,body:'',tags:h.scriptMetadata(h.sources.get(file.path)!).tags as string[],fields:{},modified:1,created:1}));
+  assert.deepEqual(projects(entries,'Storyboard',[],h.owner.workspaceSettings).map(project=>project.path),['Board']);
 });

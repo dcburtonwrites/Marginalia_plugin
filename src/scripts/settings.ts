@@ -1,4 +1,5 @@
-import { Setting, Notice } from "obsidian";
+import { Setting, Notice, normalizePath } from "obsidian";
+import { suggest, vaultFiles } from "../ui/suggest.ts";
 import { el } from "../ui/sidebar.ts";
 import type { ScriptHost } from "./view.ts";
 import type { GoalMode } from "./writing.ts";
@@ -14,6 +15,19 @@ export function renderWritingSettings(root: HTMLElement, plugin: ScriptHost) {
       new Notice("Could not save writing settings.");
     }
   };
+  new Setting(root)
+    .setName("Script template location")
+    .setDesc("Vault-relative path to a Markdown template. Used by Create a New Script and the Script Studio button. Copies the template without running template commands.")
+    .addText(input => {
+      suggest(input.inputEl, () => vaultFiles(plugin.app));
+      input.inputEl.setAttribute("aria-label", "Script template location");
+      input.setPlaceholder("_templates/Comic Script.md")
+        .setValue(p.scriptTemplate)
+        .onChange(async value => {
+          p.scriptTemplate = value.trim() ? normalizePath(value.trim()) : "";
+          await save();
+        });
+    });
   root.append(el("h3", "", "Writing session"));
   new Setting(root)
     .setName("Show countdown timer")

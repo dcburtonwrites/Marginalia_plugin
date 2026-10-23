@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0028",
+  "host": "Obsidian 1.14.4",
+  "automated": {
+    "pure": 93,
+    "host": 39,
+    "total": 132,
+    "typecheck": "pass",
+    "package": "pass",
+    "script_browser": "pass",
+    "workspace_browser": "pass"
+  },
+  "native_checks": [
+    "Missing-template error creates no note",
+    "Browse selects edited _templates/Comic Script.md",
+    "Setting persists across Force Reload",
+    "New Script below the last active-list script and above countdown",
+    "Active Draft grouping prefilled",
+    "Template body copied byte-for-byte including owner edits",
+    "New note recognized with one titled page and one panel",
+    "Preceded By appends after existing last script",
+    "Folder context menu Create a New Script",
+    "Folder action creates in clicked Harbor folder outside Scripts",
+    "Native editor opens created file and sidebar selects correct scope",
+    "Duplicate name produces inline error without overwriting",
+    "Copied text earns no daily words: total remains 20",
+    "Both owned temporary notes removed; original project selection/editor restored"
+  ],
+  "preservation": {
+    "pre_existing_markdown_files": 15,
+    "unchanged": true,
+    "template_sha256": "da4dc7cab899a1c3a6ee3edfabf6e0c29b4e5daafbf53a624e105f72a29a566c",
+    "temporary_scripts_remaining": 0,
+    "original_creative_vaults_modified": false
+  },
+  "installation": ".preview/Marginalia Test Vault/.obsidian/plugins/marginalia",
+  "scope_limits": [
+    "Template code copied literally, never executed",
+    "No compile/export, new hotkeys, or Librarian optimization/generation work",
+    "No original creative vault installation"
+  ],
+  "screenshot": "design/verification/native-new-script.png"
+}

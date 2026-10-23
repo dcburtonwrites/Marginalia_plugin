@@ -10,6 +10,8 @@ import {
 import type Marginalia from "../main.ts";
 import { el, button } from "../ui/sidebar.ts";
 import { bodyOffset } from "../core/types.ts";
+import { NewEntryModal } from "./creation.ts";
+import { suggest } from "../ui/suggest.ts";
 import {
   eligible,
   navigation,
@@ -215,6 +217,7 @@ export class AppPage extends ItemView {
   query = "";
   sort = "title";
   includeProjects = true;
+  editingPins = false;
   revision = 0;
   closed = false;
   constructor(
@@ -243,6 +246,7 @@ export class AppPage extends ItemView {
     };
   }
   async setState(state: Record<string, unknown>, result: { history: boolean }) {
+    if (state.section !== this.section || state.project !== this.project) this.editingPins = false;
     this.section = typeof state.section === "string" ? state.section : "Home";
     this.project =
       typeof state.project === "string" ? state.project : undefined;
@@ -292,7 +296,7 @@ export class AppPage extends ItemView {
               created: file.stat.ctime,
               fields,
               tags,
-              type: entryType(file.path, tags),
+              type: entryType(file.path, tags, this.owner.workspaceSettings.canonTypes),
             } satisfies Entry;
           }),
       )
@@ -381,7 +385,7 @@ export class AppPage extends ItemView {
         this.tab = "All Entries";
       }
       this.owner.themeFeature?.markActive(this.section);
-      const allProjects = projects(entries, type, folders);
+      const allProjects = projects(entries, type, folders, this.owner.workspaceSettings);
       if (this.project && !allProjects.some((p) => p.path === this.project)) {
         this.project = undefined;
         this.tab = "All Entries";
@@ -405,6 +409,7 @@ export class AppPage extends ItemView {
         ),
       );
       page.append(header);
+      header.append(button("New Entry", () => new NewEntryModal(this.owner,this.section,this.project).open(), "marginalia-new-entry"));
       if (this.section === "Home") {
         this.home(page, entries, allProjects);
         return;
@@ -474,21 +479,24 @@ export class AppPage extends ItemView {
             document.createTextNode("Include project entries"),
           );
           page.append(label);
-          items = canon(entries, this.includeProjects);
-          this.tabs(page, ["All Entries", ...entryTypes]);
+          items = canon(entries, this.includeProjects, this.owner.workspaceSettings);
+          this.tabs(page, ["All Entries", ...this.owner.workspaceSettings.canonTypes.map(type=>type.name)]);
           if (this.tab !== "All Entries")
             items = items.filter((e) => e.type === this.tab);
         } else {
           const prefix =
             this.section === "Brainstorms"
-              ? "00 Brainstorms/"
+              ? this.owner.workspaceSettings.entrySetup.brainstorm.folder === "/" ? "" : this.owner.workspaceSettings.entrySetup.brainstorm.folder.replace(/\/$/,"") + "/"
               : `${this.section}/`;
-          items = entries.filter((e) => e.path.startsWith(prefix));
+          items = entries.filter((e) => this.section === "Brainstorms"
+            ? e.tags.includes("brainstorm") || (!!prefix && e.path.startsWith(prefix))
+            : e.path.startsWith(prefix));
+          const relative = (entry: Entry) => prefix && entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.name + ".md";
           const folders = [
             ...new Set(
               items.map((e) =>
-                e.path.slice(prefix.length).includes("/")
-                  ? e.path.slice(prefix.length).split("/")[0]
+                relative(e).includes("/")
+                  ? relative(e).split("/")[0]
                   : "Uncategorized",
               ),
             ),
@@ -497,8 +505,8 @@ export class AppPage extends ItemView {
           if (this.tab !== "All Entries")
             items = items.filter(
               (e) =>
-                (e.path.slice(prefix.length).includes("/")
-                  ? e.path.slice(prefix.length).split("/")[0]
+                (relative(e).includes("/")
+                  ? relative(e).split("/")[0]
                   : "Uncategorized") === this.tab,
             );
         }
@@ -543,7 +551,8 @@ export class AppPage extends ItemView {
     } else continuing.append(el("p", "", "Open a note to begin."));
     desk.append(continuing);
     const pins = el("section", "marginalia-home-pins");
-    pins.append(
+    const pinsHeader = el("div", "marginalia-pins-heading");
+    pinsHeader.append(
       el(
         "h2",
         "",
@@ -552,13 +561,25 @@ export class AppPage extends ItemView {
           : "Pinned References",
       ),
     );
+    const editor = el("div", "marginalia-pin-editor");
+    editor.hidden = !this.editingPins;
+    const edit = button(this.editingPins ? "Done" : "Edit", () => {
+      this.editingPins = !this.editingPins;
+      void this.draw().then(() => {
+        this.contentEl.querySelector<HTMLElement>(this.editingPins ? ".marginalia-pin-editor input" : ".marginalia-pin-edit")?.focus();
+      });
+    }, "marginalia-pin-edit");
+    edit.setAttribute("aria-label", this.editingPins ? "Finish editing pinned references" : "Edit pinned references");
+    edit.setAttribute("aria-expanded", String(this.editingPins));
+    pinsHeader.append(edit);
+    pins.append(pinsHeader);
     const pinned = entries.filter((e) =>
       this.owner.workspaceSettings.pins.includes(e.path),
     );
     for (const entry of pinned) {
       const row = el("div", "marginalia-pin-row");
-      row.append(
-        this.card(entry),
+      row.append(this.card(entry));
+      if (this.editingPins) row.append(
         button("Unpin", () => {
           this.owner.workspaceSettings.pins =
             this.owner.workspaceSettings.pins.filter((p) => p !== entry.path);
@@ -567,31 +588,27 @@ export class AppPage extends ItemView {
       );
       pins.append(row);
     }
-    const choose = el("select") as HTMLSelectElement;
+    const choose = el("input");
     choose.setAttribute("aria-label", "Pin a reference");
-    const placeholder = el(
-      "option",
-      "",
-      "Pin a reference…",
-    ) as HTMLOptionElement;
-    placeholder.value = "";
-    choose.append(placeholder);
-    for (const entry of this.owner.workspaceSettings.vaultType === "Storyboard"
+    choose.placeholder="Type a note name or path…";
+    const selectorLabel = el("label", "marginalia-pin-selector");
+    selectorLabel.append(el("span", "", this.owner.workspaceSettings.vaultType === "Storyboard" ? "Select a project" : "Select a reference"), choose);
+    editor.append(selectorLabel);
+    pins.append(editor);
+    const choices = this.owner.workspaceSettings.vaultType === "Storyboard"
       ? allProjects.flatMap((p) => (p.overview ? [p.overview] : []))
-      : entries) {
-      const o = el("option", "", entry.name) as HTMLOptionElement;
-      o.value = entry.path;
-      choose.append(o);
-    }
-    choose.onchange = () => {
-      if (choose.value && entries.some((e) => e.path === choose.value)) {
+      : entries;
+    suggest(choose,()=>choices.filter(entry=>!this.owner.workspaceSettings.pins.includes(entry.path)).map(entry=>entry.path));
+    const pin = () => {
+      if (choose.value && choices.some((e) => e.path === choose.value)) {
         this.owner.workspaceSettings.pins = [
           ...new Set([...this.owner.workspaceSettings.pins, choose.value]),
         ];
         void this.owner.savePluginData().then(() => this.draw());
       }
     };
-    pins.append(choose);
+    choose.onchange=pin;
+    choose.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();pin();}});
     desk.append(pins);
     root.append(desk);
     root.append(el("h2", "", "Recently Opened"));

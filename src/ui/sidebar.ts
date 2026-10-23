@@ -1,5 +1,6 @@
 import type { Expansion, Packet, Suggestion } from "../core/types.ts";
 import { title } from "../core/types.ts";
+import { suggest } from "./suggest.ts";
 export type Tab = "Ask" | "Review" | "Library";
 export interface Message {
   role: "user" | "assistant";
@@ -18,6 +19,7 @@ export interface SidebarState {
   messages: Message[];
   expansions: { entry: string; generatedAt: string }[];
   references: string[];
+  referenceChoices?: {path: string; type: string}[];
 }
 export interface SidebarActions {
   tab(tab: Tab): void;
@@ -31,7 +33,7 @@ export interface SidebarActions {
   dismiss(s: Suggestion): void;
   refine(s: Suggestion, text: string): void;
   open(entry: string): void;
-  addReference(): void;
+  addReference(path?: string): void;
   removeReference(path: string): void;
   source(path: string): void;
   markdown(text: string, el: HTMLElement, source: string): void;
@@ -181,10 +183,39 @@ export function renderSidebar(
     el("span", "marginalia-muted", "Search in"),
     el("span", "marginalia-scope-label", "This world"),
   );
-  const ref = button("+ Add reference", a.addReference);
+  const ref = button("Pin a reference", () => {
+    if (!s.referenceChoices) { a.addReference(); return; }
+    picker.hidden = !picker.hidden;
+    ref.setAttribute("aria-expanded", String(!picker.hidden));
+    if (!picker.hidden) referenceInput.focus();
+  });
   ref.disabled = s.busy || !s.target;
+  ref.setAttribute("aria-expanded", "false");
   scope.append(ref);
   root.append(scope);
+  const picker = el("div", "marginalia-reference-picker");
+  picker.hidden = true;
+  const referenceType = el("select");
+  referenceType.setAttribute("aria-label", "Reference type");
+  for (const type of ["All types", ...new Set(s.referenceChoices?.map(choice=>choice.type))]) {
+    const option = el("option", "", type); option.value = type; referenceType.append(option);
+  }
+  const referenceInput = el("input");
+  referenceInput.placeholder = "Type a note name or path…";
+  referenceInput.setAttribute("aria-label", "Reference note");
+  picker.append(referenceType, referenceInput);
+  root.append(picker);
+  const referenceSuggestions = suggest(referenceInput, () => (s.referenceChoices ?? [])
+    .filter(choice => !s.references.includes(choice.path) &&
+      (referenceType.value === "All types" || choice.type === referenceType.value))
+    .map(choice=>choice.path));
+  const pinReference = () => {
+    const choice = s.referenceChoices?.find(choice=>choice.path === referenceInput.value);
+    if (choice && (referenceType.value === "All types" || choice.type === referenceType.value)) a.addReference(choice.path);
+  };
+  referenceInput.onchange = pinReference;
+  referenceInput.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); pinReference(); } });
+  referenceType.onchange = () => { referenceInput.value=""; referenceInput.focus(); referenceSuggestions.refresh(); };
   if (s.references.length) {
     const refs = el("div", "marginalia-references");
     for (const path of s.references) {

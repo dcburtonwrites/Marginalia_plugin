@@ -1,6 +1,8 @@
 import { el, button } from "../ui/sidebar.ts";
 import type { ScriptController } from "./controller.ts";
 import { clockLabel } from "./writing.ts";
+import { TimerDurationModal } from "./timer.ts";
+import { Notice } from "obsidian";
 export function renderSessionFooter(
   controller: ScriptController,
   change: () => void,
@@ -18,6 +20,16 @@ export function renderSessionFooter(
       clockLabel(session.remaining()),
     );
     value.setAttribute("aria-label", "Countdown remaining");
+    value.setAttribute("role", "button");
+    value.tabIndex = 0;
+    value.dataset.key = "timer-duration";
+    value.title = session.data.timerStarted ? "Reset or finish the session to change its duration" : "Double-click to change this session’s duration";
+    const edit = () => {
+      if (session.running || session.data.timerStarted) { new Notice("Finish or reset the session before changing its duration."); return; }
+      new TimerDurationModal(controller, change).open();
+    };
+    value.ondblclick = edit;
+    value.onkeydown = event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); edit(); } };
     const start = button(
       session.running ? "Pause" : "Start",
       () => {

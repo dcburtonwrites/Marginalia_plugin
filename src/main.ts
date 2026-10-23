@@ -59,9 +59,13 @@ import { readWriting } from "./scripts/writing.ts";
 import { renderWritingSettings } from "./scripts/settings.ts";
 import { registerScripts } from "./scripts/view.ts";
 import { WorkspaceFeature, PAGES } from "./workspace/feature.ts";
+import { VaultSetupModal } from "./workspace/setup.ts";
+import { defaultEntrySetup } from "./workspace/setup-model.ts";
+import { suggest, propertyNames } from "./ui/suggest.ts";
 import {
   readWorkspace,
   readStatusOrder,
+  entryType,
   type ModuleName,
 } from "./workspace/model.ts";
 import profilesSource from "./prompts/canon-profiles.json";
@@ -786,9 +790,16 @@ export default class Marginalia extends Plugin {
     });
     await this.app.workspace.revealLeaf(leaf);
   }
-  addReference() {
+  addReference(reference?: string) {
     const path = this.target;
     if (!path) return;
+    if (reference) {
+      const file = this.app.vault.getAbstractFileByPath(reference);
+      if (file instanceof TFile && permitted(file.path) && !this.current(path).references.includes(file.path))
+        this.current(path).references.push(file.path);
+      this.refresh();
+      return;
+    }
     new ReferencePicker(this.app, (file) => {
       if (!this.current(path).references.includes(file.path))
         this.current(path).references.push(file.path);
@@ -844,6 +855,13 @@ class LibrarianView extends ItemView {
       messages: c.messages,
       expansions: p.expansions,
       references: c.references,
+      referenceChoices: p.app.vault.getMarkdownFiles().filter(file=>permitted(file.path)).map(file => {
+        const fm = p.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+        const tags = [...[fm.tags].flat().filter((value): value is string=>typeof value === "string"),
+          ...(p.app.metadataCache.getFileCache(file)?.tags ?? []).map(item=>item.tag)].map(tag=>tag.replace(/^#/,""));
+        return {path:file.path, type:entryType(file.path, tags, p.workspaceSettings.canonTypes) ??
+          (fm.role === "manuscript" || file.path.includes("/Scripts/") ? "Script" : "Note")};
+      }),
     };
     const guard = (fn: () => Promise<unknown>) =>
       void fn().catch((e) => {
@@ -873,7 +891,7 @@ class LibrarianView extends ItemView {
       },
       refine: (s, text) => void p.refine(s, text),
       open: (entry) => guard(() => p.openExpansion(entry)),
-      addReference: () => p.addReference(),
+      addReference: (path) => p.addReference(path),
       removeReference: (path) => {
         p.current().references = p
           .current()
@@ -1169,18 +1187,24 @@ class MarginaliaSettings extends PluginSettingTab {
               .addOption("Storyboard", "Storyboard")
               .setValue(p.workspaceSettings.vaultType)
               .onChange(async (value) => {
+                const oldDefault = defaultEntrySetup(p.workspaceSettings.vaultType === "Storyboard").projectsFolder;
+                if (p.workspaceSettings.entrySetup.projectsFolder === oldDefault)
+                  p.workspaceSettings.entrySetup.projectsFolder = defaultEntrySetup(value === "Storyboard").projectsFolder;
                 p.workspaceSettings.vaultType =
                   value === "Storyboard" ? "Storyboard" : "World";
                 await p.savePluginData();
                 p.themeFeature?.refresh();
               }),
           );
+        new Setting(body).setName("Vault setup").setDesc("Advanced: configure canon types, destination folders and templates for this vault.")
+          .addButton(button=>button.setButtonText("Configure vault…").onClick(()=>new VaultSetupModal(p).open()));
         new Setting(body)
           .setName("Project Status Flow field")
           .setDesc(
             "The note property used for status in Storyboard Projects and Project Register. Defaults to stage.",
           )
-          .addText((input) =>
+          .addText((input) => {
+            suggest(input.inputEl,()=>propertyNames(p.app));
             input
               .setPlaceholder("stage")
               .setValue(p.workspaceSettings.projectStatusField)
@@ -1189,22 +1213,22 @@ class MarginaliaSettings extends PluginSettingTab {
                   value.trim() || "stage";
                 await p.savePluginData();
                 p.themeFeature?.refresh();
-              }),
-          );
+              });
+          });
         new Setting(body)
           .setName("Project Status Flow order")
           .setDesc(
             "One status per line, in display order. Use the exact values in your notes. Other existing statuses appear afterward; empty values appear under Unassigned. This does not rename note properties or values.",
           )
-          .addTextArea((input) =>
+          .addTextArea((input) => {
             input
               .setValue(p.workspaceSettings.projectStatusOrder.join("\n"))
               .onChange(async (value) => {
                 p.workspaceSettings.projectStatusOrder = readStatusOrder(value);
                 await p.savePluginData();
                 p.themeFeature?.refresh();
-              }),
-          );
+              });
+          });
         new Setting(body)
           .setName("App colors")
           .setDesc(

@@ -52,8 +52,9 @@
 
 ## Following script increments
 - [ ] Move compile/export workflows into Script Studio when the owner starts that increment.
-- [ ] Speaker completion from Characters/prior speakers; links opt-in.
-- [ ] Page reordering, further navigation commands, script creation and export with user-bindable shortcuts; preserve Templater ownership.
+- [x] Local /d dropdown from frontmatter characters, prior speakers and known mentions, preserving existing plain/wiki form (D-0025).
+- [x] Configurable script template, folder context action and New Script button below the active sidebar list (D-0028).
+- [ ] Page reordering, further navigation commands and export with user-bindable shortcuts; preserve Templater ownership.
 
 The owner explicitly started Phase 4 while Librarian prose quality and hidden-storage portability remain open (D-0007). Predecessor properties are now maintained automatically and determine order (D-0009 supersedes D-0008). Script checks do not imply Librarian quality acceptance. See VERIFICATION.md.
 
@@ -66,7 +67,7 @@ The owner explicitly started Phase 4 while Librarian prose quality and hidden-st
 - [x] Three collapsible settings sections with immediate Theme/Scripts/Librarian lifecycle switches.
 - [x] Core/host/browser regressions and native pages/palette/module checks; all existing fixture notes preserved.
 
-This increment provides browsing and navigation pages, not complete standalone-app feature parity. Creation/template execution, inline register editing and compile/export are separate work.
+This increment provides browsing and navigation pages, not complete standalone-app feature parity. Script creation copies a configured template (D-0028); executing template code, inline register editing and compile/export remain separate work.
 
 
 ## Phase 7 acceptance follow-up — real-content baseline (D-0022)
@@ -82,3 +83,13 @@ See verification/real-vault-review-2026-10-22.md. Successful runtime checks do n
 - [x] Per-vault property selector by name and editable status order under Theme settings.
 - [x] Shared ordered tabs/filtering/status labels for Storyboard Projects and Project Register; retain unlisted and missing states.
 - [x] Owner defaults, settings persistence, automated and native custom-field/order/reload checks without rewriting notes.
+
+
+## Phase 7 — Authoring and vault setup (D-0029)
+- [x] Double-click one-session countdown edit with active/paused lock, default-preserving Reset and stable clock DOM.
+- [x] Searchable Home pinning and Librarian reference dropdown with type filter.
+- [x] Sidebar pages closed by default, retaining explicit disclosure state through redraw.
+- [x] New Entry on every app page with ordered entry/subtype choices, routing, template matching, project/script creation and safe failure handling.
+- [x] Per-vault setup table for canon types, folders/templates, project roots/options and explicit folder creation; owner defaults preserved.
+- [x] Vault-item, frontmatter-field and status-value suggestions with typed new-status support.
+- [x] Pure/host/browser regressions and native disposable-vault checks; user template, notes, word goal and totals preserved.

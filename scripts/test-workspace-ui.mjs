@@ -80,11 +80,23 @@ try {
     /08 Projects\/Copper Sky/,
   );
   await open("Home");
-  await page.getByLabel("Pin a reference").selectOption({ label: "Mira" });
+  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),false);
+  await page.getByRole("button",{name:"Edit pinned references",exact:true}).click();
+  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),true);
+  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).evaluate(input=>getComputedStyle(input).borderRadius),"8px");
+  await page.getByLabel("Pin a reference",{exact:true}).fill("Mira");
+  await page.getByRole("option",{name:"02 Character/Mira.md",exact:true}).click();
   await page.getByRole("heading", { name: "Pinned References" }).waitFor();
   assert.equal(await page.getByRole("button", { name: "Unpin" }).count(), 1);
+  await page.getByRole("button",{name:"Finish editing pinned references",exact:true}).click();
+  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),false);
+  assert.equal(await page.getByRole("button", { name: "Unpin" }).count(), 0);
+  assert.match(await page.locator(".marginalia-home-pins .marginalia-entry-card").textContent(),/Mira/);
+  await page.getByRole("button",{name:"Edit pinned references",exact:true}).click();
   await page.getByRole("button", { name: "Unpin" }).click();
   assert.equal(await page.getByRole("button", { name: "Unpin" }).count(), 0);
+  await page.getByRole("button",{name:"Finish editing pinned references",exact:true}).click();
+  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),false);
   await page.getByRole("button", { name: "Toggle Navigation" }).click();
   assert.equal(await nav().count(), 0);
   assert.ok(await page.getByLabel("Vault files").isVisible());
@@ -249,6 +261,54 @@ try {
       .count(),
     0,
   );
+  assert.deepEqual(errors, []);
+  await page.goto(url);
+  await page.setViewportSize({width:1440,height:1000});
+  for(const name of ["Home","Brainstorms","Canon","Projects","Crypt","Research","Collections","Ideas","Templates"]) {
+    await open(name);
+    assert.equal(await page.locator("main").getByRole("button",{name:"New Entry",exact:true}).count(),1,name);
+  }
+  await open("Brainstorms");
+  await page.getByRole("button",{name:"New Entry",exact:true}).click();
+  let form=page.getByRole("dialog");
+  assert.equal(await form.getByLabel("Entry type",{exact:true}).inputValue(),"Brainstorm");
+  assert.equal(await form.getByLabel("Subtype",{exact:true}).count(),0);
+  assert.equal(await form.getByLabel("Destination folder",{exact:true}).inputValue(),"00 Brainstorms");
+  await form.getByLabel("Entry title",{exact:true}).fill("A new idea");
+  await form.getByRole("button",{name:"Create entry",exact:true}).click();
+  await page.getByText("A new idea",{exact:true}).waitFor();
+  assert.match(await page.locator("#opened").textContent(),/00 Brainstorms\/A new idea.md/);
+  await page.evaluate(()=>window.workspaceFixture.setup());
+  const setup=page.getByRole("dialog");
+  await setup.getByRole("button",{name:"Add canon type",exact:true}).click();
+  const row=setup.getByRole("table",{name:"Canon type routes"}).locator("tr").last();
+  const inputs=row.locator("input");
+  await inputs.nth(0).fill("Creature");await inputs.nth(1).fill("World/Creatures");await inputs.nth(2).fill("Creatures");await inputs.nth(3).fill("_templates/Character template.md");
+  await setup.getByRole("button",{name:"Save setup",exact:true}).click();
+  await open("Canon");await page.getByRole("tab",{name:"Creature",exact:true}).waitFor();
+  await page.getByRole("button",{name:"New Entry",exact:true}).click();
+  form=page.getByRole("dialog");
+  await form.getByLabel("Subtype",{exact:true}).selectOption("Creature");
+  assert.equal(await form.getByLabel("Destination folder",{exact:true}).inputValue(),"World/Creatures");
+  assert.equal(await form.getByLabel("Entry template",{exact:true}).inputValue(),"_templates/Character template.md");
+  await form.getByLabel("Entry title",{exact:true}).fill("New Creature");
+  await form.getByLabel("Entry template",{exact:true}).fill("Char");
+  await form.getByLabel("Entry template",{exact:true}).press("ArrowDown");
+  await form.getByLabel("Entry template",{exact:true}).press("Enter");
+  assert.equal(await form.getByLabel("Entry template",{exact:true}).inputValue(),"_templates/Character template.md");
+  await form.getByRole("button",{name:"Create entry",exact:true}).click();
+  await page.getByRole("tab",{name:"Creature",exact:true}).click();
+  assert.equal(await page.locator(".marginalia-entry-card").count(),1);
+  assert.match(await page.locator(".marginalia-entry-card").textContent(),/New Creature/);
+  assert.match(await page.evaluate(()=>window.workspaceFixture.sources()["World/Creatures/New Creature.md"]),/creature/);
+  await open("Projects");await page.getByRole("button",{name:"New Entry",exact:true}).click();
+  form=page.getByRole("dialog");
+  assert.deepEqual(await form.getByLabel("Entry type",{exact:true}).locator("option").allTextContents(),["Brainstorm","Canon","Project"]);
+  assert.deepEqual((await form.getByLabel("Subtype",{exact:true}).locator("option").allTextContents()).slice(0,6),["New Project","Overview","Outline","Plot Point","Script","Note"]);
+  await form.getByLabel("Entry title",{exact:true}).fill("New Project");
+  await form.getByRole("button",{name:"Create entry",exact:true}).click();
+  await page.locator(".marginalia-project-card").filter({hasText:"New Project"}).waitFor();
+  assert.match(await page.locator("#opened").textContent(),/08 Projects\/New Project\/Overview.md/);
   assert.deepEqual(errors, []);
   console.log(
     "Workspace checks passed: live pages, World/Storyboard menus, Canon/Brainstorm/project tabs, cards and native links, pins, search, module presentation, light/dark and narrow layout.",

@@ -26,7 +26,7 @@ export function frontmatter(source: string): Frontmatter | null {
  * Unusual valid YAML (flow maps/complex keys) uses the host serializer fallback. */
 export function patchProperties(
   source: string,
-  properties: Record<string, string>,
+  properties: Record<string, unknown>,
   fallback: () => string,
 ): string {
   const eol = source.includes("\r\n") ? "\r\n" : "\n",

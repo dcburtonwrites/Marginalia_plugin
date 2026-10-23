@@ -1,0 +1,20 @@
+{
+  "decision": "D-0032",
+  "date": "2026-10-23",
+  "change": "CSS-only main module settings layout",
+  "checks": {
+    "typecheck": "pass",
+    "package": "pass",
+    "native_theme": "pass: status field and textarea aligned; descriptions constrained",
+    "native_scripts": "pass: template and countdown fields aligned",
+    "native_librarian": "pass: endpoint and selectors in right column",
+    "buttons_and_toggles": "native dimensions and right alignment retained"
+  },
+  "screenshots": [
+    "design/verification/native-settings-columns-theme.png",
+    "design/verification/native-settings-columns-scripts.png",
+    "design/verification/native-settings-columns-librarian.png"
+  ],
+  "installation": "disposable Marginalia Test Vault reloaded; development ZIP updated",
+  "limits": "No new automated tests for this low-impact CSS change; no narrow-window acceptance claimed."
+}

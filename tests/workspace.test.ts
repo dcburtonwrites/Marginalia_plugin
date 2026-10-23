@@ -223,3 +223,24 @@ test("previews remove hidden/code/image content and retain visible link labels",
   assert.ok(!/SECRET|HIDDEN|secret.png|https:/.test(result));
   assert.match(result, /Mira visits the archive/);
 });
+
+test('vault setup defaults match numbered folders and custom canon/project roots survive persistence', async () => {
+  const {defaultCanonTypes,defaultEntrySetup,folderPath,entryName} = await import('../src/workspace/setup-model.ts');
+  const defaults=readWorkspace(undefined);
+  assert.equal(defaults.canonTypes.find(type=>type.name==='Location')?.folder,'07 Location');
+  assert.equal(defaults.canonTypes.find(type=>type.name==='System')?.folder,'06 System');
+  assert.equal(defaultEntrySetup(true).projectsFolder,'/');
+  const configured=readWorkspace({canonTypes:[{name:'Creature',folder:'World/Creatures',projectFolder:'Creatures',template:'Patterns/Creature.md'}],
+    entrySetup:{...defaultEntrySetup(),brainstorm:{name:'Brainstorm',folder:'Ideas',template:''},projectsFolder:'Stories'}});
+  assert.equal(entryType('World/Creatures/One.md',[],configured.canonTypes),'Creature');
+  const customEntry={path:'Stories/Book/Overview.md',name:'Book',body:'',fields:{},tags:['project-parent'],modified:1,created:1};
+  assert.equal(projects([customEntry],'World',['Stories/Book'],configured)[0].path,'Stories/Book');
+  assert.equal(projects([{...customEntry,path:'Other/Book/Overview.md'}],'World',[],configured)[0].path,'Other/Book');
+  assert.deepEqual(readWorkspace(JSON.parse(JSON.stringify(configured))).canonTypes,configured.canonTypes);
+  assert.equal(readWorkspace({canonTypes:[]}).canonTypes.length,0);
+  assert.equal(readWorkspace({canonTypes:[{},null,{name:'Type'},{name:'type'}]}).canonTypes.length,1);
+  for(const path of ['../outside','.hidden','_templates','Archive','A/../../B','A#B']) assert.throws(()=>folderPath(path));
+  assert.equal(folderPath('World/Creatures'),'World/Creatures');
+  for(const title of ['', '../other','Bad|name','.hidden']) assert.throws(()=>entryName(title));
+  assert.equal(defaultCanonTypes.length,7);
+});

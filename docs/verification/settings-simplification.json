@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0030",
+  "checks": {
+    "typecheck": "pass",
+    "package": "pass",
+    "script_browser": "pass",
+    "native_removed_controls": "pass",
+    "native_template_suggestions": "pass"
+  },
+  "removed": [
+    "Script template Browse button and unused picker",
+    "Add a status to the flow field/button"
+  ],
+  "retained": [
+    "Template path typing dropdown",
+    "Project status field suggestions",
+    "Typed ordered status list"
+  ],
+  "installation": "disposable test vault; reloaded successfully"
+}

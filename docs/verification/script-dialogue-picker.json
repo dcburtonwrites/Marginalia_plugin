@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0025",
+  "requirements": {
+    "cleanPanel": "Pure /p and insertBlock assertions; native New panel selection/raw saved source has no prefix",
+    "frontmatterCharacters": "Plain and linked declarations, including before any dialogue; character tags/aliases handled by metadata registry",
+    "scriptCast": "Declared names, prior plain/wiki speakers and known mentions only; code/comments/images, structural/SFX labels and unrelated/unused notes excluded",
+    "selection": "Preserve prior plain/wiki form; Enter/Tab/click select Dialogue; Escape permits manual new name",
+    "history": "Real CodeMirror tests for isolated conversion/choice, typed filtering, closing on outside edits, no-match preservation and key cycling"
+  },
+  "checks": {
+    "pure": 93,
+    "host": 34,
+    "total": 127,
+    "typecheck": "pass",
+    "package": "pass",
+    "browser": [
+      "test-ui.mjs",
+      "test-workspace-ui.mjs"
+    ],
+    "native": "Obsidian 1.14.4 / fictional disposable vault",
+    "nativeActions": [
+      "frontmatter-only ORIN linked option",
+      "Mira Vale plain frontmatter and narrative mention",
+      "SIDNEY prior speaker without OFF",
+      "location link excluded",
+      "Down/Enter linked acceptance",
+      "Mi typing and Tab plain acceptance",
+      "click plain acceptance",
+      "Dialogue typing selection",
+      "Escape and NEW PERSON free typing",
+      "Undo/reopen",
+      "clean /p New panel placeholder"
+    ]
+  },
+  "integrity": {
+    "existingDisposableNoteHashesUnchanged": 14,
+    "temporaryScriptRemoved": true,
+    "originalVaultInstallations": false,
+    "newDependencies": false,
+    "modelRequests": false
+  },
+  "limitations": [
+    "Plain narrative names need a known character note/alias, explicit declaration or prior dialogue; no guessed entity extraction.",
+    "Prior use determines plain/wiki insertion; accepting is its own Undo step."
+  ],
+  "evidence": "design/verification/native-dialogue-picker.png"
+}

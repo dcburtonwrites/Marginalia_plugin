@@ -42,6 +42,8 @@ export class Notice {
   constructor(_message: string) {}
 }
 export class FuzzySuggestModal {}
+export class Modal {}
+export const normalizePath = (path: string) => path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\/(?!$)|\/$/g, "") || "/";
 export const MarkdownRenderer = { render: async () => {} };
 export const addIcon = () => {};
 // Synthetic metadata codec covers the flat order fixtures used by host tests.
@@ -53,7 +55,7 @@ export function parseYaml(source: string): any {
     if (!match) throw new Error("Invalid YAML");
     const key = match[1].replace(/^["']|["']$/g, ""),
       raw = match[2];
-    result[key] = raw.startsWith('"')
+    result[key] = raw.startsWith('"') || raw.startsWith('[') || raw.startsWith('{') || raw === "null" || raw === "true" || raw === "false"
       ? JSON.parse(raw)
       : raw === ""
         ? null
@@ -71,5 +73,5 @@ export function stringifyYaml(value: Record<string, unknown>): string {
   );
 }
 
-export class TFolder { constructor(public path:string){} }
+export class TFolder { children: any[]=[]; constructor(public path:string){} }
 export const setIcon = (_element:any,_name:string)=>{};

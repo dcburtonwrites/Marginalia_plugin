@@ -43,6 +43,9 @@ test("writing preferences validate stored values and restore timers paused", () 
   assert.equal(d.preferences.showTimer, false);
   assert.equal(d.timerRemainingMs, 1500000);
   assert.equal(new WritingSession(d).running, false);
+  assert.equal(d.preferences.scriptTemplate, "");
+  assert.equal(readWriting({preferences:{scriptTemplate:"  _templates/Script.md  "}}).preferences.scriptTemplate,"_templates/Script.md");
+  assert.equal(readWriting({preferences:{scriptTemplate:42}}).preferences.scriptTemplate,"");
 });
 test("a project includes all its groups; a grouping includes only its own scripts", () => {
   const scripts = [
@@ -195,4 +198,27 @@ test("valid project names cannot collide with object property names", () => {
   session.observe("constructor/Scripts/A.md", "one two", "constructor", true);
   assert.equal(session.progress().words, 2);
   assert.equal(session.progress().goal, 0);
+});
+
+test('one-session timer override cannot change a running or paused session and leaves preferences unchanged', () => {
+  const h = writing();
+  h.session.setDuration(7);
+  assert.equal(h.session.remaining(), 7 * 60000);
+  assert.equal(h.data.preferences.countdownMinutes,25);
+  h.session.start();
+  assert.throws(()=>h.session.setDuration(8),/reset/);
+  h.advance(60000);
+  h.session.pause();
+  assert.equal(h.session.remaining(),6*60000);
+  assert.throws(()=>h.session.setDuration(8),/reset/);
+  const restored=new WritingSession(readWriting(JSON.parse(JSON.stringify(h.data)),today));
+  assert.equal(restored.running,false);
+  assert.throws(()=>restored.setDuration(8),/reset/);
+  h.session.reset();
+  assert.equal(h.session.remaining(),25*60000);
+  h.session.setDuration(1);
+  h.session.start();h.advance(60000);assert.equal(h.session.tick(),true);
+  h.session.setDuration(3);
+  assert.equal(h.session.remaining(),3*60000);
+  for(const value of [0,-1,1.5,1441,NaN]) assert.throws(()=>h.session.setDuration(value),/whole number/);
 });

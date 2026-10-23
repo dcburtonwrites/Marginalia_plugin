@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0031",
+  "checks": {
+    "typecheck": "pass",
+    "package": "pass",
+    "workspace_browser": "pass",
+    "native_default_hidden": "pass",
+    "native_edit_reveal": "pass",
+    "native_done_close": "pass",
+    "computed_corner_radius": "8px"
+  },
+  "behavior": "Pinned cards remain visible; Edit reveals selector/unpin controls; Done hides controls; navigation/reload resets edit state",
+  "screenshots": [
+    "design/verification/native-pinned-references-default.png",
+    "design/verification/native-pinned-references-edit.png"
+  ],
+  "installation": "disposable test vault; reloaded"
+}

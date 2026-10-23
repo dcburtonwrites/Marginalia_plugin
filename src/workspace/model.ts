@@ -1,8 +1,11 @@
+import {readCanonTypes, readEntrySetup, typeTags, type CanonType, type EntrySetup} from "./setup-model.ts";
 export type VaultType = "World" | "Storyboard";
 export type ModuleName = "theme" | "scripts" | "librarian";
 export interface WorkspaceSettings {
   modules: Record<ModuleName, boolean>;
   vaultType: VaultType;
+  canonTypes: CanonType[];
+  entrySetup: EntrySetup;
   projectStatusField: string;
   projectStatusOrder: string[];
   colors: boolean;
@@ -53,6 +56,8 @@ export function readWorkspace(value: unknown): WorkspaceSettings {
       librarian: raw.modules?.librarian !== false,
     },
     vaultType: raw.vaultType === "Storyboard" ? "Storyboard" : "World",
+    canonTypes: readCanonTypes(raw.canonTypes),
+    entrySetup: readEntrySetup(raw.entrySetup, raw.vaultType === "Storyboard"),
     projectStatusField:
       typeof raw.projectStatusField === "string" &&
       raw.projectStatusField.trim()
@@ -153,8 +158,15 @@ export interface Project {
   entries: Entry[];
   overview?: Entry;
 }
-export function entryType(path: string, tags: string[]) {
-  return entryTypes.find(
+export function entryType(path: string, tags: string[], configured?: CanonType[]) {
+  const byFolder = configured?.filter(type=>
+    (type.folder && path.startsWith(type.folder + "/")) ||
+    (type.projectFolder && path.includes("/" + type.projectFolder + "/")))
+    .sort((a,b)=>b.folder.length-a.folder.length)[0];
+  if (byFolder) return byFolder.name;
+  const mapped = configured?.find(type => tags.some(tag=>typeTags(type.name).includes(tag.toLowerCase())));
+  if (mapped) return mapped.name;
+  return (configured ? configured.map(type=>type.name) : entryTypes).find(
     (type) =>
       tags.some((tag) =>
         [
@@ -211,8 +223,15 @@ export function projectStatusTabs(
     "Unassigned",
   ];
 }
-export function projectPath(path: string, type: VaultType) {
+export function projectPath(path: string, type: VaultType, root?: string) {
   const parts = path.split("/");
+  if (root && root !== "/") {
+    if (type === "World" && root === "08 Projects" && path.startsWith("08 Project/")) return projectPath(path,type);
+    const prefix = root.replace(/\/+$/, "") + "/";
+    const relative = path.startsWith(prefix) ? path.slice(prefix.length).split("/") : [];
+    return relative.length > 1 ? prefix + relative[0] : undefined;
+  }
+  if (root === "/") type = "Storyboard";
   if (type === "World")
     return /^08 Projects?$/.test(parts[0]) && parts.length > 2
       ? parts.slice(0, 2).join("/")
@@ -228,17 +247,28 @@ export function projects(
   entries: Entry[],
   type: VaultType,
   folders: string[] = [],
+  settings?: WorkspaceSettings,
 ): Project[] {
   const groups = new Map<string, Entry[]>();
+  const root = settings?.entrySetup.projectsFolder;
+  const declared = settings ? entries.filter(entry=>entry.tags.includes("project-parent"))
+    .map(entry=>entry.path.slice(0,entry.path.lastIndexOf("/")))
+    .filter(path=>path && !path.split("/").some(part=>part.startsWith("_") || part.startsWith(".")))
+    .sort((a,b)=>b.length-a.length) : [];
+  const resolve = (path: string) => {
+    if (settings && (path.startsWith(settings.entrySetup.brainstorm.folder + "/") ||
+      settings.canonTypes.some(type=>type.folder && path.startsWith(type.folder + "/")))) return undefined;
+    return declared.find(project=>path.startsWith(project+"/")) ?? projectPath(path, type, root);
+  };
   for (const path of folders)
-    if (
+    if (settings ? resolve(path + "/_") === path : (
       type === "World"
         ? /^08 Projects?\/[^/]+$/.test(path)
         : !path.includes("/") && !!projectPath(path + "/_", type)
-    )
+    ))
       groups.set(path, []);
   for (const entry of entries) {
-    const path = projectPath(entry.path, type);
+    const path = resolve(entry.path);
     if (path) {
       if (!groups.has(path)) groups.set(path, []);
       groups.get(path)!.push(entry);
@@ -259,14 +289,15 @@ export function projects(
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
-export function canon(entries: Entry[], includeProjects: boolean) {
+export function canon(entries: Entry[], includeProjects: boolean, settings?: WorkspaceSettings) {
   return entries.filter(
     (n) =>
       !!n.type &&
-      !n.path.startsWith("00 Brainstorms/") &&
-      (projectPath(n.path, "World")
+      !n.path.startsWith((settings?.entrySetup.brainstorm.folder ?? "00 Brainstorms") + "/") &&
+      (projectPath(n.path, settings?.vaultType ?? "World", settings?.entrySetup.projectsFolder)
         ? includeProjects && !/\/(Scripts|Outline|Plot|Outputs)\//i.test(n.path)
-        : /^(\d+\s|Canon\/)/.test(n.path)),
+        : settings ? true
+          : /^(\d+\s|Canon\/)/.test(n.path)),
   );
 }
 export function preview(body: string) {

@@ -1,4 +1,4 @@
-import { MarkdownView, TFile, parseYaml, stringifyYaml } from "obsidian";
+import { MarkdownView, TFile, TFolder, normalizePath, parseYaml, stringifyYaml } from "obsidian";
 import {
   arrangedGroups,
   orderWrites,
@@ -36,7 +36,7 @@ const stable = (value: unknown): string =>
   );
 export function propertySource(
   source: string,
-  properties: Record<string, string>,
+  properties: Record<string, unknown>,
 ): string {
   const original = scriptMetadata(source),
     expected = { ...original, ...properties };
@@ -169,6 +169,77 @@ export class ScriptController {
       if (previous !== leaf) previous.detach();
     }
     await workspace.revealLeaf(leaf);
+  }
+
+  async creationFolder() {
+    const selection = this.session.data.selection;
+    if (!selection) throw new Error("Choose a project or grouping first.");
+    const groups = (await this.groups()).filter(g => g.scope === selection.scope &&
+      (selection.group === undefined || g.group === selection.group));
+    const last = groups.flatMap(g => g.sequences.flat()).at(-1);
+    if (last) return last.path.slice(0, last.path.lastIndexOf("/")) || "/";
+    const preferred = selection.scope === "Vault" ? "Scripts" : `${selection.scope}/Scripts`;
+    if (this.plugin.app.vault.getAbstractFileByPath(preferred) instanceof TFolder) return preferred;
+    return selection.scope === "Vault" ? "/" : selection.scope;
+  }
+
+  async createScript(folder: string, name: string, group = "", templatePath = this.session.data.preferences.scriptTemplate, project?: string) {
+    if (this.busy) throw new Error("Another script update is in progress. Try again shortly.");
+    name = name.trim().replace(/\.md$/i, "");
+    if (!name || name === "." || name === ".." || name.startsWith(".") ||
+      /[\\/:*?"<>|\[\]#^\u0000-\u001f]/.test(name) || /[. ]$/.test(name))
+      throw new Error("Enter a script name without path separators or special filename characters.");
+    const { vault, workspace } = this.plugin.app;
+    folder = normalizePath(folder);
+    if (!(vault.getAbstractFileByPath(folder) instanceof TFolder))
+      throw new Error("The destination folder no longer exists.");
+    const path = normalizePath(`${folder}/${name}.md`);
+    if (scriptScope(path, {role:"manuscript", format:"comic-script"}) === null)
+      throw new Error("Choose a folder outside templates, Archive, and hidden folders.");
+    if (vault.getAbstractFileByPath(path)) throw new Error("A note with that name already exists in this folder.");
+    const template = vault.getAbstractFileByPath(templatePath);
+    if (!templatePath || !(template instanceof TFile) || template.extension !== "md")
+      throw new Error("Choose an existing Markdown script template in Marginalia → Scripts settings first.");
+    this.busy = true;
+    let created: TFile;
+    try {
+      const source = this.editors().get(template.path)?.getValue() ?? await vault.read(template);
+      const metadata = scriptMetadata(source);
+      const properties: Record<string, string> = {
+        role: "manuscript", format: "comic-script", Title: name,
+        Group: group.trim() || "Top-level", "Preceded By": "",
+      };
+      const active = this.session.data.selection?.scope;
+      const parent = project ?? (active && active !== "Vault" && path.startsWith(active + "/") ? active : undefined);
+      if (parent && path.startsWith(parent + "/") && scriptScope(path,properties) !== parent)
+        properties.Project = parent;
+      if (Object.hasOwn(metadata, "Followed By")) properties["Followed By"] = "";
+      const scope = scriptScope(path, properties)!;
+      const existing = (await this.groups()).find(g => g.scope === scope && g.group === properties.Group);
+      if (existing?.issues.length)
+        throw new Error("Resolve the script ordering warnings in this grouping before adding a script.");
+      const previous = existing?.sequences.flat().at(-1);
+      if (previous) properties["Preceded By"] = `[[${previous.path.replace(/\.md$/, "")}]]`;
+      const text = propertySource(source, properties);
+      // Vault.create rejects collisions; never overwrite a file that appeared while reading the template.
+      created = await vault.create(path, text);
+      this.observeText(path, text, false);
+      const current = this.session.data.selection;
+      if (!current || current.scope !== scope ||
+        (current.group !== undefined && current.group !== properties.Group))
+        this.session.data.selection = {scope, group: properties.Group};
+      this.onChange();
+    } finally {
+      this.busy = false;
+    }
+    // A failed preference save or navigation must never encourage creating a duplicate file.
+    try { await this.plugin.savePluginData(); }
+    catch { console.warn("Marginalia: script created, but the writing selection could not be saved."); }
+    try {
+      await workspace.getLeaf(false).openFile(created, {state:{mode:"source"}});
+      await this.openStudio();
+    } catch { console.warn("Marginalia: script created, but could not open the editor."); }
+    return created;
   }
 
   async foldScript(mode: "collapse" | "panels" | "expand" | "expand-panels") {

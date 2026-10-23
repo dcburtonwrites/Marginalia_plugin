@@ -7,6 +7,7 @@ export interface WritingSelection {
   group?: string;
 }
 export interface WritingPreferences {
+  scriptTemplate: string;
   showTimer: boolean;
   showWordCount: boolean;
   countdownMinutes: number;
@@ -18,6 +19,7 @@ export interface WritingData {
   preferences: WritingPreferences;
   projectGoals: Record<string, number>;
   timerRemainingMs: number;
+  timerStarted: boolean;
   daily: { date: string; vault: number; projects: Record<string, number> };
 }
 export const dayKey = (time = Date.now()) => {
@@ -33,6 +35,7 @@ export function readWriting(value: unknown, now = Date.now()): WritingData {
     value && typeof value === "object" ? (value as Partial<WritingData>) : {};
   const p = raw.preferences;
   const preferences: WritingPreferences = {
+    scriptTemplate: typeof p?.scriptTemplate === "string" ? p.scriptTemplate.trim() : "",
     showTimer: p?.showTimer !== false,
     showWordCount: p?.showWordCount !== false,
     countdownMinutes: validNumber(p?.countdownMinutes, 25, 1440) || 25,
@@ -82,6 +85,9 @@ export function readWriting(value: unknown, now = Date.now()): WritingData {
       preferences.countdownMinutes * 60000,
       86400000,
     ),
+    timerStarted: raw.timerStarted === true || (raw.timerStarted === undefined &&
+      typeof raw.timerRemainingMs === "number" && raw.timerRemainingMs > 0 &&
+      raw.timerRemainingMs < preferences.countdownMinutes * 60000),
     daily:
       raw.daily?.date === dayKey(now)
         ? {
@@ -233,6 +239,7 @@ export class WritingSession {
     if (this.running) return;
     if (this.data.timerRemainingMs <= 0) this.reset();
     this.deadline = this.clock() + this.data.timerRemainingMs;
+    this.data.timerStarted = true;
   }
   pause() {
     this.data.timerRemainingMs = this.remaining();
@@ -240,13 +247,20 @@ export class WritingSession {
   }
   reset() {
     this.deadline = null;
+    this.data.timerStarted = false;
     this.data.timerRemainingMs = this.data.preferences.countdownMinutes * 60000;
+  }
+  setDuration(minutes: number) {
+    if (this.running || this.data.timerStarted) throw new Error("Finish or reset the current session before changing its duration.");
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) throw new Error("Choose a whole number of minutes from 1 to 1440.");
+    this.data.timerRemainingMs = minutes * 60000;
   }
   tick() {
     this.rollDay();
     if (this.deadline !== null && this.remaining() === 0) {
       this.data.timerRemainingMs = 0;
       this.deadline = null;
+      this.data.timerStarted = false;
       return true;
     }
     return false;

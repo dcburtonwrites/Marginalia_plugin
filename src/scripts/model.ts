@@ -53,6 +53,8 @@ export function scriptScope(
     )
       return null;
   } else if (!legacy) return null;
+  const declared = typeof metadata.Project === "string" ? metadata.Project.replace(/^\[\[|\]\]$/g, "").split("|")[0].replace(/\.md$/i, "") : "";
+  if (declared && path.startsWith(declared + "/")) return declared;
   return marker >= 0
     ? path.slice(0, marker)
     : legacy
@@ -328,7 +330,7 @@ export function insertBlock(
       );
     const panel = page.panels.find((p) => offset >= p.from && offset < p.to);
     at = panel?.to ?? page.to;
-    body = `> [!panel]${eol}> Panel Description: ${eol}${eol}`;
+    body = `> [!panel]${eol}> ${eol}${eol}`;
   }
   const prefix =
     script.text.slice(0, at).endsWith(eol + eol) || at === 0
@@ -344,7 +346,7 @@ export function insertBlock(
       at +
       prefix.length +
       (kind === "panel"
-        ? body.indexOf("Panel Description: ") + "Panel Description: ".length
+        ? body.indexOf(`${eol}> `) + eol.length + 2
         : body.length),
   };
 }

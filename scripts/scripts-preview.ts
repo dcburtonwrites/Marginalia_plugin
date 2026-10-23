@@ -1,7 +1,7 @@
 document.documentElement.dataset.theme =
   new URLSearchParams(location.search).get("theme") || "light";
 import { ScriptsView } from "../src/scripts/view.ts";
-import { TFile, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
+import { TFile, TFolder, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
 import { readWriting } from "../src/scripts/writing.ts";
 import { renderWritingSettings } from "../src/scripts/settings.ts";
 import { ProjectView } from "../src/scripts/project.ts";
@@ -38,12 +38,18 @@ if (location.search.includes("studio"))
     text: "## Page 1\n\n> [!panel] A different opening\n> A clear morning.",
   });
 const savedTexts = JSON.parse(localStorage.getItem("script-texts") || "{}");
+fixtures.push({path:"_templates/Script.md",metadata:{Title:null,Group:null,Pages:null} as any,
+  text:"## Page 1 — PAGE TITLE\n\nSide: Right\n\nLocation: INT. LOCATION\n\n> [!panel] PANEL TITLE\n> Write here."});
 const files = fixtures.map((f) =>
   Object.assign(new TFile(f.path), {
     text:
       savedTexts[f.path] ?? `---\n${stringifyYaml(f.metadata)}---\n${f.text}`,
   }),
 );
+for(const [path,text] of Object.entries(savedTexts)) {
+  if(!files.some(f=>f.path===path)) files.push(Object.assign(new TFile(path),{text:text as string}));
+}
+const folders = [...new Set(files.flatMap(f=>f.path.split('/').slice(0,-1).map((_,i)=>f.path.split('/').slice(0,i+1).join('/'))))].map(path=>new TFolder(path));
 let mainView: ProjectView | undefined;
 const outlineRoot = document.querySelector<HTMLElement>("#sidebar")!;
 let view: ScriptsView;
@@ -65,7 +71,14 @@ const app: any = {
     getMarkdownFiles: () => files,
     cachedRead: async (f: any) => f.text,
     read: async (f: any) => f.text,
-    getAbstractFileByPath: (path: string) => files.find((f) => f.path === path),
+    getAbstractFileByPath: (path: string) => files.find((f) => f.path === path) ?? folders.find(f=>f.path===path),
+    create: async (path: string, text: string) => {
+      if(files.some(f=>f.path===path)) throw new Error('File already exists');
+      const file = Object.assign(new TFile(path),{text});
+      files.push(file);
+      localStorage.setItem('script-texts',JSON.stringify(Object.fromEntries(files.map(f=>[f.path,f.text]))));
+      return file;
+    },
     process: async (f: any, fn: any) => {
       f.text = fn(f.text);
       localStorage.setItem(
@@ -105,7 +118,7 @@ const mainLeaf: any = {
     if (mainView) await mainView.onClose();
     mainView = undefined;
     const main = document.querySelector("main")!;
-    main.textContent = `Editing ${file.path} at line ${options.eState.line}`;
+    main.textContent = `Editing ${file.path} at line ${options.eState?.line ?? 0}`;
     const editor = document.createElement("textarea");
     editor.setAttribute("aria-label", "Script editor");
     editor.value = file.text;

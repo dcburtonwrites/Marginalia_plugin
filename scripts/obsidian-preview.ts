@@ -25,6 +25,15 @@ export class Notice {
   }
 }
 export class Component {}
+export class FuzzySuggestModal {}
+export const normalizePath = (path: string) => path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\/(?!$)|\/$/g, "") || "/";
+export class Modal {
+  modalEl = document.createElement("div");
+  contentEl = document.createElement("div");
+  constructor(public app: any) {}
+  open() { this.contentEl.setAttribute("role", "dialog");this.modalEl.style.cssText="position:fixed;z-index:1000;inset:5vh 15vw;background:var(--background-primary);padding:20px;overflow:auto;";this.modalEl.append(this.contentEl); document.body.append(this.modalEl); (this as any).onOpen?.(); }
+  close() { (this as any).onClose?.(); this.modalEl.remove(); }
+}
 export const MarkdownRenderer = {
   render: async (_app: any, text: string, el: HTMLElement) => {
     for (const block of text.split(/\n\n+/)) {
@@ -49,7 +58,7 @@ export function parseYaml(source: string): any {
     const m = line.match(/^([^:]+):\s*(.*)$/);
     if (!m) throw new Error("Invalid YAML");
     const v = m[2];
-    result[m[1]] = v.startsWith('"')
+    result[m[1]] = v.startsWith('"') || v.startsWith('[') || v.startsWith('{') || v === "null" || v === "true" || v === "false"
       ? JSON.parse(v)
       : /^\d+$/.test(v)
         ? Number(v)
@@ -108,7 +117,9 @@ export class Setting {
     input.setAttribute("aria-label", this.name.textContent!);
     this.control.append(input);
     const api: any = {
+      selectEl: input,
       inputEl: input,
+      setPlaceholder: (v: string) => { input.placeholder = v; return api; },
       setValue: (v: string) => {
         input.value = v;
         return api;
@@ -126,6 +137,7 @@ export class Setting {
     input.setAttribute("aria-label", this.name.textContent!);
     this.control.append(input);
     const api: any = {
+      selectEl: input,
       addOption: (v: string, label: string) => {
         input.add(new Option(label, v));
         return api;
@@ -142,9 +154,21 @@ export class Setting {
     fn(api);
     return this;
   }
+  addButton(fn: any) {
+    const button = document.createElement("button");
+    this.control.append(button);
+    const api: any = {
+      setButtonText: (text: string) => { button.textContent = text; return api; },
+      setDisabled: (value: boolean) => { button.disabled = value; return api; },
+      setCta: () => api,
+      onClick: (callback: any) => { button.onclick = callback; return api; },
+    };
+    fn(api);
+    return this;
+  }
 }
 
-export class TFolder { constructor(public path:string){} }
+export class TFolder { children: any[]=[]; constructor(public path:string){} }
 export const setIcon = (_element:any,_name:string)=>{};
 
 export class Plugin {

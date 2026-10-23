@@ -1,5 +1,37 @@
 # Development verification — October 21, 2026
 
+## Authoring controls and vault setup — October 23, 2026 (D-0029)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| One-session timer edit; no active/paused edits | Pure session tests, browser double-click/lock/reset, native 7-minute override with saved default 25 | Pass |
+| Searchable reference pinning | Native Home dropdown selection/removal and Librarian local reference chip; browser typing | Pass |
+| Sidebar pages default closed | Browser default aria-expanded/panel visibility and native page-only outline | Pass |
+| New Entry on every menu page | Browser checks for each core/shared page; native right-side form and project page | Pass |
+| Ordered type/subtype, title/folder/template flow | Native Brainstorm/Canon/Project menus, project canon group, matched Character/Script templates; browser creation | Pass |
+| Configurable canon folders/templates and defaults | Browser/custom host routes; native Creature table save, creation, default restore, configured-folder creation | Pass |
+| Vault and metadata suggestions; freehand statuses | Browser keyboard template choice; native Group → Draft suggestions and newly typed status, then original flow restored | Pass |
+| Safe copies, failures and project scoping | Host collision/disk/concurrency/rollback, copied bodies, custom script folders and Storyboard root-project assertions | Pass |
+| User data preserved | All 16 original Markdown hashes unchanged; five temporary notes removed; daily words 20, goal 500 and timer default 25 unchanged | Pass |
+
+142 tests (95 pure, 47 host), typecheck/package and both expanded browser suites pass. Native Obsidian 1.14.4 checks used the disposable vault only; no original creative vault modification, model generation or optimization trial. Template commands remain literal. Evidence: `verification/authoring-setup.json`; screenshots `native-new-entry.png`, `native-new-entry-home.png`, `native-vault-setup.png`, `native-script-session-controls.png` under design/verification.
+
+
+## Script creation — October 23, 2026 (D-0028)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Configurable template path | Native Scripts setting, Browse picker, reload persistence; browser persistence | Pass |
+| Folder right-click action | Native Harbor folder → Create a New Script; note created in that exact folder | Pass |
+| Button below active list | Browser position assertion and native final layout above the footer | Pass |
+| Grouping and order | Native Draft prefill and end predecessor; host/browser ordered-list assertions | Pass |
+| Preserve owner edits | Both native created bodies match the edited template exactly; all 15 original note hashes unchanged | Pass |
+| Safe creation failures | Host malformed/missing template, name/path/order guards, collision race, disk failure and concurrency tests; native missing template and duplicate errors | Pass |
+| Recognition and editor | Native note opens with role/format and appears in correct sidebar scope, including outside Scripts | Pass |
+| No writing credit for copies | Native total stays 20; host zero-credit assertion | Pass |
+
+132 tests (93 pure, 39 host), typecheck/package, expanded script browser suite and workspace browser suite pass. Two temporary native scripts were removed; template edits preserved, test-vault setting configured and previous session restored. Build/ZIP updated and installed in the disposable vault only. No Librarian generation or performance work. Evidence: `verification/script-creation.json`, `design/verification/native-new-script.png`. Template code is copied literally; executing it remains outside this feature.
+
 This is a development build, not a completed real-vault acceptance. The user authorized installation in a disposable vault, and Marginalia is now installed and enabled in `.preview/Marginalia Test Vault`. The standalone app, Reanimator, and existing private artifacts were not modified.
 
 ## Phase 1 review
@@ -283,3 +315,21 @@ Runtime success does not pass writing-quality acceptance: unsupported character 
 | Actual stage filter and source preservation | Native Bottled shows Lone and excludes Conquest; all 284 pre-existing test-copy Markdown files unchanged | Pass |
 
 119 tests (88 pure, 31 host), typecheck/package and expanded workspace browser suite pass. Native tests use the isolated Storyboards copy only. No notes were rewritten; old status wording remains authored data. Test copies match dist and ZIP is refreshed. No Librarian generation/performance experiments. Structured evidence: verification/project-status-flow.json.
+
+
+## Scriptwriting: clean panels and character dropdown — 2026-10-23 (D-0025)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Remove generated Panel Description: | Shortcut and insert-block pure assertions; native /p saved body has only New panel selected | Pass |
+| Include frontmatter characters even before dialogue | Pure arrays/scalars/comma lists; native linked ORIN and plain Mira Vale options | Pass |
+| Character use and identity | Pure known aliases/mentions, prior plain/wiki forms, deduplication and ambiguity; native SIDNEY without OFF and unrelated location excluded | Pass |
+| Efficient local selection and writing focus | Native Down/Enter wiki, Mi/Tab plain and mouse choices select Dialogue; no model request | Pass |
+| Free typing and safe Undo | Native Escape/new name and Undo/reopen; actual CodeMirror history/state tests cover filtering, outside edits, no-match and arrow cycling | Pass |
+| Native modules and source integrity | Existing browser regressions, all 14 original disposable hashes unchanged, temporary owned script removed | Pass |
+
+127 tests (93 pure, 34 host), typecheck/package and both browser suites pass. Native evidence uses fictional disposable notes only: design/verification/native-dialogue-picker.png. Structured report: verification/script-dialogue-picker.json. The picker does not guess unknown prose names or list unused vault characters; explicit frontmatter/previous dialogue can introduce names without character notes. No original vault installation, AI generation, performance experiment or new dependency.
+
+## Settings columns — 2026-10-23
+
+D-0032: typecheck and package passed. Installed and reloaded in the disposable test vault; native visual checks covered Theme status field/textarea, Scripts template/number inputs and Librarian endpoint/selectors. Descriptions wrap within the left column; field edges match, buttons/toggles remain native size and right aligned. Screenshots: design/verification/native-settings-columns-{theme,scripts,librarian}.png. CSS-only change; no model generation or note edits.

@@ -197,6 +197,7 @@ test("insertion uses local slot numbers without rewriting declarations or existi
   assert.ok(text.startsWith(fixture));
   assert.ok(text.endsWith("## Page 5\n\nSide: Right\n\n"));
   const panel = insertBlock(s, s.pages[0].panels[0].from, "panel");
+  assert.ok(!panel.text.includes("Panel Description:"));
   assert.equal(panel.from, s.pages[0].panels[0].to);
   assert.equal(apply(s, panel).slice(panel.cursor, panel.cursor + 2), "\n\n");
   assert.throws(

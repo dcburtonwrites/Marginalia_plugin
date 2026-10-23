@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0029",
+  "host": "Obsidian 1.14.4",
+  "automated": {
+    "pure": 95,
+    "host": 47,
+    "total": 142,
+    "typecheck": "pass",
+    "package": "pass",
+    "script_browser": "pass",
+    "workspace_browser": "pass"
+  },
+  "native": {
+    "timer": "7-minute pending override; preference remains 25; active and paused edits blocked; Reset 25",
+    "home_pin": "Mira typeahead option pinned and removed",
+    "librarian_reference": "Mira typeahead option added as reference chip and removed; type filter visible",
+    "sidebar": "Opening a script shows closed page rows, without panel rows",
+    "entry_creation": [
+      "Brainstorm creates default folder and tagged note",
+      "Canon Character matches _templates/Character.md and preserves body",
+      "New Project creates named folder + Overview.md",
+      "Project Script selects edited Comic Script template and appears in Studio",
+      "Saved custom Creature mapping creates _Verification/Creatures note with creature classification"
+    ],
+    "settings": [
+      "Owner numbered canon defaults and template paths displayed",
+      "Custom type/folder/template saved",
+      "Restore defaults + Save restored seven types",
+      "Create missing folders creates missing configured vault folders",
+      "Field Grou suggests Group",
+      "Status Dra suggests Draft after field selection",
+      "New Verification Status accepted",
+      "Original stage/status order restored"
+    ],
+    "source_preservation": "Five owned notes and their empty folders removed; source templates unchanged"
+  },
+  "preservation": {
+    "original_markdown_files": 16,
+    "all_hashes_unchanged": true,
+    "user_Test_md_preserved": true,
+    "daily_words": 20,
+    "daily_goal": 500,
+    "default_timer_minutes": 25,
+    "selection_restored": {
+      "scope": "08 Projects/Harbor",
+      "group": "Top-level"
+    },
+    "temporary_notes_remaining": 0
+  },
+  "installation": ".preview/Marginalia Test Vault/.obsidian/plugins/marginalia",
+  "limits": [
+    "No template command execution",
+    "No original creative vault writes",
+    "No AI generation or Librarian optimization trials",
+    "No source migration or compile/export"
+  ],
+  "screenshots": [
+    "design/verification/native-new-entry.png",
+    "design/verification/native-new-entry-home.png",
+    "design/verification/native-vault-setup.png",
+    "design/verification/native-script-session-controls.png"
+  ],
+  "final_reload": "Latest files installed; Mac locked before final Force Reload. User must reload after unlocking. Native acceptance ran on the preceding feature-complete build; final inline-tag reference enrichment passed automated checks."
+}
