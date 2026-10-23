@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-22",
+  "host": "Obsidian 1.14.4",
+  "vault": "authorized disposable Marginalia Test Vault",
+  "tests": {
+    "pure": 86,
+    "host": 31,
+    "total": 117,
+    "browser": [
+      "test-ui.mjs",
+      "test-workspace-ui.mjs"
+    ],
+    "typecheck": "pass",
+    "package": "pass"
+  },
+  "requirements": {
+    "leftAlignedMenu": "native final World menu, CSS and browser",
+    "originalMRibbon": "native Script Studio opening preserves main project page",
+    "pages": "native Home/Canon/Projects and browser all routes/filters/pins/links",
+    "vaultTypes": "native selector/register; browser final menus and model tests",
+    "palette": "native light/dark and browser color toggle",
+    "moduleSwitches": "native off/on all three; host persistence/save failure"
+  },
+  "baselineNotes": 14,
+  "changedNotes": [],
+  "installedMatchesDist": true,
+  "screenshots": [
+    "native-app-home-light.png",
+    "native-app-canon-dark.png",
+    "native-app-project.png",
+    "native-modular-settings.png"
+  ],
+  "limits": [
+    "Browsing/navigation pages; creation and inline register editing not ported",
+    "Native Storyboard register checked before final menu trim; final three-row menu covered by browser/model",
+    "File explorer DOM integration verified on this host version",
+    "Previous prose quality, hidden Sync portability and native drag acceptance gaps remain open"
+  ]
+}

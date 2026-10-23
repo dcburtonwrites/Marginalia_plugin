@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-22",
+  "automatedTests": 66,
+  "browser": [
+    "auto predecessor fill",
+    "drag by script names updates properties",
+    "predecessors survive reload and determine order",
+    "dangling conflict diagnostics and drag repair",
+    "separate arrow/name activation",
+    "no Move/Open/adoption buttons",
+    "ordered continuous project reading",
+    "light/dark/narrow layout",
+    "Librarian regression"
+  ],
+  "native": [
+    "three missing predecessor fields filled",
+    "all 14 script/note bodies preserved",
+    "only Preceded By changed in existing source metadata",
+    "script/page names navigate without expanding",
+    "disclosure arrow expands without navigating",
+    "full project renders both source scripts in order",
+    "project view state survives reload",
+    "predecessor links override opposing old plugin order",
+    "source links and canonical script headings rendered by Obsidian"
+  ],
+  "nativeDrag": "Not verified: native pointer automation stopped delivering mouse events, including to the built-in Files tab. Browser drag path passed; temporary event diagnostics were removed and the clean installed build restored.",
+  "batchWrites": "whole-group preflight, atomic per-file compare/write, conditional rollback; not crash-atomic across files",
+  "installation": "clean build installed and active in disposable Marginalia Test Vault only",
+  "preservedBodies": 14,
+  "metadataChanged": [
+    "08 Projects/Copper Sky/Scripts/After the Bell.md",
+    "08 Projects/Copper Sky/Scripts/Opening.md",
+    "08 Projects/Harbor/Scripts/Arrival.md"
+  ],
+  "projectView": "read-only, source notes remain separate and editable"
+}

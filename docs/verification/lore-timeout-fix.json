@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-21",
+  "issue": "Eastern Archive expansion timeout and Review-only entry actions",
+  "findings": {
+    "Lore_guidance_supplied": true,
+    "shared_canon_writer_supplied": true,
+    "captured_system_characters": 2383,
+    "captured_user_characters": 5933,
+    "old_timeout_seconds": 180,
+    "old_error_mislabeled_as_unreachable": true,
+    "server_logs_confirm_request_reached_model": true,
+    "original_stall_cause": "Not conclusively established. Server was running and requests were cancelled after three minutes; a streaming retry also initially emitted no text."
+  },
+  "changes": [
+    "Entry Enhancement and Entry Expansion appear only in Review",
+    "Only actual connection failures suggest starting Ollama",
+    "Stream active generation and show waiting/thinking/receiving progress",
+    "Require completed responses before publishing",
+    "Retain idle timeout and separate overall deadline; preserve previous results on failure"
+  ],
+  "native": {
+    "first_Lore_expansion_completed": true,
+    "second_clean_build_retry": "completed successfully",
+    "latest_generated_at": "2026-10-21T21:42:56.439Z",
+    "streamed_content_progress_observed": true,
+    "Ask_entry_actions_absent": true,
+    "Review_entry_actions_present": true,
+    "Library_entry_actions_absent": "verified in browser harness"
+  },
+  "source_notes_unchanged": true,
+  "tests": 42,
+  "installed_files_match_package": true,
+  "diagnostic_capture_absent_from_installed_build": true
+}

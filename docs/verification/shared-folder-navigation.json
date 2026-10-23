@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-22",
+  "decision": "D-0023",
+  "requirements": {
+    "automaticSharedMenus": "Top-level underscore folders in both vault types; known three then other names alphabetically",
+    "placement": "Separate left-aligned menu items below Projects, absent from Project Register body",
+    "assetsExcluded": "_Assets and Assets, case-insensitive; nested asset notes excluded",
+    "liveUpdates": "Create, native rename transfers open view, delete removes item and falls back Home",
+    "templates": "Own shared page only; global eligibility and Librarian/script exclusions retained",
+    "sourcePreservation": "Original M ribbon and native file tree retained; no existing note edits"
+  },
+  "automated": {
+    "pure": 87,
+    "host": 31,
+    "total": 118,
+    "typecheck": "pass",
+    "package": "pass",
+    "workspaceBrowserSuite": "pass",
+    "browserCases": [
+      "World/Storyboard shared routes",
+      "arbitrary _Ideas folder and nested Signals tab",
+      "Assets excluded",
+      "Templates scoped page without global inclusion",
+      "empty folder creation/rename/delete",
+      "active item",
+      "legacy Crypt route restoration",
+      "shared links absent from main Project Register"
+    ]
+  },
+  "native": {
+    "host": "Obsidian 1.14.4",
+    "storyboard": "Six menu entries; Crypt tabs; empty root discovery, native rename updates menu and open page, deletion removes item and returns Home",
+    "world": "Reanimator Templates menu and 13 cards; original M stays present",
+    "externalRename": "Menu reflects filesystem rename; open old route may fall back Home when filesystem watcher emits delete/create"
+  },
+  "integrity": {
+    "testCopyExistingMarkdownUnchanged": 284,
+    "originalMarkdownUnchanged": 267,
+    "updatedTestCopiesMatchDist": true,
+    "temporaryEmptyFoldersRemoved": true,
+    "productionVaultInstallations": false
+  },
+  "buildSha256": "0bdc90d879c31a1be574f520d51b301b08559d7f9ce92d914cefe41716cb46da",
+  "performanceExperiments": false,
+  "evidence": "design/verification/app-storyboard-register.png (fictional browser fixture)"
+}

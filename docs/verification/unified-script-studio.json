@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-22",
+  "decision": "D-0015",
+  "automated_tests": 86,
+  "host_tests": 25,
+  "browser": "pass",
+  "typecheck": "pass",
+  "package": "pass",
+  "native": {
+    "single_tab": "pass",
+    "project_group_menu": "pass",
+    "editor_collapse_panels_expand": "pass",
+    "project_reader_folds": "pass"
+  },
+  "preserved_notes": 14,
+  "installed_matches": true,
+  "deferred": [
+    "compile/export",
+    "shortcuts"
+  ]
+}

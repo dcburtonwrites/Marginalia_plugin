@@ -1,0 +1,62 @@
+{
+  "model": "gemma4:12b-mlx",
+  "synthetic": true,
+  "outputs": [
+    {
+      "mode": "enhancement",
+      "elapsedSeconds": 9.934,
+      "sections": [
+        {
+          "section": "Summary",
+          "prose": "- Mira Vale serves as the keeper of the archive situated beneath the eastern observatory. She maintains the security of the collection and oversees the preservation of its contents."
+        },
+        {
+          "section": "Backstory",
+          "prose": "Mira manages the archive's daily operations, which include a ritual of checking the copper locks every morning before the arrival of visitors. The archive records do not contain information regarding her childhood."
+        },
+        {
+          "section": "Goals",
+          "prose": "Mira seeks to restore the damaged tide charts held within the archive."
+        },
+        {
+          "section": "Key Scenes",
+          "prose": "* Checking the copper locks before the day's visitors arrive."
+        },
+        {
+          "section": "Related Entries",
+          "prose": "* [[01 Lore/Eastern Archive|Eastern Archive]]"
+        }
+      ]
+    },
+    {
+      "mode": "expansion",
+      "elapsedSeconds": 9.675,
+      "sections": [
+        {
+          "section": "Summary",
+          "prose": "- Mira Vale serves as the keeper of the archive situated beneath the eastern observatory. She maintains the security of the collection and manages the preservation of its contents."
+        },
+        {
+          "section": "Backstory",
+          "prose": "Mira oversees the daily operations of the archive. Each morning, she performs a ritual of checking the copper locks to ensure the integrity of the vault before the arrival of visitors."
+        },
+        {
+          "section": "Goals",
+          "prose": "Mira is driven by the desire to restore the damaged tide charts held within her care."
+        },
+        {
+          "section": "Relationships",
+          "prose": "Mira works within the [Eastern Archive](01 Lore/Eastern Archive.md) as its primary keeper."
+        },
+        {
+          "section": "Key Scenes",
+          "prose": "* Checking the copper locks every morning before visitors arrive."
+        },
+        {
+          "section": "Related Entries",
+          "prose": "* [[01 Lore/Eastern Archive.md]]|Eastern Archive"
+        }
+      ]
+    }
+  ]
+}

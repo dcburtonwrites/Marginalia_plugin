@@ -1,0 +1,281 @@
+{
+  "date": "2026-10-22",
+  "kind": "unchanged-build real-content baseline",
+  "host": "Obsidian 1.14.4 on macOS",
+  "scope": {
+    "sourceVaults": [
+      "Reanimator",
+      "Shadowverse",
+      "Storyboards"
+    ],
+    "testLocation": "/tmp/marginalia-real-vault-review-20261022",
+    "installation": "Isolated native vault copies; only Marginalia enabled. No plugin installed in originals. Markdown, hidden Markdown artifacts and folder structure copied; binary assets and other plugin configurations omitted."
+  },
+  "runtime": {
+    "endpoint": "http://127.0.0.1:11434",
+    "model": "gemma4:12b-mlx",
+    "context": 32768,
+    "num_predict": 4096,
+    "temperature": 0.2,
+    "optimizationChanges": false,
+    "optimizationTrials": false
+  },
+  "scripts": {
+    "Reanimator": {
+      "recognized": 2,
+      "pageHeadings": 16,
+      "pageSlots": 16,
+      "panels": 66,
+      "orderingIssues": 0
+    },
+    "Shadowverse": {
+      "recognized": 5,
+      "pageHeadings": 39,
+      "pageSlots": 40,
+      "panels": 147,
+      "orderingIssues": 0,
+      "declaredMismatch": {
+        "script": "ASTD Lettering Part 3",
+        "actual": 8,
+        "declared": 6
+      }
+    },
+    "Storyboards": {
+      "recognized": 1,
+      "pageHeadings": 11,
+      "pageSlots": 11,
+      "panels": 64,
+      "orderingIssues": 0,
+      "declaredMismatch": {
+        "script": "Gods Do Die: Web Script, Vision 2",
+        "actual": 11,
+        "declared": 19
+      }
+    }
+  },
+  "timings": [
+    {
+      "vault": "Reanimator",
+      "feature": "Ask",
+      "entry": "Herbert West",
+      "completionWindowSeconds": [
+        16.9,
+        71.1
+      ],
+      "result": "completed, 17 consulted sources; metadata-heavy answer",
+      "timingNote": "Completion observed between 16.9 and 71.1 seconds; use separately timed appearances run for precise Ask baseline."
+    },
+    {
+      "vault": "Reanimator",
+      "feature": "Entry Enhancement",
+      "entry": "Herbert West",
+      "seconds": 34.674,
+      "lowerBoundSeconds": 34.573
+    },
+    {
+      "vault": "Reanimator",
+      "feature": "Refine",
+      "entry": "Herbert West / Summary",
+      "seconds": 13.562,
+      "lowerBoundSeconds": 13.466
+    },
+    {
+      "vault": "Reanimator",
+      "feature": "Entry Expansion",
+      "entry": "Herbert West",
+      "seconds": 57.908,
+      "lowerBoundSeconds": 45.643,
+      "savedAfterSeconds": 46.37621875,
+      "completionWindowSeconds": [
+        45.798,
+        57.908
+      ]
+    },
+    {
+      "vault": "Reanimator",
+      "feature": "Ask / appearances",
+      "entry": "Herbert West",
+      "seconds": 13.675,
+      "lowerBoundSeconds": 13.578
+    },
+    {
+      "vault": "Shadowverse",
+      "feature": "Ask / unresolved",
+      "entry": "The Shadow Man",
+      "seconds": 24.056,
+      "lowerBoundSeconds": 23.872
+    },
+    {
+      "vault": "Shadowverse",
+      "feature": "Entry Enhancement",
+      "entry": "The Shadow Man",
+      "seconds": 41.652,
+      "lowerBoundSeconds": 41.455
+    },
+    {
+      "vault": "Shadowverse",
+      "feature": "Entry Expansion / Location",
+      "entry": "Asylum",
+      "seconds": 21.444,
+      "lowerBoundSeconds": 21.357,
+      "explicitReference": "Ungifted",
+      "savedAfterSeconds": 21.12582275390625
+    },
+    {
+      "vault": "Shadowverse",
+      "feature": "Regenerate Location expansion",
+      "entry": "Asylum",
+      "savedAfterSeconds": 13.623259033203125,
+      "note": "Completed before Cancel could be delivered; no cancellation success claimed"
+    },
+    {
+      "vault": "Shadowverse",
+      "feature": "Entry Expansion / legacy guard",
+      "entry": "Ungifted",
+      "seconds": 0.485,
+      "result": "blocked unsupported existing artifact"
+    },
+    {
+      "vault": "Storyboards",
+      "feature": "Ask",
+      "entry": "Conquest Overview",
+      "seconds": 62.999,
+      "lowerBoundSeconds": 62.86
+    },
+    {
+      "vault": "Storyboards",
+      "feature": "Entry Enhancement",
+      "entry": "Conquest Overview",
+      "timingReliable": false,
+      "note": "Foreground changed to original vault during timing; do not use apparent completion time",
+      "busyAtSeconds": 45.828,
+      "timingNote": "Window focus changed; exact completion time unavailable. Finished proposals verified on returning. Separate repeat baseline measured precisely."
+    },
+    {
+      "vault": "Storyboards",
+      "feature": "Entry Expansion",
+      "entry": "Conquest Overview",
+      "observedSeconds": 109.591,
+      "lowerBoundSeconds": 109.321,
+      "savedAfterSeconds": 109.1855869140625
+    },
+    {
+      "vault": "Storyboards",
+      "feature": "Cancel regeneration",
+      "entry": "Conquest Overview",
+      "seconds": 0.889,
+      "previousExpansionPreserved": true
+    },
+    {
+      "vault": "Storyboards",
+      "feature": "Entry Enhancement / repeat baseline",
+      "entry": "Conquest Overview",
+      "seconds": 39.836,
+      "lowerBoundSeconds": 39.683
+    }
+  ],
+  "findings": [
+    {
+      "id": "RV-01",
+      "result": "fail quality",
+      "finding": "Character enhancement/expansion added unsupported causal, motivational and legacy claims. Explicit refinement removed sampled unsupported claims."
+    },
+    {
+      "id": "RV-02",
+      "result": "fail link quality",
+      "finding": "Shadowverse Ask emitted a wiki target containing a source marker suffix (, S2), which is not a valid original note path. The broken target was observed without opening/creating a note."
+    },
+    {
+      "id": "RV-03",
+      "result": "limitation",
+      "finding": "Storyboard project overview falls back to existing Lore profile (Causes/Consequences); no dedicated project overview writer. This world scope label also remains in Storyboard Librarian."
+    },
+    {
+      "id": "RV-04",
+      "result": "fail prose quality",
+      "finding": "Storyboard enhancement contained a malformed sentence; saved expansion Summary ended mid-sentence. Successful generation is not writing-quality acceptance."
+    },
+    {
+      "id": "RV-05",
+      "result": "compatibility limitation",
+      "finding": "Existing standalone Ungifted expansion has no draft field. Library skips it; Entry Expansion reports Unsupported or damaged saved expansion. File preserved. instead of timing out. Original file preserved."
+    },
+    {
+      "id": "RV-06",
+      "result": "fail classification",
+      "finding": "Reanimator Projects lists 00 Overview as a project."
+    },
+    {
+      "id": "RV-07",
+      "result": "source metadata discrepancies",
+      "finding": "Shadowverse Part 3 and Storyboard Gods Do Die declared Pages disagree with actual page slots. Parser matches independent source heading/callout inventory and warns correctly."
+    }
+  ],
+  "passedChecks": [
+    "Both World menus and Home/Brainstorms/Canon/Projects use real notes",
+    "Storyboard three-item menu, stage register/filter, working document link, project stages and shared-area tabs",
+    "All eight comic scripts recognized; prose fragments, published excerpts, templates and compiled output excluded",
+    "Native script order and Double Spread followed by Left",
+    "Native project-reader Collapse/Expand round trip",
+    "Ask, enhancement proposals, refinement and hidden expansion generation",
+    "Explicit enhancement insertion and one-step Undo restored copied entry bytes",
+    "Dismiss, context pin/unpin and explicit reference selection",
+    "Generated/Not canon read-only result and Library discovery of new expansions",
+    "Source stale warning after copied source modification; warning clears after exact restoration",
+    "Cancellation clears operation and preserves saved expansion",
+    "New expansion source inventories contain no hidden generated files or AI Agent Instructions note",
+    "117 automated baseline tests and typecheck pass"
+  ],
+  "performanceBacklog": [
+    {
+      "proposal": "Measure snapshot/retrieval, model prefill/generation, verification and rendering separately",
+      "status": "not implemented or tested",
+      "reason": "Current native end-to-end timings cannot attribute the 109-second run to a particular stage."
+    },
+    {
+      "proposal": "Consider invalidation-based metadata/text caching and bounded reads",
+      "status": "not implemented or tested",
+      "reason": "Current snapshot loops over all permitted files for each action; preserve dirty-buffer and source-change checks."
+    },
+    {
+      "proposal": "Consider deduplicating repeated original/source context and setting output length from direct evidence density",
+      "status": "not implemented or tested",
+      "reason": "Prompt includes original plus passages; sparse direct facts can still produce long, speculative prose when many indirect passages are included."
+    },
+    {
+      "proposal": "Update progress without rebuilding the full sidebar on every progress refresh",
+      "status": "not implemented or tested",
+      "reason": "Progress redraws repeatedly invalidated native accessibility controls during a cancellation attempt."
+    }
+  ],
+  "limits": [
+    "Single sequential baseline runs with normal system activity; not a benchmark distribution or comparison of model/context settings.",
+    "Expansion save timings use filesystem modification time relative to action start; other precise timings bracket native UI completion to about 0.1\u20130.2 seconds.",
+    "One initial Ask and initial Storyboard enhancement lack precise completion times; separately measured Ask and repeat enhancement supplied.",
+    "Original vault community-plugin interactions, binary-media rendering, Sync portability and native drag gesture were not reaccepted in this pass.",
+    "No Lore entry existed in these two World vaults; Lore profile was confirmed through code and Storyboard project fallback, not a World Lore note."
+  ],
+  "integrity": {
+    "Reanimator": {
+      "baselineMarkdownFiles": 59,
+      "originalChanged": [],
+      "originalAdded": [],
+      "copyExistingFileChanges": []
+    },
+    "Shadowverse": {
+      "baselineMarkdownFiles": 69,
+      "originalChanged": [],
+      "originalAdded": [],
+      "copyExistingFileChanges": [
+        "08 Projects/01 A Shadow in the Dark/Scripts/ASTD Lettering Part 1.md"
+      ]
+    },
+    "Storyboards": {
+      "baselineMarkdownFiles": 139,
+      "originalChanged": [],
+      "originalAdded": [],
+      "copyExistingFileChanges": []
+    }
+  },
+  "reviewBuildsMatchDist": true
+}

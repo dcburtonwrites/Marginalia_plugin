@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-22",
+  "decision": "D-0014",
+  "automated_tests": 84,
+  "browser": "pass",
+  "typecheck": "pass",
+  "package": "pass",
+  "native": {
+    "sidebar_placement": "pass",
+    "main_editor_preserved": "pass",
+    "group_selection": "pass",
+    "legacy_main_chooser_migrated": "pass"
+  },
+  "preserved_note_hashes": 14,
+  "installed_matches_package": true,
+  "screenshot": "design/verification/native-studio-sidebar.png"
+}

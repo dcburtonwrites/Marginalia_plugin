@@ -1,0 +1,13 @@
+import { build } from "esbuild";
+await build({
+  entryPoints: ["src/main.ts"],
+  bundle: true,
+  external: ["obsidian", "node:*", "@codemirror/*", "@lezer/*"],
+  format: "cjs",
+  platform: "node",
+  target: "es2022",
+  outfile: "main.js",
+  logLevel: "info",
+  loader: { ".md": "text" },
+  banner: { js: "/* Marginalia — desktop Obsidian plugin */" },
+});

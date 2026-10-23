@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-23",
+  "decision": "D-0024",
+  "settingsLocation": "Settings / Marginalia / Theme",
+  "defaultField": "stage",
+  "defaultOrder": [
+    "Foraged",
+    "Dried",
+    "Ground",
+    "Brewed",
+    "Distilled",
+    "Bottled"
+  ],
+  "requirements": {
+    "customField": "Pure and browser distinct progress property; native progress switch changes register labels to Unassigned without falling back to stage",
+    "customOrder": "Pure input normalization, empty flow and extras; browser Bottled/Foraged and native settings edit",
+    "consistentViews": "Browser register and project card status labels/filter; native Projects six matching configured tabs",
+    "persistence": "Host save test includes custom field/order; native restored stage/default order retained after reload",
+    "sourcePreservation": "No note metadata migration; unknown actual stages remain visible after configured list"
+  },
+  "checks": {
+    "pureTests": 88,
+    "hostTests": 31,
+    "totalTests": 119,
+    "typecheck": "pass",
+    "package": "pass",
+    "workspaceBrowserSuite": "pass",
+    "nativeHost": "Obsidian 1.14.4 / isolated Storyboards Review"
+  },
+  "integrity": {
+    "testCopyExistingMarkdownUnchanged": 284,
+    "testCopiesMatchDist": true,
+    "productionInstallation": false,
+    "LibrarianGenerationOrPerformanceTests": false
+  },
+  "notes": "Existing Brewing/Distilling/Foraging/Grinding values are not renamed; they follow the requested flow alphabetically."
+}

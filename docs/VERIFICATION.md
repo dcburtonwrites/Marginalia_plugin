@@ -1,0 +1,285 @@
+# Development verification — October 21, 2026
+
+This is a development build, not a completed real-vault acceptance. The user authorized installation in a disposable vault, and Marginalia is now installed and enabled in `.preview/Marginalia Test Vault`. The standalone app, Reanimator, and existing private artifacts were not modified.
+
+## Phase 1 review
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Desktop plugin compiles against official API | `npm run typecheck`; `npm run package`; desktop-only manifest | Pass |
+| Mockup-aligned sidebar and selected icon directions | Same sidebar component rendered in browser; screenshots in `design/verification/`; theme-safe vectors in `design/icons/selected/` | Pass in harness and native host; exact ordering is host-controlled |
+| Context, pinning, tabs, composer and explicit actions | Browser interactions; 300px pane without horizontal overflow | Pass in harness |
+| Local runtime and model selection | Loopback validation tests; installed Ollama model listing; capability-gated direct output; model changes cannot affect an in-flight request | Pass |
+| Light and dark appearance | Inspected `librarian-light.png`, `librarian-dark.png`, `enhancement-review.png`, `review-narrow.png` | Pass in harness |
+
+The supplied mockup remains the visual authority. The browser's surrounding note/file chrome is illustrative and uses fictional content. Actual Obsidian controls determine header order and sidebar position.
+
+## Phase 2 review
+
+`npm test`: **42 passing tests** — 24 core checks, 7 HTTP/streaming checks and 11 synthetic host checks.
+
+| Requirement or hard rule | Evidence | Result |
+| --- | --- | --- |
+| Empty target can have rich outside evidence | Aliases, resolved links, direct names and same-page adjacent script passages; exact offset tests | Pass |
+| Preserve identity and source boundaries | Duplicate-alias rejection; longer identity masking; original excerpts with source owners | Pass |
+| Generated content never supports itself | Hidden/generated/provisional/template/archive exclusion tests | Pass |
+| Bounded evidence and inspectable omissions | Context-budget tests; source disclosure UI | Pass |
+| Finished section suggestions and refinement | Model output validation, shared Review component, wired refinement route | Pass structurally; author-quality acceptance pending |
+| No canonical changes during generation | Synthetic host tests observe zero editor transactions and no canonical writes before Insert | Pass |
+| Insert is one native editor transaction | Synthetic host records a single transaction for each explicitly inserted section; Summary callout preservation tests | Pass in native host; disk comparison confirms exact restoration after one Undo |
+| Stale sources cannot publish/insert | Host tests change sources during generation and target before insertion | Pass |
+| Context switches do not move results | Host changes selected note during inference and checks original result ownership | Pass |
+| Cancellation retains previous artifacts | Generation cancellation and cancellation during hidden folder preparation | Pass |
+| Hidden expansion output preserves original | Host checks exact `.marginalia/expanded/<entry>.md` write and unchanged original; envelope round trip | Pass |
+| Preserve legacy and competing output | Legacy-owner refusal, invalid metadata and pre-write conflict tests | Pass |
+| Staleness and library | Source fingerprint tests; hidden library discovery in host harness; browser Library interaction | Pass at core/host boundary |
+| Read-only expansion view | Plugin-owned ItemView, guarded controls, generation metadata and source rendering implemented and typechecked | Pass in native host; separate ItemView, generated label and working controls |
+
+Real local inference used `gemma4:12b-mlx`, a 32,768-token requested window, and **only two fictional notes**. Both Enhancement and Expansion returned parseable section drafts: approximately 9.9 and 9.7 seconds respectively on this machine, after warm-up. These numbers do not predict large-vault or cold-model performance. The original model default spent its response budget on thinking; the adapter now requests direct output only when `/api/show` explicitly supports it.
+
+The fictional smoke-test outputs are in `verification/local-ai-smoke.json`. This is pipeline evidence, not prose-quality acceptance: the model still repeats a daily routine in several sections and uses broad preservation language. Sparse-source omission and precise attribution need author review and further evaluation before live adoption. Native and factual-quality requirements remain open rather than being marked done.
+
+## Phase 3 native functional review
+
+Installed and enabled in `.preview/Marginalia Test Vault` after explicit owner authorization (D-0005). All fixtures are fictional. The current installed files match `dist/marginalia/` and contain no diagnostic logging. The vault remains open in Obsidian for review.
+
+| Requirement or rule | Native evidence | Result |
+| --- | --- | --- |
+| Plugin startup and local model settings | Obsidian 1.14.4 enabled the plugin, displayed settings and listed local models | Pass |
+| Selected icons and mockup appearance | M/nib in left ribbon; lantern in right selector and note header; `native-light.png`, `native-dark.png` | Pass; exact ordering host-controlled |
+| Entry Enhancement | Real local generation produced Review cards and rendered Markdown/source links | Pass functionally |
+| Insert and native undo | Original was initially in reading mode; Insert activated editing, saved the Summary without changing properties, and one Undo restored the exact original bytes | Pass |
+| Stale insertion | After Undo changed the source baseline, another pending suggestion was rejected without mutation | Pass |
+| Entry Expansion | Generated file exists only under `.marginalia/expanded/02 Character/Mira Vale.md`; original remains unchanged | Pass |
+| Read-only tab and Library | Expansion opened in plugin-owned ItemView with Generated / Not canon, original link, source inventory, time and Regenerate; Library found it and it reopened after reload | Pass |
+| Cancellation | Cancelled a native regeneration; the prior generated timestamp remained and controls re-enabled | Pass |
+| Source staleness | Appended a fictional source sentence; native tab showed the staleness notice; restored source; expansion bytes never changed | Pass |
+| Source inspection/navigation | Source inventory exposed original passages; clicking a source opened its canonical note using native navigation | Pass |
+| Hidden storage excluded from ordinary search | A unique phrase found only in the expansion returned 0 core Search results | Pass |
+| Pin/unpin | Pinned context survived switching notes; unpin immediately followed the currently active canonical note | Pass after correction |
+| Source-grounded prose without filler/invention | Native model added navigational purpose and generalized capability claims not supplied by fixtures, plus an unsupported Appearance placeholder | **Fail — quality gate remains open** |
+
+Native tests exposed and fixed three integration areas: echoed model frontmatter is discarded rather than applied; actual Character template callouts/navigation sections are recognized; Insert activates the live native editor instead of modifying the dormant reading-mode buffer. Pin release was also corrected to follow the latest canonical note immediately. Regression cases cover each fix, including a captured fictional response.
+
+Functional evidence is recorded in `verification/native-acceptance.json`; the observed model sample is `verification/native-expansion-output.md`. The original fictional notes were restored after tests. Screenshots are under `design/verification/native-*`.
+
+## Remaining acceptance
+
+- Tighten model grounding and sparse-source omission; evaluate representative canon types/subtypes against author expectations. Functional success does not establish prose-quality acceptance. The plugin is not ready for creative-vault adoption yet.
+- Verify expansion sync/portability separately. No hidden-folder Sync guarantee or concurrent standalone/plugin write guarantee is claimed.
+- Earlier standalone sections-only expansions are preserved but not rendered in this increment. Migration remains separate.
+- Source Control is not installed in the isolated vault, so its relative tab placement has not been tested. The native note action appears before view/edit through Obsidian's public `addAction` API, rather than between view/edit and ellipsis as in the conceptual mockup.
+
+## Reference APIs checked
+
+Native view/editor integration follows the [official Obsidian API](https://github.com/obsidianmd/obsidian-api/blob/master/obsidian.d.ts) and [plugin lifecycle guidance](https://docs.obsidian.md/plugins/guides/lifecycle-management). Local inference follows Ollama's [chat](https://docs.ollama.com/api/chat) and [model listing](https://docs.ollama.com/api/tags) endpoints; capability flags were also checked against the installed server.
+
+## Review layout and Lore timeout follow-up
+
+The owner moved Entry Enhancement and Entry Expansion into Review only (D-0006). Native Ask/Review and the browser Ask/Review/Library checks confirm the new placement. The installed update is visible in `design/verification/native-review-entry-actions.png`; `native-ask-actions-moved.png` shows Ask without those buttons.
+
+The reported message combined two different diagnoses. The original socket inactivity timeout fired after 180 seconds, but a catch-all request error handler prepended “Cannot reach local Ollama.” Ollama's log shows that the model had received those requests and that they ended when the client cancelled them. Lore-specific guidance and the shared canon writer are present in the captured fictional request (2,383 system characters and 5,933 user characters); they were not missing.
+
+The HTTP adapter now streams active output, exposes waiting/thinking/receiving progress, distinguishes timeouts from actual connection failures, preserves server error details, and rejects incomplete responses without publishing them. Tests cover a silent timeout, refused connection, HTTP/API failure, partial/malformed output, stream cancellation, oversized output, active generation exceeding one idle window, and the overall deadline.
+
+An initial streamed native retry also emitted no text before manual cancellation, so streaming alone does not prove that the underlying model-side stall is resolved. Two subsequent Eastern Archive expansions completed, including one on the clean installed build; the second immediately showed streamed output and was saved at 2026-10-21 17:42:56 America/New_York. The exact cause of the intermittent model stall remains unestablished. The user’s current test-note text, including their post-install edits, was preserved. See `verification/lore-timeout-fix.json`.
+
+Protocol handling follows Ollama's [streaming documentation](https://docs.ollama.com/api/streaming) and [API error format](https://docs.ollama.com/api/errors).
+
+## Script organizer increment — D-0007 / D-0008
+
+The owner moved script development forward, then explicitly chose direct Longform-style organization without required Preceded By maintenance. The left M ribbon now opens Scripts; Librarian remains available through the lantern and its command. The build is copied to the disposable vault, with two new fictional Copper Sky script fixtures. All 9 pre-existing Markdown file hashes remained unchanged. The running app has loaded this increment and was reloaded again to verify saved ordering.
+
+| Requirement or rule | Evidence | Result |
+| --- | --- | --- |
+| Organizer order without required predecessor fields or note rewrites | Pure tests for saved order, initial unlinked order, range updates, group membership, file/folder renames; shared-view button/drag tests | Pass |
+| One order authority after adoption | Conflicting legacy links produce initial warnings; saved organizer order ignores those links; explicit adoption tested | Pass |
+| Order persists without losing AI settings | Browser reload test; shared settings/order save queue host test | Pass |
+| Separate declared Pages and actual slots; Side/spreads; authored panel titles | Synthetic CRLF, spread/override, count and source-preservation cases | Pass |
+| Panel move owns dialogue, notes and location | Full-block round-trip, page-boundary rejection, EOF case, unchanged metadata | Pass |
+| One native transaction per edit | Synthetic host transaction/focus test | Pass at host boundary and in Obsidian; see native follow-up below |
+| Light/dark, 300px pane, drag/button controls, outline | Same ItemView implementation in fictional browser host; `design/verification/scripts-organizer-*.png` | Pass in browser harness |
+| Librarian regression | Existing source/transport/host cases and browser Ask/Review/Library workflow | Pass |
+| Native placement, navigation, persisted order after native reload, actual script Undo | Following explicit owner authorization to inspect, the identified window was Marginalia Test Vault. M ribbon placement, source navigation, reload persistence and exact-byte single Undo checks passed there. No other vault was accessed. | Pass |
+| Enter slash commands, speaker completion, page moves, script creation, export | Explicit following script increments | Not implemented |
+
+`npm test`: 59 tests passed (46 core/script/transport + 13 synthetic-host). Typecheck, development packaging and shared-view browser checks passed. See `verification/scripts-organizer.json`. Native acceptance of this organizer increment passed; the following script features remain separate. Librarian prose-quality and expansion portability findings remain open separately.
+
+
+### Native script follow-up
+
+With the owner's explicit window-inspection authorization, Obsidian identified the active window as `Marginalia Test Vault`. The installed build opened Scripts on the left through the M ribbon, with Librarian still on the right. Moving Opening before After the Bell saved organizer order and changed their ranges to 1–4 and 5–6, without adding predecessor/successor fields. A full app reload retained that sequence and range display.
+
+Panel navigation focused the authored callout in the native source editor; double-spread page navigation focused its H2 heading; cross-file navigation opened After the Bell at its selected panel. Moving the first Opening panel down carried MIRA's dialogue, the Lighting note and Location reference together. One Undo restored the exact saved file hash. Panel insertion and page insertion each also restored that hash with one Undo. Page insertion appended Page 5 / Side Left, preserved Pages: 4 and displayed the actual/declared mismatch. After all checks, all 11 baseline Markdown file hashes matched, including the user's existing test-note text and both new fictional script fixtures.
+
+The final build remains active with Opening and the script organizer visible. Native screenshot: `design/verification/native-scripts-organizer.png`. The earlier app-access review block was resolved by the owner's explicit authorization; no private vault was accessed. Native drag gestures were not separately tested; browser drag/drop and native Move Up/Down share the saved-order path.
+
+## Predecessor maintenance and project reading — 2026-10-22
+
+D-0009 restores Preceded By as the order authority, replacing the plugin-only ordering model from D-0008. D-0010 removes the sidebar Move/Open controls and separates disclosure from navigation. Historical verification sections above describe earlier builds.
+
+| Requirement or rule | Evidence | Result |
+| --- | --- | --- |
+| Automatically create missing Preceded By; first script empty | Pure write-plan and host coordinator cases; three fictional native script fields filled on startup | Pass |
+| Existing predecessors override old plugin order | Core case plus native reversal of source properties against the old saved array; outline and project both followed properties before/after reload | Pass |
+| Drag updates the whole chain and existing legacy successor projections | Source write-plan cases; browser drag by script names, persisted source properties and reload | Pass in automated/browser checks |
+| Missing/conflicting/cyclic claims are not silently filled | Core cases and browser dangling-link diagnosis/drag repair | Pass |
+| Never discard dirty/stale/newer edits | Whole-group preflight, per-file compare/write and conditional rollback host cases | Pass at synthetic host boundary; multi-file writes are not crash-atomic |
+| Preserve source bodies and unrelated metadata | CRLF/BOM/comment pure case; native comparison of all 14 current notes: only Preceded By changed in three scripts | Pass |
+| Arrows expand/collapse; names open without toggling | Browser interactions and initial native script/page/disclosure checks | Pass |
+| Remove Move Up/Down, Open script/page, adoption buttons | Browser absence assertions and native accessibility inspection | Pass |
+| Project click shows all scripts in order, with links back to notes | Same-view browser assertions; native Markdown-rendered Copper Sky project and restored view state after app reload | Pass |
+| Native drag gesture on the final build | Native pointer automation stopped emitting mouse events, including on the built-in Files tab; temporary diagnostics received no events and were removed. Keyboard input continued working. | Not verified; no native drag success claim |
+| Prior Librarian and script behavior | Full automated suite and browser Ask/Review/Library regression checks | Pass |
+
+`npm test`: **66 passing tests** (49 core/script/transport + 17 host). Typecheck, development packaging, browser light/dark and 300px checks passed. The host/browser YAML test codec covers flat fixtures; native Obsidian's YAML codec was exercised by actual automatic source updates. Unusual valid flow/complex YAML may be serialized through the host fallback and normalize metadata formatting/comments; body content is preserved.
+
+The clean packaged build matches the installed plugin files byte-for-byte. The project is left open in the authorized disposable vault. Predecessor fields reflect Opening then After the Bell; no other note properties or body text changed, no combined project file was written, and no private vault or standalone app was modified. Native evidence: `design/verification/native-project-reading.png`; structured report: `verification/predecessors-project-view.json`.
+
+
+## Live outline and spread-side correction — 2026-10-22
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| No manual Refresh control | Browser absence assertion and native accessibility tree; existing metadata/vault/editor subscriptions remain | Pass |
+| Opening Page 4 Left after Page 2–3 Double Spread | Pure fixture, browser label assertion and native installed outline | Pass |
+| Shared insertion rule | Regression appending a page after a spread produces Side: Left; the following single page alternates Right | Pass |
+| Respect authored overrides and preserve existing source | Explicit Side: Right after a spread remains Right; all 14 current native note hashes unchanged | Pass |
+
+68 automated tests passed (51 core/script/transport + 17 host); typecheck, packaging and the browser suite passed. Clean package files match the installed disposable-vault plugin. Native screenshot: `design/verification/native-scripts-spread-side.png`. No inference/model changes or creative-vault writes were made. Earlier sections reporting Page 4 Right / subsequent Page 5 Left describe the superseded calculation.
+
+
+## Script Studio and writing sessions — 2026-10-22
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Initial project/grouping chooser | Shared native view, browser actions and installed Obsidian chooser | Pass |
+| Project includes every grouping; grouping excludes other groups/projects | Browser fixtures and temporary native second grouping; unrelated Harbor excluded | Pass |
+| Scope persists and selection reuses the main tab | Host regression, browser reload and native reload | Pass |
+| Footer beneath outline and above vault name | Native final screenshots; qualified host padding reset | Pass |
+| Countdown Start/Pause/Reset, duration and paused restoration | Unit/browser interactions; native Start/Pause, 1-minute test and reload; defaults restored to 25 | Pass |
+| Completion announced only once | Controlled-clock unit check; no full native completion wait | Pass at unit boundary |
+| Three goal modes and independent project target | Unit/browser checks; native menu and saved Copper Sky target | Pass |
+| Visibility controls remove footer when both hidden | Browser and native settings interaction | Pass |
+| Actual local editor deltas and Undo | Native +4 words, save, one Undo returns to 0; exact note hash restored | Pass |
+| Initial/imported/hidden/template/attachment text earns no words; day rollover and rename handling | Core/host regressions, synthetic clock | Pass at automated boundary |
+
+82 automated tests passed (61 core/script/transport/writing and 21 host). Typecheck, packaging and shared-component browser suite passed. Native tests used Obsidian 1.14.4 in the authorized disposable vault. Final settings are visible timer/words, 25 minutes paused, All projects and daily goal 0. All 14 pre-existing note hashes are unchanged, the temporary native second-group note is removed, and installed main.js/manifest.json/styles.css match dist byte-for-byte.
+
+Evidence: `design/verification/native-script-studio.png`, `native-writing-session.png`, `native-writing-settings.png`, and the intermediate `native-writing-progress.png` (+4 words); shared-view `script-studio-home.png` and `script-studio-session.png`. Structured report: `verification/studio-writing-session.json`.
+
+Limits: daily totals represent local changes observed while Marginalia is loaded, not a reconstruction of earlier/offline edits. Imported/external changes update baselines without earning words. Saved remaining time restores paused; no cross-device timing/sync guarantee or history view is included. Native completion and midnight rollover are covered by controlled tests rather than waiting in the native host. Earlier acceptance gaps remain separately recorded above.
+
+
+## Sidebar Script Studio — 2026-10-22 (D-0014)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Chooser opens in a native left-sidebar tab | Installed Obsidian ribbon action and screenshot `design/verification/native-studio-sidebar.png`; browser sidebar containment assertion | Pass |
+| Opening chooser preserves the main script editor | Native Opening remains editable beside chooser; host regression rejects main-leaf access; browser main-content preservation assertion | Pass |
+| Reuse sidebar and retire older main chooser tabs safely | Host tests verify reuse and detach only after sidebar opens; native old main chooser migrated | Pass |
+| Project/group selection returns to scoped outline and reader | Native Draft selection and browser project/group cases | Pass |
+| Word metrics, timer and prior script/Librarian behavior retained | Existing core/host/browser regression suite | Pass |
+
+84 automated tests pass (61 core/script/transport/writing, 23 host). Typecheck, packaging and full shared-view browser interactions pass. Native Obsidian 1.14.4 shows the compact chooser beside Opening. All 14 existing baseline note hashes remain unchanged. The clean development files match the installed disposable-vault plugin, and the development ZIP is refreshed. Earlier main-window Studio screenshots describe the prior placement; `native-studio-sidebar.png` is the current evidence.
+
+
+## Unified Script Studio and main-view folding — 2026-10-22 (D-0015)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| One tab for chooser and outline | Native reload consolidated old Studio/Scripts into one Script Studio selector; browser menu containment and host reuse/migration checks | Pass |
+| Project/grouping menu scopes scripts | Native dropdown exposes Copper Sky all/Draft and Harbor all/Top-level; native Draft selection and browser project/group cases | Pass |
+| Main editor remains available when opening Studio | Host regression, native Opening beside the unified sidebar | Pass |
+| Collapse all / Expand all main script | Native Opening folds to page titles and restores descriptions; host native command/selection assertions | Pass |
+| Panel-only folding preserves dialogue/notes/location | Native Live Preview hides courier/door descriptions while MIRA, Lighting and Eastern Archive remain; host range/source checks | Pass |
+| Project reader fold controls | Native page/panel disclosures collapse and restore correctly; browser assertions for page/panel open states | Pass |
+| No source edits or lost writing settings | All 14 pre-existing note hashes unchanged; word count remains 0; footer present | Pass |
+
+86 tests pass (61 core/script/transport/writing, 25 host), typecheck/package pass, and the full shared-view browser suite passes. Native checks ran in Obsidian 1.14.4 in the authorized disposable vault. The final package matches installed files and the development ZIP is refreshed. Screenshots: `design/verification/native-unified-script-studio.png` and `native-unified-panels-collapsed.png`. Structured report: `verification/unified-script-studio.json`.
+
+Folding is local view state, not source markup. Individual native Reading mode switches to editing to apply folding; project reading uses disclosures. Main-view folding is explicitly confirmed by the owner in D-0016. Compile/export and shortcuts are intentionally future increments. Prior separate-tab screenshots document superseded layouts; earlier Librarian quality/portability and native drag acceptance gaps remain open.
+
+
+## Double Spread folding and toggle labels — 2026-10-22 (D-0017)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Collapse includes Page 2 Double Spread | Real CodeMirror-state regression with cursor inside spread; native Opening displays all three page headings collapsed | Pass |
+| No selection-driven reopening | Regression rejects setSelections; cursor offset and source remain unchanged | Pass |
+| Collapse all becomes Expand all only while folded | Browser absence/presence assertions; native existing-fold recognition and expand round-trip | Pass |
+| Panel control changes to Expand panel descriptions | Browser and native panel fold/expand round-trip | Pass |
+| Expanding panels retains collapsed pages | Browser project-disclosure assertions | Pass |
+| Preserve notes and install clean package | 14 existing baseline hashes unchanged; installed three plugin files match dist; ZIP refreshed | Pass |
+
+87 tests pass (61 core/script/transport/writing, 26 host), typecheck/package and full browser interactions pass. Native test: Obsidian 1.14.4, disposable Marginalia Test Vault. Screenshot: `design/verification/native-spread-fold-toggle.png`. The native test used a text selection in the spread before Collapse all; the controlled CodeMirror regression proves preservation of the exact cursor offset. Final native view was expanded and both labels reverted to Collapse. Earlier static three-button descriptions are superseded. No source-note edit was required.
+
+
+## Native script shortcuts — 2026-10-22 (D-0018)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Original commands and case distinctions | Inspected original domain/script-edit.ts and editor handlers; all 11 mappings exercised in pure tests | Pass |
+| Native panel/dialogue/warning/page creation and typing selection | Actual /p, /d, /cw, /P + Enter in a temporary script; New panel, SPEAKER and New warning selections observed; Page 2 Left generated | Pass |
+| Shared side following a spread | Pure /P regression after Page 2 Double Spread yields Page 4 Side: Left | Pass |
+| Isolated conversion Undo | Actual CodeMirror history regression and native one-step Undo restoring the typed command | Pass |
+| Protect native editing contexts | Tests for ordinary/template/hidden/noncomic files, case/line/cursor mismatch, fenced code, YAML, comments, math, selections, multiple carets and composition; native Shift+Enter retains literal /p | Pass |
+| Preserve source and existing shortcuts | No hotkeys assigned/template code executed; all 14 current baseline note hashes unchanged | Pass |
+| Earlier behavior retained | Full core/host and shared-view browser regression suite | Pass |
+
+107 tests pass: 79 core/script/transport/writing/shortcut tests and 28 host tests. Typecheck, package and browser suite pass. Native Obsidian 1.14.4 tested only in the authorized disposable vault. Temporary fixture was restored byte-for-byte then removed; daily footer returned to 0. The installed plugin files match dist and development ZIP is refreshed. Screenshot: `design/verification/native-script-shortcuts.png`; structured evidence: `verification/script-shortcuts.json`.
+
+Native typing sampled four commands; all note subtypes and protected-context edge cases are covered by automated tests rather than claimed as individually native-tested. These are current-line Markdown transformations, not the standalone app's rich-block storage model. Authored downstream headings are not rewritten, and declared Pages remains author-owned. Speaker completion, compile/export and other future script work remain separate.
+
+
+## App pages, left navigation and feature modules — 2026-10-22 (D-0019–D-0021)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Left-aligned menu above native file viewer | Native final four-row World menu with original file controls/tree; CSS and browser checks | Pass |
+| Keep original M for Script Studio | Native ribbon opens separate Studio while main project page stays open; no app-menu Studio entry | Pass |
+| Home, tabbed cards and project views | Browser page/filter/search/link/pin cases; native Home, Character tab and Copper Sky Scripts tab | Pass |
+| World/Storyboard changes pages | Pure classification/menu tests; browser register/shared-area/mode-switch cases; native selector/register check | Pass |
+| App light/dark palette | Browser palette toggles; native light Home and dark Canon screenshots | Pass |
+| Three collapsible independent modules | Host persistence/save-failure guards; native each switch off/on and settings collapse | Pass |
+| Preserve notes and earlier workflows | All 14 current baseline hashes unchanged; both browser suites and full core/host regression tests | Pass |
+
+117 tests pass (86 pure and 31 host). Typecheck/package and both browser suites pass. Native checks used Obsidian 1.14.4 and the authorized disposable vault only. Current installed plugin matches dist. Evidence: `verification/app-pages-modules.json`, `design/verification/native-app-home-light.png`, `native-app-canon-dark.png`, `native-app-project.png`, `native-modular-settings.png`.
+
+Final Storyboard three-row menu is covered by browser/model tests; native Storyboard register was checked before the final menu trim. Native final four-row World menu and original M were checked after final reload. Pages browse live notes; app creation/template execution and inline register editing are not implemented. File-explorer placement uses observed native DOM structure rather than a dedicated stable extension API. Earlier prose-quality, Sync-portability and native drag-gesture acceptance gaps remain open.
+
+
+## Real-content vault baseline — 2026-10-22 (D-0022)
+
+Native isolated copies of Reanimator, Shadowverse and Storyboards verified all eight comic scripts, World/Storyboard pages and real local Ask/Enhancement/Expansion workflows. Original SHA-256 baseline: all 267 Markdown files unchanged; no original plugin installation. 117 automated tests and typecheck pass. Timed generation spans 13.7–109.2 seconds across the representative samples; precise per-vault table and timing limitations are in [real-vault review](verification/real-vault-review-2026-10-22.md).
+
+Runtime success does not pass writing-quality acceptance: unsupported character claims, malformed citation targets, generic Lore sections for Storyboard overviews, incomplete prose, unsupported legacy expansion format, and the Reanimator Overview-folder project false positive were recorded. Two declared Pages mismatches are accurately surfaced by the parser. No optimization was implemented or trialed, and no failures were fixed during this requested baseline. The report contains the requirement/evidence table and deferred efficiency proposals.
+
+
+## Shared-folder navigation — 2026-10-22 (D-0023)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Separate Crypt/Research/Collections entries below Projects | Exact browser navigation order; native Storyboard six-row menu | Pass |
+| Every top-level underscore folder in either vault type | Pure World/Storyboard discovery, nested/reserved-label cases; browser arbitrary Ideas page and native World Templates | Pass |
+| Exclude Assets | Pure case-insensitive root exclusion and nested asset checks; fixture _Assets never appears; native Storyboard _Assets absent from menu | Pass |
+| Browse shared folder contents, including templates only in own section | Browser nested Signals tab/Templates card and existing Canon counts; native Templates displays 13 cards without execution | Pass |
+| Live create/rename/delete and empty folders | Browser events; native empty folder discovery, native Rename updates active page and menu, deletion removes item and falls back Home | Pass |
+| Preserve old saved routes and native workspace | Browser legacy Crypt restoration/active item; native M, original file tree and source editors remain | Pass |
+| Preserve source and test build | 284 existing test-copy Markdown files and 267 originals unchanged; installed test files match dist; ZIP refreshed | Pass |
+
+118 automated tests pass (87 pure, 31 host), typecheck/package and expanded workspace browser suite pass. Native checks used authorized isolated copies only. No Librarian generations or performance experiments were repeated. Screenshot: design/verification/app-storyboard-register.png uses fictional browser fixtures. Structured evidence: verification/shared-folder-navigation.json. Earlier four-/three-row menu evidence is historical and superseded by automatic discovery. External filesystem renames can arrive as delete/create and safely return an old open section to Home; native Rename follows the new path in place.
+
+
+## Project Status Flow — 2026-10-23 (D-0024)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Configurable per-vault field/order with owner defaults | Pure legacy defaults/input normalization; native settings show stage and six requested values | Pass |
+| Follow configured field without unrelated fallback | Pure/browser custom progress versus stage; native progress changes register values to Unassigned | Pass |
+| Ordered, consistent tabs and labels | Browser register/project cards; native requested six tabs precede actual older values in both views | Pass |
+| Empty configured stages, extra statuses and missing values | Pure/browser empty Foraged and unknown Drafting; native old progressive values remain visible | Pass |
+| Save and reload | Host saved workspace fields/order; native restored stage + requested flow persists after reload | Pass |
+| Actual stage filter and source preservation | Native Bottled shows Lone and excludes Conquest; all 284 pre-existing test-copy Markdown files unchanged | Pass |
+
+119 tests (88 pure, 31 host), typecheck/package and expanded workspace browser suite pass. Native tests use the isolated Storyboards copy only. No notes were rewritten; old status wording remains authored data. Test copies match dist and ZIP is refreshed. No Librarian generation/performance experiments. Structured evidence: verification/project-status-flow.json.

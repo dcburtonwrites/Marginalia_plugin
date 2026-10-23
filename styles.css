@@ -1,0 +1,862 @@
+/* Native Obsidian colors and typography; all rules stay inside plugin-owned views. */
+.marginalia-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 14px;
+  padding: 18px 14px 12px !important;
+  overflow: hidden;
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small, 13px);
+  color: var(--text-normal);
+  background: var(--background-secondary);
+  box-sizing: border-box;
+}
+.marginalia-sidebar * {
+  box-sizing: border-box;
+}
+.marginalia-sidebar h2,
+.marginalia-sidebar h3,
+.marginalia-sidebar h4,
+.marginalia-sidebar p {
+  margin: 0;
+}
+.marginalia-header,
+.marginalia-tools,
+.marginalia-context-top,
+.marginalia-status,
+.marginalia-scope,
+.marginalia-review-actions,
+.marginalia-progress,
+.marginalia-expansion-actions,
+.marginalia-expansion-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.marginalia-header {
+  justify-content: space-between;
+  gap: 6px;
+}
+.marginalia-header h2 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+.marginalia-tools {
+  gap: 3px;
+}
+.marginalia-sidebar button {
+  cursor: pointer;
+  font: inherit;
+  white-space: normal;
+}
+.marginalia-icon-button,
+.marginalia-pin {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--text-muted);
+  padding: 3px 5px !important;
+  font-size: 11px !important;
+  height: auto !important;
+}
+.marginalia-status {
+  color: var(--text-muted);
+  font-size: 12px;
+  gap: 6px;
+}
+.marginalia-status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-green, #7ec793);
+  border-radius: 50%;
+}
+.marginalia-status-dot.is-waiting {
+  background: var(--text-faint);
+}
+.marginalia-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin: 0 -14px;
+  padding: 0 14px;
+}
+.marginalia-tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 10px 0;
+  border-bottom: 2px solid transparent;
+  height: auto;
+}
+.marginalia-tabs button.is-active {
+  border-bottom-color: var(--interactive-accent);
+  color: var(--text-accent);
+}
+.marginalia-context {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: var(--background-primary-alt, var(--background-primary));
+}
+.marginalia-context-top {
+  justify-content: space-between;
+}
+.marginalia-context strong {
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.marginalia-muted {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.marginalia-context > .marginalia-muted {
+  font-size: 11px;
+}
+.marginalia-entry-actions {
+  display: grid;
+  gap: 7px;
+}
+.marginalia-sidebar .marginalia-entry-action {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  height: auto;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 7px;
+  background: var(--background-primary);
+  box-shadow: none;
+}
+.marginalia-entry-action strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.marginalia-entry-action:hover {
+  border-color: var(--interactive-accent) !important;
+}
+.marginalia-entry-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.marginalia-scope {
+  flex-wrap: wrap;
+  gap: 7px;
+  font-size: 11px;
+}
+.marginalia-scope .marginalia-muted {
+  font-size: 11px;
+}
+.marginalia-scope-label {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  padding: 4px 7px;
+}
+.marginalia-scope button {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 4px 7px;
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid var(--background-modifier-border);
+}
+.marginalia-references {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.marginalia-references button {
+  font-size: 11px;
+  height: auto;
+}
+.marginalia-body {
+  flex: 1;
+  min-height: 60px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.marginalia-body > h3 {
+  font-size: 15px;
+}
+.marginalia-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 0 8px;
+}
+.marginalia-welcome-icon {
+  color: var(--text-accent);
+  align-self: center;
+}
+.marginalia-welcome-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.marginalia-welcome h3 {
+  text-align: center;
+  font-size: 17px;
+  letter-spacing: -0.3px;
+}
+.marginalia-welcome > p {
+  text-align: center;
+  max-width: 290px;
+  align-self: center;
+  margin-bottom: 7px;
+}
+.marginalia-sidebar .marginalia-prompt {
+  height: auto;
+  min-height: 36px;
+  padding: 9px 11px;
+  text-align: left;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 7px;
+  box-shadow: none;
+  font-size: 12px;
+}
+.marginalia-message {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.marginalia-message-role {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.marginalia-message.is-user .marginalia-message-role {
+  color: var(--text-accent);
+}
+.marginalia-markdown {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.marginalia-markdown p {
+  margin: 0 0 10px;
+}
+.marginalia-markdown p:last-child {
+  margin-bottom: 0;
+}
+.marginalia-markdown h2 {
+  font-size: 1.25em;
+  margin: 24px 0 12px;
+}
+.marginalia-markdown h3 {
+  font-size: 1.1em;
+  margin: 18px 0 10px;
+}
+.marginalia-suggestion {
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 7px;
+  background: var(--background-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.marginalia-suggestion h4 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.marginalia-review-actions {
+  flex-wrap: wrap;
+}
+.marginalia-review-actions button {
+  font-size: 12px;
+}
+.marginalia-refine {
+  display: flex;
+  gap: 5px;
+}
+.marginalia-refine input {
+  width: 0;
+  flex: 1;
+  min-width: 0;
+}
+.marginalia-refine button {
+  font-size: 11px;
+}
+.marginalia-sources {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.marginalia-sources summary {
+  cursor: pointer;
+  line-height: 1.5;
+}
+.marginalia-sources p {
+  margin: 8px 0;
+}
+.marginalia-sources blockquote {
+  white-space: pre-wrap;
+  margin: 8px 0;
+  padding-left: 9px;
+  border-left: 2px solid var(--background-modifier-border);
+  line-height: 1.55;
+  max-height: 220px;
+  overflow: auto;
+}
+.marginalia-source-link {
+  display: block !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  color: var(--text-accent) !important;
+  font-size: 11px !important;
+  padding: 0 !important;
+  text-align: left !important;
+  height: auto !important;
+  overflow-wrap: anywhere;
+}
+.marginalia-library-item {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 5px;
+  padding: 12px !important;
+  height: auto !important;
+  text-align: left;
+  background: var(--background-primary) !important;
+  border: 1px solid var(--background-modifier-border) !important;
+  box-shadow: none !important;
+}
+.marginalia-library-item span {
+  overflow-wrap: anywhere;
+}
+.marginalia-empty {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.marginalia-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.marginalia-composer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 9px;
+  background: var(--background-primary);
+}
+.marginalia-composer textarea {
+  width: 100%;
+  border: 0;
+  box-shadow: none;
+  resize: vertical;
+  min-height: 48px;
+  max-height: 140px;
+  background: transparent;
+  font: inherit;
+  padding: 2px;
+  color: var(--text-normal);
+  outline-offset: 2px;
+}
+.marginalia-composer button {
+  font-size: 11px;
+  height: 27px;
+}
+.marginalia-footnote {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.marginalia-progress {
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.marginalia-progress button {
+  font-size: 11px;
+}
+.marginalia-error,
+.marginalia-stale {
+  color: var(--text-error, #b04444);
+  font-size: 12px;
+  line-height: 1.5;
+  border-left: 2px solid currentColor;
+  padding: 8px 10px;
+  background: var(--background-primary);
+}
+.marginalia-expansion {
+  padding: 36px !important;
+  max-width: 860px;
+  margin: 0 auto;
+  overflow: auto;
+}
+.marginalia-expansion-banner {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.marginalia-generated {
+  font-size: 12px;
+  color: var(--text-accent);
+}
+.marginalia-expansion-actions {
+  margin: 20px 0;
+}
+.marginalia-expansion > .marginalia-sources {
+  margin: 30px 0;
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 20px;
+}
+.marginalia-sidebar button:focus-visible,
+.marginalia-sidebar input:focus-visible,
+.marginalia-sidebar textarea:focus-visible,
+.marginalia-expansion button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 340px) {
+  .marginalia-sidebar {
+    gap: 10px;
+    padding: 14px 10px 10px !important;
+  }
+  .marginalia-header h2 {
+    font-size: 18px;
+  }
+  .marginalia-scope button {
+    margin-left: 0;
+  }
+  .marginalia-tabs {
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+  .marginalia-expansion {
+    padding: 20px !important;
+  }
+}
+
+.marginalia-sidebar > .marginalia-header,
+.marginalia-sidebar > .marginalia-status,
+.marginalia-sidebar > .marginalia-tabs,
+.marginalia-sidebar > .marginalia-context,
+.marginalia-sidebar > .marginalia-entry-actions,
+.marginalia-sidebar > .marginalia-scope,
+.marginalia-sidebar > .marginalia-footer {
+  flex-shrink: 0;
+}
+
+/* Native manuscript outline: arrows disclose, names navigate. */
+.marginalia-scripts {
+  padding: 12px 10px;
+  font-size: var(--font-ui-small);
+  overflow: auto;
+}
+.marginalia-script-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.marginalia-script-header h2 {
+  font-size: var(--font-ui-medium);
+  margin: 0;
+}
+.marginalia-script-caption,
+.marginalia-script-empty {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.marginalia-script-project {
+  margin-top: 14px;
+}
+.marginalia-outline-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.marginalia-scripts .marginalia-outline-arrow,
+.marginalia-scripts .marginalia-outline-name,
+.marginalia-scripts .marginalia-script-row {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  height: auto;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+.marginalia-scripts .marginalia-outline-arrow {
+  flex: 0 0 22px;
+  padding: 5px 2px;
+  color: var(--text-muted);
+}
+.marginalia-scripts .marginalia-outline-name {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 6px 3px;
+}
+.marginalia-script-project > .marginalia-outline-row > .marginalia-outline-name,
+.marginalia-script-name {
+  font-weight: var(--font-semibold);
+}
+.marginalia-script-group {
+  margin: 6px 0 0 10px;
+}
+.marginalia-script-group > .marginalia-outline-row > .marginalia-outline-name {
+  color: var(--text-muted);
+}
+.marginalia-script-file {
+  margin: 4px 0 0 10px;
+}
+.marginalia-script-file > .marginalia-outline-row[draggable="true"] {
+  cursor: grab;
+}
+.marginalia-script-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  padding: 2px 0 6px 24px;
+}
+.marginalia-script-page {
+  border-left: 1px solid var(--background-modifier-border);
+  margin: 4px 0 4px 14px;
+  padding-left: 6px;
+}
+.marginalia-script-side {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  flex: 0 1 auto;
+  margin-right: 4px;
+}
+.marginalia-scripts .marginalia-script-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 6px 8px 6px 24px;
+}
+.marginalia-scripts .marginalia-script-row:hover,
+.marginalia-scripts .marginalia-outline-name:hover,
+.marginalia-scripts .marginalia-outline-arrow:hover {
+  background: var(--background-modifier-hover);
+}
+.marginalia-scripts button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+.marginalia-outline-children[hidden] {
+  display: none;
+}
+.marginalia-script-warning,
+.marginalia-script-mismatch {
+  color: var(--text-warning);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.5;
+  padding: 4px 8px;
+  margin: 4px 0;
+}
+.marginalia-script-warning {
+  border-left: 2px solid var(--text-warning);
+}
+.marginalia-script-warning p {
+  margin: 3px 0;
+}
+.marginalia-project-reading {
+  overflow: auto;
+  padding: 24px max(24px, calc((100% - 800px) / 2));
+}
+.marginalia-project-script {
+  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 24px;
+  padding-top: 16px;
+}
+.marginalia-project-reading .marginalia-project-script-link {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: inherit;
+  font-weight: inherit;
+  height: auto;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+}
+.marginalia-project-reading .marginalia-project-script-link:hover {
+  color: var(--text-accent);
+}
+
+/* A session is one chosen manuscript context; utilities stay above the vault bar. */
+.marginalia-scripts {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.marginalia-scripts-outline {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 10px;
+}
+.marginalia-studio-return {
+  font-size: var(--font-ui-smaller);
+}
+.marginalia-writing-footer {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+.marginalia-writing-footer[hidden] {
+  display: none;
+}
+.marginalia-writing-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.marginalia-writing-clock {
+  flex: 1;
+  font-size: var(--font-ui-medium);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-semibold);
+}
+.marginalia-writing-timer-control {
+  height: auto;
+  padding: 3px 7px;
+  font-size: var(--font-ui-smaller);
+}
+.marginalia-writing-words {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+}
+.marginalia-writing-words:first-child {
+  margin-top: 0;
+}
+.marginalia-writing-label {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  overflow-wrap: anywhere;
+}
+.marginalia-writing-count {
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+}
+.marginalia-writing-goal {
+  display: block;
+  margin: 8px 0 0;
+  width: 100%;
+  height: 5px;
+  accent-color: var(--interactive-accent);
+}
+.marginalia-writing-complete {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+.marginalia-studio {
+  overflow: auto;
+  padding: 16px 12px;
+}
+.marginalia-studio-content {
+  width: 100%;
+  min-width: 0;
+}
+.marginalia-studio h1 {
+  font-size: var(--font-ui-large);
+  margin: 0 0 12px;
+}
+.marginalia-studio-intro {
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-size: var(--font-ui-small);
+  margin-bottom: 16px;
+}
+.marginalia-studio-project {
+  padding: 16px 0;
+  border-top: 1px solid var(--background-modifier-border);
+}
+.marginalia-studio-project h2 {
+  margin: 0 0 6px;
+  font-size: var(--font-ui-medium);
+}
+.marginalia-studio .marginalia-studio-project-name {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+  background: transparent;
+  color: var(--text-normal);
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  white-space: normal;
+}
+.marginalia-studio .marginalia-studio-project-name:hover {
+  color: var(--text-accent);
+}
+.marginalia-studio-path {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  overflow-wrap: anywhere;
+  margin: 0 0 8px;
+}
+.marginalia-studio-summary {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin: 8px 0 14px;
+}
+.marginalia-studio-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 12px;
+}
+.marginalia-studio .marginalia-studio-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  height: auto;
+  width: 100%;
+  text-align: left;
+  color: var(--text-normal);
+  box-shadow: none;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: var(--font-ui-small);
+  white-space: normal;
+}
+.marginalia-studio .marginalia-studio-group:hover {
+  background: var(--background-modifier-hover);
+}
+.marginalia-studio-group-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+.marginalia-studio button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 3px;
+}
+/* Obsidian's pane rule otherwise adds padding around the anchored footer. */
+.workspace-leaf-content[data-type="marginalia-scripts"] .view-content.marginalia-scripts {
+  padding: 0;
+}
+
+.marginalia-studio .marginalia-studio-group { gap: 8px; padding: 8px 4px; overflow-wrap: anywhere; }
+.marginalia-studio .marginalia-studio-project-name { overflow-wrap: anywhere; }
+
+.marginalia-session-picker { width: 100%; max-width: 100%; margin: 4px 0 8px; }
+.marginalia-outline-actions { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.marginalia-outline-actions button { font-size: var(--font-ui-smaller); height: auto; padding: 4px 6px; }
+
+.marginalia-script-actions { margin: 6px 0; color: var(--text-muted); font-size: var(--font-ui-small); }
+.marginalia-script-actions summary { cursor: pointer; }
+.marginalia-reading-fold > summary { cursor: pointer; }
+.marginalia-fold-page > summary > :is(h1,h2,h3,h4,h5,h6) { display: inline; }
+.marginalia-fold-page { margin: 1em 0; }
+.marginalia-fold-panel { margin: 0.75em 0; }
+.marginalia-fold-panel > .callout > .callout-title { display: none; }
+.marginalia-fold-panel > summary { font-weight: var(--font-semibold); }
+
+/* Live Preview renders a whole callout as an atomic widget above native folds. */
+.marginalia-panels-collapsed .callout[data-callout="panel"] > .callout-content { display: none; }
+
+/* Marginalia app palette: tokens copied from the owner's desktop app. */
+body.marginalia-theme.theme-light {
+  --background-primary:#f4efe4; --background-primary-alt:#f4efe4;
+  --background-secondary:#ece5d4; --background-secondary-alt:#e3dac5;
+  --background-modifier-border:#d9d0bd; --background-modifier-hover:rgba(168,98,46,.12);
+  --text-normal:#2a2620; --text-muted:#62594b; --text-faint:#746b5d;
+  --text-accent:#83471e; --text-accent-hover:#a8622e; --interactive-accent:#a8622e;
+  --interactive-accent-hover:#83471e; --interactive-normal:#ece5d4; --interactive-hover:#e3dac5;
+  --color-accent:#a8622e; --color-accent-1:#a8622e; --color-accent-2:#83471e;
+  --marginalia-character:#a8622e;--marginalia-location:#7d8f6a;--marginalia-event:#6a7d9f;--marginalia-item:#9f8f6a;--marginalia-affiliation:#8a6a94;--marginalia-system:#5c8a8a;--marginalia-lore:#93524f;
+}
+body.marginalia-theme.theme-dark {
+  --background-primary:#121316;--background-primary-alt:#121316;
+  --background-secondary:#1c1e22;--background-secondary-alt:#24262b;
+  --background-modifier-border:#2e3136;--background-modifier-hover:rgba(217,142,74,.16);
+  --text-normal:#d8d9dc;--text-muted:#9a9ca3;--text-faint:#9a9ca3;
+  --text-accent:#d98e4a;--text-accent-hover:#edaa6e;--interactive-accent:#d98e4a;
+  --interactive-accent-hover:#edaa6e;--interactive-normal:#1c1e22;--interactive-hover:#24262b;
+  --color-accent:#d98e4a;--color-accent-1:#d98e4a;--color-accent-2:#edaa6e;
+  --marginalia-character:#d68a52;--marginalia-location:#9db286;--marginalia-event:#8fa3c9;--marginalia-item:#c2b48a;--marginalia-affiliation:#b18fbe;--marginalia-system:#7fb0b0;--marginalia-lore:#bc7d79;
+}
+.marginalia-app-navigation {padding:12px 8px;border-bottom:1px solid var(--background-modifier-border);flex-shrink:0;max-height:50vh;overflow-y:auto;}
+.marginalia-nav-title {font-weight:600;padding:4px 8px 10px;}
+.marginalia-app-nav-item {display:flex;align-items:center;gap:10px;width:100%;height:auto;padding:8px 10px;background:transparent!important;border:0!important;box-shadow:none!important;text-align:left;}
+.marginalia-app-nav-item:hover {background:var(--background-modifier-hover)!important;}
+.marginalia-app-nav-item svg {width:17px;height:17px;}
+.marginalia-app-page {padding:32px!important;overflow:auto;background:var(--background-primary);}
+.marginalia-page-inner {max-width:1280px;margin:auto;}
+.marginalia-app-page :is(h1,h2,.marginalia-card-title) {font-family:"Source Serif 4",Georgia,serif;font-weight:500;}
+.marginalia-app-page h1 {font-size:28px;margin:0;}
+.marginalia-app-page h2 {font-size:21px;margin:24px 0 16px;}
+.marginalia-page-heading {display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:28px;}
+.marginalia-page-heading h1 {margin-right:auto;}
+.marginalia-page-search {max-width:260px;}
+.marginalia-home-intro {color:var(--text-muted);margin-bottom:28px;}
+.marginalia-page-tabs {display:flex;gap:16px;border-bottom:1px solid var(--background-modifier-border);overflow-x:auto;margin:20px 0 24px;}
+.marginalia-page-tabs button {height:auto;padding:10px 0;background:transparent;box-shadow:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--text-muted);white-space:nowrap;}
+.marginalia-page-tabs [aria-selected="true"] {color:var(--text-normal);font-weight:600;border-color:var(--text-accent);}
+.marginalia-entry-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:16px;}
+.marginalia-entry-grid.is-rows {grid-template-columns:1fr;gap:8px;}
+.marginalia-app-page button.marginalia-entry-card {display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:7px;width:100%;height:auto;min-height:150px;padding:20px;background:var(--background-secondary);border:1px solid var(--background-modifier-border);border-radius:8px;box-shadow:none;text-align:left;white-space:normal;color:var(--text-normal);}
+.marginalia-entry-card:hover {filter:brightness(.98);}
+.marginalia-entry-card[data-category] {border-left-width:3px!important;}
+.marginalia-entry-card[data-category="character"] {border-left-color:var(--marginalia-character,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="location"] {border-left-color:var(--marginalia-location,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="event"] {border-left-color:var(--marginalia-event,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="item"] {border-left-color:var(--marginalia-item,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="affiliation"] {border-left-color:var(--marginalia-affiliation,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="system"] {border-left-color:var(--marginalia-system,var(--text-accent))!important;}
+.marginalia-entry-card[data-category="lore"] {border-left-color:var(--marginalia-lore,var(--text-accent))!important;}
+.marginalia-card-title {font-size:21px;}
+.marginalia-card-category {font-size:var(--font-ui-smaller);color:var(--text-muted);}
+.marginalia-card-preview {color:var(--text-muted);font-size:var(--font-ui-small);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.marginalia-home-desk {display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px;}
+.marginalia-continue {background:var(--background-secondary);border:1px solid var(--background-modifier-border);border-radius:8px;padding:20px;}
+.marginalia-continue h2 {margin-top:0;}
+.marginalia-continue .marginalia-entry-card {border:0!important;padding:0!important;}
+.marginalia-home-pins h2 {margin-top:0;}
+.marginalia-pin-row {margin-bottom:12px;}
+.marginalia-project-card {display:flex;width:100%;height:auto;justify-content:space-between;gap:16px;align-items:center;padding:18px 20px!important;margin:16px 0;background:var(--background-secondary)!important;box-shadow:none!important;text-align:left;white-space:normal;}
+.marginalia-stage {color:var(--text-accent);font-size:var(--font-ui-small);}
+.marginalia-project-link {margin:4px 8px 12px 0;}
+.marginalia-project-register {width:100%;border-collapse:collapse;display:block;overflow-x:auto;}
+.marginalia-project-register :is(td,th) {padding:16px;text-align:left;border-bottom:1px solid var(--background-modifier-border);}
+.marginalia-project-register td small {display:block;color:var(--text-muted);margin-top:8px;}
+.marginalia-include-projects {display:flex;gap:8px;align-items:center;color:var(--text-muted);}
+.marginalia-settings-section {margin:16px 0;border:1px solid var(--background-modifier-border);border-radius:6px;padding:14px;}
+.marginalia-settings-section > summary {font-size:var(--font-ui-large);font-weight:600;cursor:pointer;margin-bottom:8px;}
+.marginalia-settings-body {border:0;padding:0;margin:0;min-width:0;}
+.marginalia-settings-body:disabled {opacity:.55;}
+@container (max-width:650px) {.marginalia-home-desk {grid-template-columns:1fr;}}
+@media(max-width:850px) {.marginalia-home-desk{grid-template-columns:1fr;}.marginalia-app-page{padding:20px!important;}}
+.marginalia-app-nav-item.is-active {background:var(--background-modifier-hover)!important;border-left:2px solid var(--text-accent)!important;font-weight:600;}
+.marginalia-app-page {container-type:inline-size;}
+.marginalia-app-nav-item {justify-content:flex-start;}

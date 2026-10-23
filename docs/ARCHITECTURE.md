@@ -1,0 +1,69 @@
+# Initial architecture
+
+Native TypeScript Obsidian plugin, compiled with esbuild; no runtime UI framework. Official Obsidian API supplies views, settings, metadata, Markdown rendering, note navigation and native editor transactions.
+
+- `src/core`: host-independent retrieval, prompts, output validation, insertion planning and expansion envelope validation. No canonical file writer is available to model generation.
+- `src/ollama.ts`: loopback-only model selection, capability checks and request budgeting. No cloud models or fallback. Installed model selection is explicit.
+- `src/transport.ts`: desktop Node HTTP, without redirects. Assemble Ollama NDJSON streams and publish only after their final completion marker. Surface waiting/thinking/output progress without displaying or persisting partial drafts. Separate connection, HTTP/API, invalid-response, cancellation and timeout failures. Generation allows 180 seconds of idle time and a 10-minute overall deadline; metadata uses 15-second idle and 30-second overall limits. These limits are not proof of why a particular model run stalled.
+- `src/ui`: shared DOM component and namespaced styles using Obsidian theme variables. System typography, native background/border/text colors and purple host accent match the supplied mockup. Left alignment; small contextual cards, prominent entry actions and composer anchored at bottom. No extra dashboard or decorative branding.
+- `src/main.ts`: Obsidian lifecycle, read-only vault snapshot, hidden adapter storage, session state and guarded native editor insertion. Save plugin settings through Obsidian. Expansion data stays out of `getMarkdownFiles()` and is never indexed as evidence.
+- `src/prompts`: adapted source-grounding brief and type guidance from the standalone app. App-specific indexing/runtime modules are not imported.
+
+Storage follows the inspected standalone `expansion` frontmatter envelope, adding a plugin-owner marker. Legacy artifacts can be read where their draft/schema is supported; replacement requires a future explicit migration. A pre-write comparison detects competing changes, but is not a cross-process transaction; simultaneous standalone/plugin writes to the same vault are unsupported. Development uses synthetic fixtures and does not access the creative vault.
+
+Tests exercise rules and host boundaries with synthetic data. A browser harness mounts the same sidebar component for visual and interaction checks; it is not evidence of installation or actual Obsidian rendering.
+
+
+## Script organization
+
+`src/scripts/model.ts` provides source-range parsing, predecessor order diagnostics, page slots and edit planning. `src/scripts/properties.ts` patches ordering fields while preserving the body and unrelated block-mapping YAML; valid unusual flow/complex YAML uses the host serializer fallback, which may normalize YAML formatting/comments. `src/scripts/controller.ts` reads current script metadata through Obsidian's YAML codec, validates transformations, fills missing predecessors and coordinates guarded order writes. `src/scripts/view.ts` registers the left ItemView, separate disclosure/navigation controls, drag ordering and native structural commands.
+
+Preceded By is the order authority. Existing `scriptOrders` in Obsidian plugin data supplies only a migration/tie seed for notes without established predecessor links; new drag order is represented by canonical predecessor properties. Legacy Followed By is used only to seed a group with no predecessor fields and is maintained on drag where already present. Longform is optional and is not another order authority.
+
+Ordering writes use Obsidian `vault.process` for atomic per-file comparison/write, whole-group preflight and a final comparison, with conditional rollback of already-written files on failure. The coordinator rejects unsaved editor buffers and preserves subsequent author edits during rollback. Multi-file writes are not crash-atomic or a cross-process lock; a crash/interruption or competing external editor can leave order issues to diagnose and repair. Missing-field maintenance runs on layout/metadata/vault changes as well as view open. No model-generation writer gains access to this path.
+
+`src/scripts/project.ts` renders a read-only continuous project ItemView from the same ordered groups, using native MarkdownRenderer with each source path for links. It stores only project/group view state, creates no merged file, and refreshes on script changes. Notes remain separately editable in MarkdownView. Page/panel structural edits still use one native editor transaction.
+
+Tests exercise field precedence, missing fill, drag property plans, source preservation, stale input, partial write rollback, dirty buffers, separate arrow/name actions and project content order. The browser harness uses the same view/controller implementation with fictional files and a limited flat-YAML test codec; real Obsidian validation remains necessary for the native YAML codec and host interactions.
+
+
+The script outline and project reader update from native metadata/vault/editor/workspace events with a short debounce; there is no manual Refresh control. `followingSide` is shared by outline parsing and page insertion: a spread ends on Right and is followed by Left. Explicit authored Side metadata still overrides inference. The display correction does not rewrite existing notes.
+
+
+## Writing sessions
+
+`src/scripts/view.ts` registers the unified Script Studio ItemView under marginalia-scripts. `openStudio` creates/reuses a leaf under `workspace.leftSplit`, leaving the main editor intact. The legacy marginalia-script-studio registration is retained only for workspace restoration; layout-ready migration replaces/retires its leaves after the unified tab is ready. The project/grouping menu is always above the scoped outline. The shared script controller persists `{scope, group?}` selection and filters the outline through `selectedGroups`; it captures the current main leaf before revealing the sidebar so scope changes reuse the intended tab. The existing project reader renders the chosen scope, without copying source files.
+
+`src/scripts/writing.ts` owns validated preferences, local-day totals, per-project goals, runtime word baselines and countdown deadlines. Editor-change events earn signed word deltas; startup reads and vault modifications only update baselines. Baselines contain counts and project identity, never note text, and are not persisted. Word extraction excludes frontmatter, script structural labels, fenced code, comments and image targets. Hidden/template paths and non-Markdown attachments are excluded. Rename transfers baseline identity and project state without credit. `Intl.Segmenter` supplies visible-word segmentation.
+
+`session-ui.ts` renders the footer outside the outline's scrolling region, preserving focused timer controls on periodic redraw. A one-second lifecycle interval ticks the clock and announces completion once. Remaining time is snapshotted into plugin data; reopening restores paused. Editor totals save after a short debounce, with a periodic flush during continuous typing; unload pauses and flushes. Settings, script-order migration data and writing state use the same save queue. `settings.ts` uses native Obsidian controls; independent visibility toggles are presentation preferences. This is local plugin state, not historical attribution, a synchronization guarantee or a cross-device timer.
+
+
+`src/scripts/folding.ts` captures native EditorView references via Obsidian's editorInfoField and a registered CodeMirror ViewPlugin. Native foldAll/unfoldAll handles headings; CodeMirror foldEffect handles panel quoted-body ranges, excluding following dialogue/notes. A scoped Live Preview class hides atomic panel-widget bodies that otherwise render above native folds; it clears when the file changes or Expand all runs. Native folds do not change cursor selections, and the controller does not reapply selections afterward: CodeMirror would reopen the page containing the cursor. Parsed page ranges explicitly fold every page, including Double Spread. No transaction changes document text. CodeMirror/Lezer packages are host externals in the plugin build; @codemirror/language is a development dependency. `ProjectView` wraps rendered page/panel blocks in local HTML disclosures and applies the selected fold mode after redraw. Its original source files remain untouched. No compile/export engine or key bindings are introduced here.
+
+
+Fold-control labels query actual native folded ranges/Live Preview state or rendered project disclosures. The sidebar refreshes these labels after actions and on its lifecycle tick so manual folds and navigation are reflected. The panel expansion action removes only panel folds and the Live Preview panel class, preserving page folds. ProjectView tracks page and panel state separately for redraws.
+
+
+## Script typing shortcuts
+
+`src/scripts/shortcuts.ts` plans an exact command-line replacement against current source and script metadata, with protected-context checks and explicit typing-selection offsets. It uses the shared parser/side rule and preserves surrounding source/line endings. The script identity guard now also excludes _templates directories. `shortcut-extension.ts` registers a highest-priority CodeMirror Enter keymap via the existing plugin editor extension registration; nonmatching input returns false to the host. `editorInfoField` supplies the current file/editor, and the planner reads current buffer YAML rather than stale cached identity. Single empty selection and composition guards run before planning. No main-window DOM key interception or native hotkey reassignment is used.
+
+A single CodeMirror document/selection transaction commits the replacement, annotated with `isolateHistory(full)` and input.complete. @codemirror/commands is a development dependency for the host's native history API; CodeMirror/Lezer remain external in the production bundle. Tests verify the actual CodeMirror history boundary, not a matching imitation. Templater is never invoked or replaced. Existing sidebar/fold/AI boundaries are unchanged.
+
+
+## App workspace and feature lifecycles (Phase 7)
+
+`src/workspace/model.ts` validates per-vault module/layout/color/navigation/pin/recent state and classifies live note metadata. `src/workspace/feature.ts` registers the marginalia-pages ItemView. It reads metadata and current editor buffers/cached source, renders text-safe previews, and opens original notes with native link navigation. Only local plugin preferences change for pins/recents/layout; pages do not copy or rewrite notes. Empty project folders remain discoverable. World uses numbered canon/projects folders; Storyboard uses top-level projects and shared underscore areas.
+
+WorkspaceFeature mounts navigation above file-explorer controls through its public view container and observed `.nav-header` / `.view-content` structure. This DOM integration was verified in Obsidian 1.14.4; it is not a dedicated stable file-explorer extension API. MutationObserver and native events maintain mounts, with unload/animation-frame guards and complete cleanup. Native controls/tree are retained. The Home command works independently of an open explorer. Palette variables are scoped to a removable body class; page headings use Source Serif 4 when available with Georgia fallback.
+
+Main owns persisted settings and creates/unloads child Plugin instances for Theme, Scripts and Librarian. Registrations, commands, events and editor extensions belong to each child lifecycle. Disabling detaches only feature-owned leaves, preserves source editors/preferences, pauses writing state and aborts Librarian work as appropriate. Settings save must succeed before runtime changes apply. Existing AI/writing/order/workspace state shares the save queue. The M ribbon belongs to Scripts; it is not duplicated in app navigation. Three collapsible settings sections expose immediate module switches and disabled individual controls when off.
+
+
+Shared navigation is discovered from loaded top-level TFolder paths through sharedFolders, navigation and sectionName in workspace/model.ts. Shared routes persist the exact folder path (for example _Research), keeping folder labels distinct from core routes; collisions with core labels display “(shared).” Legacy named shared routes map to existing folders. Folder events rebuild only plugin-owned navigation and redraw views; an application rename transfers an open shared route to the new path. Removing a section falls back to Home. External filesystem moves may arrive as delete/create and likewise fall back safely.
+
+Shared pages filter the exact root folder and use their direct subfolders as tabs. The scoped sharedEntry inclusion permits templates within their own section without adding them to global entry eligibility, Canon, scripts or model retrieval. Nonthrowing bodyOffset allows incomplete Markdown/template frontmatter to remain browsable. Files stay in native editors; Templater execution is untouched. Assets and hidden files stay excluded. Progress/runtime/model code is unchanged by this navigation increment.
+
+
+Project Status Flow is persisted in WorkspaceSettings.projectStatusField and projectStatusOrder through the existing save queue. readWorkspace supplies legacy defaults; readStatusOrder normalizes newline/arrow input and removes duplicate, blank and reserved navigation labels. projectStatuses and projectStatusTabs provide the shared Storyboard lookup/tab policy to both register and card views. Native Theme settings save and refresh views immediately without rebuilding the settings form. Status configuration never writes frontmatter and does not change model retrieval, script ordering, shared-folder navigation or World card lookup.

@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-22",
+  "decision": "D-0017",
+  "tests": 87,
+  "host_tests": 26,
+  "browser": "pass",
+  "package": "pass",
+  "native": {
+    "spread_collapses": "pass",
+    "all_toggle": "pass",
+    "panels_toggle": "pass"
+  },
+  "preserved_notes": 14,
+  "installed_matches": true
+}

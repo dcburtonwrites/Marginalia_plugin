@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-22",
+  "tests": 68,
+  "refreshButton": "removed; native event subscriptions retained",
+  "sideRule": "Double Spread \u2192 Left \u2192 Right; authored overrides respected",
+  "native": "Opening Page 4 displays Left; no Refresh control",
+  "sourceHashesPreserved": 14,
+  "screenshot": "design/verification/native-scripts-spread-side.png"
+}

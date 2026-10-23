@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-22",
+  "host": "Obsidian 1.14.4",
+  "vault": "disposable Marginalia Test Vault",
+  "tests": {
+    "total": 82,
+    "core_script_transport_writing": 61,
+    "host": 21,
+    "typecheck": "pass",
+    "package": "pass",
+    "browser": "pass"
+  },
+  "native": {
+    "project_group_scope": "pass",
+    "footer_placement": "pass",
+    "settings_visibility_and_project_goal": "pass",
+    "countdown_start_pause_reload": "pass",
+    "editor_four_words_and_single_undo": "pass",
+    "defaults_restored": true,
+    "preexisting_note_hashes_preserved": 14,
+    "temporary_fixture_removed": true,
+    "installed_files_match": true
+  },
+  "limits": [
+    "Local observed editor deltas only; no historical or offline backfill.",
+    "Native countdown completion and midnight rollover verified at controlled-test boundary.",
+    "Earlier Librarian quality, portability and native drag acceptance gaps remain open."
+  ]
+}

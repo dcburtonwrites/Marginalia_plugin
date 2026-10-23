@@ -1,0 +1,38 @@
+{
+  "increment": "script organizer",
+  "authority": "saved per-project/group organizer order; no required predecessor fields",
+  "automatedTests": 59,
+  "browserChecks": [
+    "direct drag/button reorder",
+    "order survives reload",
+    "explicit conflict adoption",
+    "page/panel outline",
+    "light/dark",
+    "300px pane",
+    "existing Librarian regression"
+  ],
+  "native": "passed in Obsidian 1.14.4, disposable Marginalia Test Vault only; owner authorized window inspection",
+  "installation": "loaded in test vault and reloaded again to verify persisted script order",
+  "existingMarkdownPreserved": 11,
+  "nativeScriptUndo": "panel move, panel insertion and page insertion each restored the exact baseline file with one Undo",
+  "deferred": [
+    "Enter slash commands",
+    "speaker completion",
+    "page reorder",
+    "script creation",
+    "export"
+  ],
+  "nativeChecks": [
+    "M ribbon opens Scripts on the left",
+    "script order saved without predecessor fields",
+    "page ranges updated to Opening 1\u20134 and After the Bell 5\u20136",
+    "order survives real app reload",
+    "panel and double-spread page navigation focus native source editor",
+    "cross-file panel navigation opens correct note",
+    "panel move carries dialogue, note and location",
+    "new panel appears in outline",
+    "page insertion appends Page 5, Side Left; actual/declared count mismatch visible",
+    "one Undo per structural edit restores exact bytes"
+  ],
+  "screenshot": "design/verification/native-scripts-organizer.png"
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-22",
+  "decision": "D-0018",
+  "tests": 107,
+  "pure_tests": 79,
+  "host_tests": 28,
+  "typecheck": "pass",
+  "package": "pass",
+  "browser": "pass",
+  "native_commands": [
+    "/p",
+    "/d",
+    "/cw",
+    "/P"
+  ],
+  "native_undo": "pass",
+  "native_modified_enter": "pass",
+  "preserved_notes": 14,
+  "temporary_fixture_removed": true,
+  "installed_matches": true
+}

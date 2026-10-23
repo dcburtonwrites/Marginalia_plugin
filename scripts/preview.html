@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marginalia · synthetic sidebar preview</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      :root {
+        --font-interface:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-ui-small: 13px;
+        --background-primary: #fff;
+        --background-primary-alt: #fcfcfc;
+        --background-secondary: #f8f8fa;
+        --background-modifier-border: #dedee4;
+        --text-normal: #252529;
+        --text-muted: #7b7a83;
+        --text-faint: #91909a;
+        --text-accent: #8b5cf6;
+        --interactive-accent: #8b5cf6;
+        --color-green: #81c995;
+        --text-error: #b04444;
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        --background-primary: #202023;
+        --background-primary-alt: #242427;
+        --background-secondary: #27272c;
+        --background-modifier-border: #3c3c43;
+        --text-normal: #e2e1e7;
+        --text-muted: #aaa7b3;
+        --text-faint: #8b8896;
+        --text-accent: #b99aff;
+        --interactive-accent: #9b7bea;
+        --text-error: #ec9b9b;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background-primary);
+        color: var(--text-normal);
+        font: 14px var(--font-interface);
+      }
+      button,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+        background: var(--background-primary);
+        border: 1px solid var(--background-modifier-border);
+        border-radius: 5px;
+        padding: 6px 10px;
+      }
+      button.mod-cta {
+        background: var(--interactive-accent);
+        border-color: var(--interactive-accent);
+        color: white;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button {
+        cursor: pointer;
+      }
+      header {
+        height: 43px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--background-secondary);
+        padding: 0 18px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .host {
+        display: grid;
+        grid-template-columns: 220px minmax(200px, 1fr) 350px;
+        height: calc(100vh - 43px);
+      }
+      .files {
+        background: var(--background-secondary);
+        border-right: 1px solid var(--background-modifier-border);
+        padding: 22px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .files div {
+        padding-left: 10px;
+      }
+      .files .selected {
+        background: #8b5cf617;
+        padding: 9px 10px;
+        border-radius: 5px;
+      }
+      .note {
+        padding: 26px 52px;
+        overflow: auto;
+      }
+      .breadcrumb {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .note h1 {
+        font-size: 30px;
+        letter-spacing: -1px;
+        margin: 35px 0 24px;
+      }
+      .properties {
+        display: grid;
+        grid-template-columns: 130px auto;
+        row-gap: 17px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+      .tag {
+        color: var(--text-accent);
+      }
+      .note h2 {
+        margin-top: 48px;
+        font-size: 23px;
+        letter-spacing: -0.4px;
+      }
+      .note p {
+        line-height: 1.8;
+      }
+      .sidebar-host {
+        min-width: 0;
+        min-height: 0;
+        border-left: 1px solid var(--background-modifier-border);
+      }
+      .preview-label {
+        position: fixed;
+        bottom: 12px;
+        left: 16px;
+        font-size: 10px;
+        color: var(--text-muted);
+        max-width: 190px;
+        line-height: 1.5;
+      }
+      #note-summary {
+        font-size: 15px;
+      }
+      .marginalia-body blockquote {
+        font-size: 12px;
+      }
+      @media (max-width: 700px) {
+        .host {
+          display: block;
+        }
+        .files,
+        .note,
+        header,
+        .preview-label {
+          display: none;
+        }
+        .sidebar-host {
+          height: 100vh;
+        }
+        .marginalia-sidebar {
+          height: 100vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span>Marginalia development preview · synthetic notes</span
+      ><span style="display: flex; align-items: center; gap: 14px"
+        >Source Control
+        <span
+          id="librarian-host-icon"
+          style="
+            display: inline-flex;
+            color: var(--text-accent);
+            width: 20px;
+            height: 20px;
+          "
+        ></span
+      ></span>
+    </header>
+    <div class="host">
+      <nav class="files">
+        <div>_templates</div>
+        <div>00 Brainstorms</div>
+        <div>01 Lore</div>
+        <div>02 Character</div>
+        <div class="selected">　Mira Vale</div>
+        <div>03 Affiliation</div>
+        <div>04 Event</div>
+        <div>05 Item</div>
+        <div>06 System</div>
+        <div>07 Location</div>
+        <div>08 Projects</div>
+      </nav>
+      <main class="note">
+        <div class="breadcrumb">02 Character　/　Mira Vale</div>
+        <h1>Mira Vale</h1>
+        <h3>Properties</h3>
+        <div class="properties">
+          <span>aliases</span><span>Empty</span><span>role</span
+          ><span>Empty</span><span>tags</span><span class="tag">character</span
+          ><span>cssclasses</span><span>canon-character</span>
+        </div>
+        <h2>Summary</h2>
+        <p id="note-summary"></p>
+        <h2>Backstory</h2>
+        <h2>Abilities</h2>
+        <h2>Goals</h2>
+      </main>
+      <aside class="sidebar-host"><div id="sidebar"></div></aside>
+    </div>
+    <div class="preview-label">
+      Browser harness · same sidebar component<br />Not an installed Obsidian
+      screenshot
+    </div>
+    <script src="preview.js"></script>
+  </body>
+</html>

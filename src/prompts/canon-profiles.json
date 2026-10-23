@@ -1,0 +1,101 @@
+{
+  "Affiliation": {
+    "guidance": "Describe the collective's identity and place in the world. Separate species-wide traits from one member's demonstrated capabilities; a named individual's actions are examples, not universal traits. Distinguish origin from current territory, leadership from membership, motives from outcomes, and biological lifespan from conditional survival. Use only the selected subtype's sections, plus useful existing target sections.",
+    "variants": {
+      "Organization/Group": [
+        "Description",
+        "Leader",
+        "Members",
+        "Territory",
+        "Goals",
+        "Related Entries"
+      ],
+      "Species/Race": [
+        "Description",
+        "Homeworld/Origin",
+        "Traits",
+        "Lifespan",
+        "Notable Members",
+        "Related Entries"
+      ],
+      "Government/Nation": [
+        "Description",
+        "Ruler",
+        "Territory",
+        "Laws",
+        "Related Entries"
+      ],
+      "Family/Bloodline": [
+        "Description",
+        "Founder",
+        "Notable Members",
+        "History",
+        "Related Entries"
+      ],
+      "Other": ["Description", "Related Entries"]
+    }
+  },
+  "Location": {
+    "guidance": "Make the place recognizable through supported geography, atmosphere, inhabitants, access and points of interest. Separate the place's enduring properties from events that happen there and from an observer's dream or belief. History tells how the place changed. Inspiration is creator-facing provenance, not in-world history; use it only when explicitly supplied. Do not invent travel routes, borders, societies or metaphysical mechanisms.",
+    "headings": [
+      "Description",
+      "Inspiration",
+      "History",
+      "Points of Interest",
+      "Related Entries"
+    ]
+  },
+  "System": {
+    "guidance": "Explain what the system does and how someone uses it, with explicit rules, conditions, limits and costs. Separate an observed application from a universal law, a practitioner's talent from the system's normal operation, and origin from an inspiration or outside reference. Do not complete a magic system with conventional fantasy assumptions. For technology, distinguish construction and access; for social-political systems, describe the supported distribution of authority.",
+    "variants": {
+      "Magic": [
+        "Description",
+        "Rules",
+        "Source/Origin",
+        "Limitations/Cost",
+        "Practitioners",
+        "Related Entries"
+      ],
+      "Technology": [
+        "Description",
+        "Rules",
+        "How It's Built",
+        "Who Can Access It",
+        "Practitioners",
+        "Related Entries"
+      ],
+      "Social-Political": [
+        "Description",
+        "Rules",
+        "How Power Is Distributed",
+        "Practitioners",
+        "Related Entries"
+      ],
+      "Other": [
+        "Description",
+        "Rules",
+        "Source/Origin",
+        "Practitioners",
+        "Related Entries"
+      ]
+    }
+  },
+  "Event": {
+    "guidance": "Tell what happened, where, when and to whom, in the order supported by the sources. Causes require evidence of causation, not merely preceding events. Consequences distinguish immediate results from later effects and from predictions. Preserve uncertain dates and conflicting accounts without selecting a winner. Participants' intentions are not automatically the event's causes.",
+    "headings": ["Summary", "Causes", "Consequences", "Related Entries"]
+  },
+  "Item": {
+    "guidance": "Describe the specific object, its origin, demonstrated powers and limits, and ownership or custody over time. Keep maker, owner, wielder and finder distinct. A wielder's innate ability does not belong to the object. A replica or a related object is not this item. Track the latest supported owner without treating temporary possession as ownership. Do not invent enchantment mechanisms or costs.",
+    "headings": [
+      "Description",
+      "Origin",
+      "Powers",
+      "Current Owner",
+      "Related Entries"
+    ]
+  },
+  "Lore": {
+    "guidance": "Explain the subject as an intelligible piece of this world's history, tradition or knowledge. Preserve whether the source presents it as established fact, a belief, a disputed account or a creator proposal. Causes and consequences must be supported; a belief's cultural effects can be real while its story remains unconfirmed. Do not force a tradition into one dated event or confirm a myth through confident wording.",
+    "headings": ["Summary", "Causes", "Consequences", "Related Entries"]
+  }
+}
