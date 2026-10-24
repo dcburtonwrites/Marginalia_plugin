@@ -358,3 +358,16 @@ Evidence: verification/mobile-load.json, mobile-ui.json and mobile-preservation.
 | Mobile and desktop stability | 48 host tests, typecheck/package, three mobile browser profiles, production mobile-load smoke; native disposable plugin reload and Hidden folders text/default | Pass |
 
 144 automated tests total. Updated three-file package and ZIP installed only in the disposable test vault. No model calls, preference edits or source-note edits performed for native verification. Physical mobile acceptance remains pending as described in D-0033.
+
+## Explicit mobile character choice — D-0035 · 2026-10-23
+
+| Requirement / rule | Evidence | Result |
+| --- | --- | --- |
+| No implicit first-candidate acceptance | New host regression: repeated accept keys/implicit choose do not change SPEAKER; explicit second candidate succeeds, composition is untouched, Undo restores placeholder | Pass |
+| Visible mobile dialog independent of tooltip | Three Chromium touch profiles open native-Modal fixture with real CodeMirror; no inline tooltip; duplicate editor soft Enter and dialog-search Enter leave dialog/placeholder intact | Pass, browser |
+| Explicit touch choice / cancel / new name / stale source / cleanup | Choose second candidate, select Dialogue, Undo; Cancel retains SPEAKER selection; use Nova explicitly; source changes prevent insertion; editor destruction removes dialog | Pass, browser |
+| Desktop behavior preserved | Real CodeMirror desktop fixture shows inline listbox, no dialog; ArrowDown/Enter selects second candidate and Dialogue | Pass, browser |
+| Bundle / regressions | 96 pure + 49 host tests, package/typecheck, production mobile-load smoke | Pass |
+| Physical-device fix confirmed | Original reported mobile tooltip failure was not reproduced here; native iOS/Android keyboard/dialog check remains necessary | Pending |
+
+Structured evidence: verification/mobile-ui.json and mobile-load.json. Visuals: design/verification/mobile-{phone,android,tablet}-character-dialog.png and desktop-character-dropdown.png. Browser native-modal mocks do not establish device keyboard/WebKit/Capacitor compatibility. Development package/ZIP updated and copied only to the disposable vault; no model generation, preference edits or creative-vault writes.

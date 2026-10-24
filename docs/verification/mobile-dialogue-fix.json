@@ -1,0 +1,14 @@
+{
+  "decision": "D-0035",
+  "date": "2026-10-23",
+  "reportedIssue": "Native mobile tooltip absent; first candidate automatically accepted",
+  "rootCauseStatus": "implicit highlighted-first acceptance is verified in code; native rendering failure not reproduced",
+  "solution": "native mobile Modal and explicit candidate/new-name buttons; desktop inline tooltip retained",
+  "tests": 145,
+  "typecheck": "pass",
+  "package": "pass",
+  "mobileBundleLoad": "pass",
+  "browserProfiles": "three Chromium touch profiles plus desktop real CodeMirror dropdown",
+  "physicalDeviceConfirmation": "pending",
+  "sourceOrPreferenceWrites": false
+}

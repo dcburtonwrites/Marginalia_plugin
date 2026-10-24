@@ -10,7 +10,7 @@
       "touchReferencePicker": "pass",
       "scriptDisclosureAndNavigation": "pass",
       "softKeyboardShortcutEvents": "pass",
-      "dialogueTouchAndFocus": "pass",
+      "dialogueTouchAndFocus": "pass: explicit dialog selection, repeated Enter, second candidate, cancel, new name, stale source and view destruction",
       "undoAndComposition": "pass",
       "physicalDevice": false
     },
@@ -24,7 +24,7 @@
       "touchReferencePicker": "pass",
       "scriptDisclosureAndNavigation": "pass",
       "softKeyboardShortcutEvents": "pass",
-      "dialogueTouchAndFocus": "pass",
+      "dialogueTouchAndFocus": "pass: explicit dialog selection, repeated Enter, second candidate, cancel, new name, stale source and view destruction",
       "undoAndComposition": "pass",
       "physicalDevice": false
     },
@@ -38,10 +38,11 @@
       "touchReferencePicker": "pass",
       "scriptDisclosureAndNavigation": "pass",
       "softKeyboardShortcutEvents": "pass",
-      "dialogueTouchAndFocus": "pass",
+      "dialogueTouchAndFocus": "pass: explicit dialog selection, repeated Enter, second candidate, cancel, new name, stale source and view destruction",
       "undoAndComposition": "pass",
       "physicalDevice": false
     }
   ],
+  "desktopDialogueDropdown": "pass",
   "limits": "Browser device emulation and synthetic soft-keyboard events; not native iOS/Android acceptance."
 }

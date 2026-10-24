@@ -106,3 +106,9 @@ See verification/real-vault-review-2026-10-22.md. Successful runtime checks do n
 - [x] Configurable hidden shared-menu folder list, editable _Assets default, empty-list support and live active-section fallback.
 - [x] Pinned Reference/Project selector matches Find an entry size and styling.
 - [x] Settings/model migration, World/Storyboard browser coverage, mobile regression and native settings verification.
+
+## Mobile dialogue follow-up — D-0035
+- [x] Native mobile character dialog with explicit choices, local search/new name, safe Cancel and no first-result acceptance from repeated Enter.
+- [x] Reuse native transaction/Undo, preserve desktop inline picker, reject stale source/file and close on editor destruction.
+- [x] Core/host regressions, package/typecheck, mobile bundle smoke, three touch profiles and real-CodeMirror desktop dropdown checks.
+- [ ] Confirm on the owner’s actual mobile device; the original missing-tooltip failure was not reproduced in Chromium emulation.

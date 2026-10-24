@@ -10,8 +10,9 @@ import {
   speakerKeys,
   speakerBlur,
   speakersForScript,
-  chooseSpeaker,
+  acceptSpeakerKey,
 } from "./speaker-picker.ts";
+import { openMobileSpeakerPicker, mobileSpeakerLifecycle } from "./mobile-speaker-picker.ts";
 
 export function commitShortcut(
   view: EditorView,
@@ -65,6 +66,8 @@ export function handleScriptEnter(view: EditorView, app?: App): boolean {
           ]
         : [],
     );
+    if (Platform.isMobile && app && candidates.length)
+      openMobileSpeakerPicker(app, view, info.file.path, candidates);
     return true;
   } catch {
     return false;
@@ -77,11 +80,12 @@ export const scriptShortcutExtension = Prec.highest(
 export function handleScriptBeforeInput(view: EditorView, event: InputEvent, app: App) {
   if (!event.cancelable || event.isComposing ||
       !["insertParagraph", "insertLineBreak"].includes(event.inputType)) return false;
-  return chooseSpeaker(view) || handleScriptEnter(view, app);
+  return acceptSpeakerKey(view) || handleScriptEnter(view, app);
 }
 export const createScriptShortcutExtension = (app: App) => [
   speakerPicker,
   speakerBlur,
+  ...(Platform.isMobile ? [mobileSpeakerLifecycle] : []),
   // Android's native CodeMirror pipeline defers Enter until its DOM/IME
   // changes settle. Keep that pipeline; intercepting beforeinput there can
   // duplicate text because some Android keyboards ignore preventDefault.

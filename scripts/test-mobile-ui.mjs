@@ -62,11 +62,40 @@ try {
   assert.match(await page.evaluate(()=>window.mobileEditor.text()),/> \[!panel\]/);
   await page.evaluate(()=>window.mobileEditor.undo());
   assert.equal(await page.evaluate(()=>window.mobileEditor.text()),'## Page 1\n\n/p');
-  await set('---\nCharacters: ["Mira"]\n---\n## Page 1\n\n/d');await enter('insertLineBreak');
-  await page.getByRole('option',{name:'Mira',exact:true}).tap();
+  const dialogue='---\nCharacters: ["Mira", "Orin"]\n---\n## Page 1\n\n/d';
+  await set(dialogue);await enter('insertLineBreak');
+  let picker=page.getByRole('dialog');
+  await picker.getByRole('heading',{name:'Choose a character',exact:true}).waitFor();
+  assert.equal(await page.locator('.cm-tooltip.marginalia-speaker-picker').count(),0);
+  await enter(); // A duplicate soft Enter must not accept anything.
+  await picker.getByLabel('Character name').press('Enter');
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*SPEAKER:\*\* Dialogue/);
+  assert.equal(await picker.isVisible(),true);
+  await page.screenshot({path:resolve('design/verification/mobile-'+name+'-character-dialog.png')});
+  await picker.getByRole('button',{name:'Orin',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'Dialogue');
-  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Mira:\*\* Dialogue/);
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Orin:\*\* Dialogue/);
+  await page.evaluate(()=>window.mobileEditor.undo());
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*SPEAKER:\*\* Dialogue/);
+  await set(dialogue);await enter();
+  picker=page.getByRole('dialog');
+  await picker.getByRole('button',{name:'Cancel',exact:true}).tap();
+  assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'SPEAKER');
+  await set(dialogue);await enter();
+  picker=page.getByRole('dialog');
+  await picker.getByLabel('Character name').fill('Nova');
+  await picker.getByLabel('Character name').press('Enter');
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/SPEAKER/);
+  await picker.getByRole('button',{name:'Use this name',exact:true}).tap();
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Nova:\*\* Dialogue/);
+  assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'Dialogue');
   await page.screenshot({path:resolve('design/verification/mobile-'+name+'-editor.png')});
+  await set(dialogue);await enter();
+  picker=page.getByRole('dialog');
+  await set('Changed while the picker was open');
+  await picker.getByRole('button',{name:'Mira',exact:true}).tap();
+  assert.equal(await page.evaluate(()=>window.mobileEditor.text()),'Changed while the picker was open');
+  assert.equal(await page.getByRole('dialog').count(),0);
   for(const [cmd,match] of [['/P',/## Page 2/],['/t',/> \[!quote\]/],['/c',/> \[!note\]/],['/cn',/> \[!note\]/],['/ct',/> \[!tip\]/],['/cw',/> \[!warning\]/],['/cd',/> \[!danger\]/],['/cs',/> \[!success\]/],['/ce',/> \[!example\]/]]) {
     await set('## Page 1\n\n'+cmd);await enter();assert.match(await page.evaluate(()=>window.mobileEditor.text()),match);
   }
@@ -82,10 +111,30 @@ try {
   await page.getByLabel('Script editor').evaluate(el=>el.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true})));
   await enter('insertParagraph',{isComposing:true});
   assert.equal(await page.evaluate(()=>window.mobileEditor.text()),'## Page 1\n\n/p');
+  await page.getByLabel('Script editor').evaluate(el=>el.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true})));
+  await set(dialogue);await enter();
+  await page.getByRole('dialog').getByRole('heading',{name:'Choose a character'}).waitFor();
+  await page.evaluate(()=>window.mobileEditor.destroy());
+  assert.equal(await page.getByRole('dialog').count(),0);
   assert.deepEqual(errors,[]);
-  results.push({profile:name,engine:'Chromium',touch:true,navigation:'pass',pageFit:'pass',worldAndStoryboard:'pass',touchReferencePicker:'pass',scriptDisclosureAndNavigation:'pass',softKeyboardShortcutEvents:'pass',dialogueTouchAndFocus:'pass',undoAndComposition:'pass',physicalDevice:false});
+  results.push({profile:name,engine:'Chromium',touch:true,navigation:'pass',pageFit:'pass',worldAndStoryboard:'pass',touchReferencePicker:'pass',scriptDisclosureAndNavigation:'pass',softKeyboardShortcutEvents:'pass',dialogueTouchAndFocus:'pass: explicit dialog selection, repeated Enter, second candidate, cancel, new name, stale source and view destruction',undoAndComposition:'pass',physicalDevice:false});
   await context.close();
  }
- await writeFile('docs/verification/mobile-ui.json',JSON.stringify({results,limits:'Browser device emulation and synthetic soft-keyboard events; not native iOS/Android acceptance.'},null,2)+'\n');
+ const desktop=await browser.newContext({viewport:{width:1440,height:1000}});
+ const page=await desktop.newPage();
+ await page.goto(file('scripts.html')+'?studio&editor');
+ await page.getByRole('combobox',{name:'Project or grouping'}).selectOption({label:'Copper Sky > Draft'});
+ await page.locator('#sidebar').getByRole('button',{name:'Opening',exact:true}).click();
+ await page.evaluate(()=>window.mobileEditor.set('---\nCharacters: ["Mira", "Orin"]\n---\n## Page 1\n\n/d'));
+ await page.getByLabel('Script editor').press('Enter');
+ await page.getByRole('listbox',{name:'Characters used in this script'}).waitFor();
+ assert.equal(await page.getByRole('dialog').count(),0);
+ await page.getByLabel('Script editor').press('ArrowDown');
+ await page.getByLabel('Script editor').press('Enter');
+ assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Orin:\*\* Dialogue/);
+ assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'Dialogue');
+ await page.screenshot({path:resolve('design/verification/desktop-character-dropdown.png')});
+ await desktop.close();
+ await writeFile('docs/verification/mobile-ui.json',JSON.stringify({results,desktopDialogueDropdown:'pass',limits:'Browser device emulation and synthetic soft-keyboard events; not native iOS/Android acceptance.'},null,2)+'\n');
  console.log('Mobile UI checks passed for phone, Android and tablet browser profiles.');
 } finally {await browser.close();}

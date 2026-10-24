@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import { Platform, type App } from "obsidian";
 import { StateEffect, StateField, Transaction } from "@codemirror/state";
 import {
   EditorView,
@@ -63,7 +63,7 @@ export const speakerPicker = StateField.define<SpeakerPicker | null>({
   },
   provide: (field) =>
     showTooltip.from(field, (value) =>
-      value
+      value && !Platform.isMobile
         ? ({
             pos: value.from,
             end: value.to,
@@ -121,6 +121,7 @@ function createSpeakerTooltip(view: EditorView) {
 export function chooseSpeaker(view: EditorView, choice?: Speaker) {
   const picker = view.state.field(speakerPicker, false);
   if (!picker || view.composing) return false;
+  if (Platform.isMobile && !choice) return false;
   choice ??= filterSpeakers(picker.candidates, picker.query)[picker.selected];
   if (!choice) {
     view.dispatch({ effects: closeSpeakerPicker.of(null) });
@@ -144,6 +145,11 @@ export function chooseSpeaker(view: EditorView, choice?: Speaker) {
   });
   return true;
 }
+export function acceptSpeakerKey(view: EditorView) {
+  if (view.composing) return false;
+  if (Platform.isMobile) return !!view.state.field(speakerPicker, false);
+  return chooseSpeaker(view);
+}
 export const speakerKeys: KeyBinding[] = [
   ...(["ArrowDown", "ArrowUp"] as const).map((key, index) => ({
     key,
@@ -154,8 +160,8 @@ export const speakerKeys: KeyBinding[] = [
       return true;
     },
   })),
-  { key: "Enter", run: chooseSpeaker },
-  { key: "Tab", run: chooseSpeaker },
+  { key: "Enter", run: acceptSpeakerKey },
+  { key: "Tab", run: acceptSpeakerKey },
   {
     key: "Escape",
     run: (view) => {
@@ -167,6 +173,7 @@ export const speakerKeys: KeyBinding[] = [
 ];
 export const speakerBlur = EditorView.domEventHandlers({
   blur: (_event, view) => {
+    if (Platform.isMobile) return false;
     if (view.state.field(speakerPicker, false))
       view.dispatch({ effects: closeSpeakerPicker.of(null) });
     return false;

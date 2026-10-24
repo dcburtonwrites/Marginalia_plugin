@@ -125,7 +125,7 @@ const mainLeaf: any = {
     mainView = undefined;
     const main = document.querySelector("main")!;
     main.textContent = `Editing ${file.path} at line ${options.eState?.line ?? 0}`;
-    if (Platform.isMobile) {
+    if (Platform.isMobile || location.search.includes("editor")) {
       const cm = new EditorView({parent:main, state:EditorState.create({
         doc:file.text,
         extensions:[history(),editorInfoField.init(()=>({file,editor:{}})),
@@ -141,6 +141,7 @@ const mainLeaf: any = {
         text:()=>cm.state.doc.toString(),
         selected:()=>cm.state.sliceDoc(cm.state.selection.main.from,cm.state.selection.main.to),
         undo:()=>undo(cm),
+        destroy:()=>cm.destroy(),
       };
       cm.focus();
       return;

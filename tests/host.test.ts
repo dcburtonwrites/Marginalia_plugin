@@ -1,7 +1,7 @@
 import { history, undo } from "@codemirror/commands";
 import { commitShortcut, handleScriptEnter } from "../src/scripts/shortcut-extension.ts";
 import { planShortcut } from "../src/scripts/shortcuts.ts";
-import {speakerPicker,openSpeakerPicker,chooseSpeaker,speakerKeys} from "../src/scripts/speaker-picker.ts";
+import {speakerPicker,openSpeakerPicker,chooseSpeaker,acceptSpeakerKey,speakerKeys} from "../src/scripts/speaker-picker.ts";
 import { EditorState } from "@codemirror/state";
 import { codeFolding, foldedRanges } from "@codemirror/language";
 import { editorViews } from "../src/scripts/folding.ts";
@@ -942,4 +942,30 @@ test("mobile skips Librarian lifecycle without changing saved desktop choices", 
     assert.equal(plugin.operation,null);
     assert.equal(plugin.sessions.size,0);
   } finally {Platform.isMobile=false;}
+});
+
+
+test("mobile character acceptance requires an explicit choice; repeated Enter never picks the first candidate",()=>{
+ const text="**SPEAKER:** Dialogue";
+ let state=EditorState.create({doc:text,selection:{anchor:2,head:9},extensions:[history(),speakerPicker]});
+ const dispatch=(spec:any)=>{state=state.update(spec).state;};
+ const view={get state(){return state;},dispatch,composing:false};
+ const choices=[{id:"mira",name:"Mira",insert:"Mira"},{id:"orin",name:"Orin",insert:"Orin"}];
+ dispatch({effects:openSpeakerPicker.of({from:2,to:9,candidates:choices,query:"",selected:0})});
+ Platform.isMobile=true;
+ try {
+   view.composing=true;
+   assert.equal(acceptSpeakerKey(view as any),false);
+   view.composing=false;
+   assert.equal(chooseSpeaker(view as any),false);
+   assert.equal(acceptSpeakerKey(view as any),true);
+   assert.equal(acceptSpeakerKey(view as any),true);
+   assert.equal(state.doc.toString(),text);
+   assert.ok(state.field(speakerPicker));
+   assert.equal(chooseSpeaker(view as any,choices[1]),true);
+   assert.equal(state.doc.toString(),"**Orin:** Dialogue");
+   assert.equal(state.sliceDoc(state.selection.main.from,state.selection.main.to),"Dialogue");
+   assert.ok(undo({state,dispatch:(tr:any)=>{state=tr.state;}} as any));
+   assert.equal(state.doc.toString(),text);
+ } finally {Platform.isMobile=false;}
 });
