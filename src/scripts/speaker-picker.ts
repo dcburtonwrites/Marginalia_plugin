@@ -107,6 +107,7 @@ function createSpeakerTooltip(view: EditorView) {
       option.onmousedown = (event) => {
         event.preventDefault();
       };
+      option.onpointerdown = event => event.preventDefault();
       option.onclick = () => chooseSpeaker(view, choice);
       dom.append(option);
     });

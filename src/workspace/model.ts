@@ -10,6 +10,7 @@ export interface WorkspaceSettings {
   projectStatusOrder: string[];
   colors: boolean;
   navigation: boolean;
+  hiddenFolders: string[];
   pins: string[];
   recents: string[];
 }
@@ -21,6 +22,17 @@ export const defaultProjectStatusOrder = [
   "Distilled",
   "Bottled",
 ];
+export const defaultHiddenFolders = ["_Assets"];
+export function readHiddenFolders(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : typeof value === "string" ? value.split(/\r?\n/) : [];
+  const names = new Map<string, string>();
+  for (const item of items) {
+    if (typeof item !== "string") continue;
+    const name = item.trim();
+    if (/^_[^/\\]+$/.test(name) && !names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
+  }
+  return [...names.values()];
+}
 export function readStatusOrder(value: unknown): string[] {
   return [
     ...new Set(
@@ -69,6 +81,7 @@ export function readWorkspace(value: unknown): WorkspaceSettings {
         : readStatusOrder(raw.projectStatusOrder),
     colors: raw.colors !== false,
     navigation: raw.navigation !== false,
+    hiddenFolders: raw.hiddenFolders === undefined ? [...defaultHiddenFolders] : readHiddenFolders(raw.hiddenFolders),
     pins: paths(raw.pins),
     recents: paths(raw.recents),
   };
@@ -82,10 +95,11 @@ export const entryTypes = [
   "Item",
   "Lore",
 ];
-export function sharedFolders(folders: string[]) {
+export function sharedFolders(folders: string[], hiddenFolders: string[] = defaultHiddenFolders) {
   const priority = ["crypt", "research", "collections"];
+  const hidden = new Set(hiddenFolders.map(name => name.toLowerCase()));
   return [...new Set(folders)]
-    .filter((path) => /^_[^/]*$/.test(path) && !/^_+assets$/i.test(path))
+    .filter((path) => /^_[^/]+$/.test(path) && !hidden.has(path.toLowerCase()))
     .sort((a, b) => {
       const rank = (path: string) => {
         const index = priority.indexOf(path.slice(1).toLowerCase());
@@ -112,22 +126,23 @@ export function navigation(
   type: VaultType,
   _scripts = true,
   folders: string[] = [],
+  hiddenFolders: string[] = defaultHiddenFolders,
 ) {
   return [
     ...(type === "Storyboard"
       ? ["Home", "Project Register", "Projects"]
       : ["Home", "Brainstorms", "Canon", "Projects"]),
-    ...sharedFolders(folders),
+    ...sharedFolders(folders, hiddenFolders),
   ];
 }
-export function sharedEntry(path: string, section: string) {
+export function sharedEntry(path: string, section: string, hiddenFolders: string[] = defaultHiddenFolders) {
   return (
-    sharedFolders([section]).length > 0 &&
+    sharedFolders([section], hiddenFolders).length > 0 &&
     path.startsWith(section + "/") &&
     /\.md$/i.test(path) &&
     !path
       .split("/")
-      .some((part) => part.startsWith(".") || /^_?assets$/i.test(part))
+      .some((part, index) => part.startsWith(".") || (index > 0 && /^_?assets$/i.test(part)))
   );
 }
 

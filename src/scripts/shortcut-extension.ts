@@ -1,6 +1,6 @@
-import { editorInfoField, type App } from "obsidian";
+import { editorInfoField, Platform, type App } from "obsidian";
 import { Prec, Transaction, type StateEffect } from "@codemirror/state";
-import { keymap, type EditorView } from "@codemirror/view";
+import { keymap, EditorView } from "@codemirror/view";
 import { isolateHistory } from "@codemirror/commands";
 import { scriptMetadata } from "./controller.ts";
 import { planShortcut, type ShortcutEdit } from "./shortcuts.ts";
@@ -10,6 +10,7 @@ import {
   speakerKeys,
   speakerBlur,
   speakersForScript,
+  chooseSpeaker,
 } from "./speaker-picker.ts";
 
 export function commitShortcut(
@@ -72,9 +73,21 @@ export function handleScriptEnter(view: EditorView, app?: App): boolean {
 export const scriptShortcutExtension = Prec.highest(
   keymap.of([{ key: "Enter", run: (view) => handleScriptEnter(view) }]),
 );
+/** Soft keyboards can send a line-break input without an Enter keydown. */
+export function handleScriptBeforeInput(view: EditorView, event: InputEvent, app: App) {
+  if (!event.cancelable || event.isComposing ||
+      !["insertParagraph", "insertLineBreak"].includes(event.inputType)) return false;
+  return chooseSpeaker(view) || handleScriptEnter(view, app);
+}
 export const createScriptShortcutExtension = (app: App) => [
   speakerPicker,
   speakerBlur,
+  // Android's native CodeMirror pipeline defers Enter until its DOM/IME
+  // changes settle. Keep that pipeline; intercepting beforeinput there can
+  // duplicate text because some Android keyboards ignore preventDefault.
+  ...(Platform.isMobile && !Platform.isAndroidApp ? [Prec.highest(EditorView.domEventHandlers({
+    beforeinput: (event, view) => handleScriptBeforeInput(view, event, app),
+  }))] : []),
   Prec.highest(
     keymap.of([
       ...speakerKeys,

@@ -1,6 +1,6 @@
 # Marginalia Plugin
 
-A desktop Obsidian plugin bringing Marginalia's app pages, script organizer and local AI Librarian into the native workspace.
+An Obsidian plugin bringing Marginalia's app pages and script organizer to desktop/mobile, with a local AI Librarian on desktop.
 
 **Status: first development build.** Source, compiled plugin and synthetic verification are available. It is installed in the isolated `Marginalia Test Vault` under `.preview/`, using fictional notes. Native functional checks passed; source-grounding and prose-quality acceptance remain open. Reanimator and the standalone app remain unchanged. The updated script organizer passes automated checks and native functional checks; native drag-gesture verification is pending because pointer automation stopped responding.
 
@@ -8,7 +8,7 @@ Entry Enhancement and Entry Expansion lead the build. The interface follows `des
 
 ## Included
 
-- Left-aligned app navigation above the native vault viewer; original M ribbon remains Script Studio. Each top-level `_` folder adds its own section below Projects in either vault type, excluding Assets. Crypt, Research and Collections open directly from this menu.
+- Left-aligned app navigation above the native vault viewer; original M ribbon remains Script Studio. Each top-level `_` folder adds its own section below Projects in either vault type, except names listed under Theme → Hidden folders. `_Assets` is the editable default exclusion. Crypt, Research and Collections open directly from this menu.
 - Home, tabbed Brainstorms/Canon cards, project pages and Storyboard Project Register.
 - World/Storyboard layout, app light/dark colors and three independently enabled, collapsible settings sections: Theme, Scripts, Librarian.
 
@@ -63,3 +63,13 @@ Choose **Script template location** under Marginalia → Scripts settings, using
 Every Marginalia menu page now has **New Entry** at the right of its main header. Choose Brainstorm, Canon or Project, then a subtype where relevant, title, destination and template. Missing folders can be created as part of the operation. **Theme → Vault type → Configure vault…** opens the setup table for canon types and folder/template routes. Inputs suggest matching vault paths as you type. Status Flow suggests used property names; statuses are typed directly in the ordered list. Home reference pinning is searchable.
 
 Double-click the countdown to change only the next session’s duration. A running or paused session must finish or be reset first; Reset returns to the settings default. Script sidebar pages start closed, with panels revealed by their page arrow.
+
+## Mobile development build
+
+The current package allows mobile loading. Use the same three plugin files (`main.js`, `manifest.json`, `styles.css`) from `dist/marginalia` in your mobile vault’s `.obsidian/plugins/marginalia` folder, then enable Marginalia in that vault. This build is not yet a published community-plugin release.
+
+Open the native Files drawer for the app menu, or use Marginalia: Open Home from the command palette. Use Marginalia: Open Script Studio for the script drawer. Choose a script to write in the native editor; slash commands followed by Enter retain conversion Undo and the dialogue chooser. Librarian is desktop-only in this version and explains that limit on mobile. Your desktop Librarian preferences are preserved.
+
+Automated loading and phone/tablet browser checks pass; physical iOS/Android acceptance is pending. Before v1, check the actual Files drawer menu, World/Storyboard pages, opening/scoping scripts, all slash shortcuts with the device keyboard, touch character selection, Undo, background/resume and note/settings persistence. Plugin settings/hidden-file sync behavior is not guaranteed by these checks.
+
+Additional developer checks after packaging: `node scripts/verify-mobile-load.mjs`; after preview build, run `node scripts/test-mobile-ui.mjs` with Playwright available through `MARGINALIA_PLAYWRIGHT`.

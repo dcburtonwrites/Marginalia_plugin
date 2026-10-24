@@ -1,4 +1,4 @@
-import { MarkdownView, TFile, TFolder, normalizePath, parseYaml, stringifyYaml } from "obsidian";
+import { MarkdownView, TFile, TFolder, Platform, normalizePath, parseYaml, stringifyYaml } from "obsidian";
 import {
   arrangedGroups,
   orderWrites,
@@ -153,6 +153,7 @@ export class ScriptController {
       active: true,
     });
     await this.plugin.app.workspace.revealLeaf(leaf);
+    if (Platform.isMobile) this.plugin.app.workspace.leftSplit.collapse();
   }
   async openStudio() {
     const workspace = this.plugin.app.workspace;

@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { App } from "obsidian";
 import Marginalia from "../src/main.ts";
-import { MarkdownView, TFile, TFolder } from "./obsidian-mock.ts";
+import { MarkdownView, TFile, TFolder, Platform } from "./obsidian-mock.ts";
 import { setAnswer } from "./ollama-mock.ts";
 import { encode, makeExpansion } from "../src/core/storage.ts";
 import { retrieve } from "../src/core/retrieval.ts";
@@ -921,4 +921,25 @@ test('Storyboard New Entry creates root projects and keeps global canon folders 
   const person=await createEntry(h.owner,{kind:'Canon',subtype:'Character',title:'Person',folder:'02 Character',template:'',createFolders:true});
   const entries=[project,person].map(file=>({path:file.path,name:file.basename,body:'',tags:h.scriptMetadata(h.sources.get(file.path)!).tags as string[],fields:{},modified:1,created:1}));
   assert.deepEqual(projects(entries,'Storyboard',[],h.owner.workspaceSettings).map(project=>project.path),['Board']);
+});
+
+
+test("mobile skips Librarian lifecycle without changing saved desktop choices", async () => {
+  const {plugin}=host();
+  const children:string[]=[];
+  (plugin as any).addChild=(child:any)=>{children.push(child.constructor.name);return child;};
+  plugin.workspaceSettings.modules.theme=false;
+  Platform.isMobile=true;
+  try {
+    plugin.applyModules();
+    assert.deepEqual(children,["ScriptFeature"]);
+    assert.equal(plugin.workspaceSettings.modules.librarian,true);
+    assert.equal(plugin.librarianFeature,undefined);
+    await assert.rejects(()=>plugin.checkConnection(),/desktop only/);
+    await assert.rejects(()=>plugin.generateText("","",new AbortController().signal),/desktop only/);
+    await plugin.run("expansion");
+    await plugin.ask("Question");
+    assert.equal(plugin.operation,null);
+    assert.equal(plugin.sessions.size,0);
+  } finally {Platform.isMobile=false;}
 });

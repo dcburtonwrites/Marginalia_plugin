@@ -839,7 +839,7 @@ body.marginalia-theme.theme-dark {
 .marginalia-app-page h2 {font-size:21px;margin:24px 0 16px;}
 .marginalia-page-heading {display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:28px;}
 .marginalia-page-heading h1 {margin-right:auto;}
-.marginalia-page-search {max-width:260px;}
+.marginalia-page-search {width:260px;max-width:100%;box-sizing:border-box;}
 .marginalia-home-intro {color:var(--text-muted);margin-bottom:28px;}
 .marginalia-page-tabs {display:flex;gap:16px;border-bottom:1px solid var(--background-modifier-border);overflow-x:auto;margin:20px 0 24px;}
 .marginalia-page-tabs button {height:auto;padding:10px 0;background:transparent;box-shadow:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--text-muted);white-space:nowrap;}
@@ -869,7 +869,7 @@ body.marginalia-theme.theme-dark {
 .marginalia-app-page button.marginalia-pin-edit {height:auto;padding:0;border:0;box-shadow:none;background:transparent;color:var(--text-accent);}
 .marginalia-pin-editor[hidden] {display:none;}
 .marginalia-pin-selector {display:flex;flex-direction:column;gap:8px;margin-top:12px;color:var(--text-muted);}
-.marginalia-pin-editor input {border-radius:8px;}
+.marginalia-pin-editor .marginalia-suggest {width:260px;max-width:100%;}
 .marginalia-pin-row {margin-bottom:12px;}
 .marginalia-project-card {display:flex;width:100%;height:auto;justify-content:space-between;gap:16px;align-items:center;padding:18px 20px!important;margin:16px 0;background:var(--background-secondary)!important;box-shadow:none!important;text-align:left;white-space:normal;}
 .marginalia-stage {color:var(--text-accent);font-size:var(--font-ui-small);}
@@ -909,6 +909,21 @@ body.marginalia-theme.theme-dark {
 .marginalia-settings-body > p {
   max-width: calc((100% - 24px) * 2 / 3);
   overflow-wrap: anywhere;
+}
+/* Preserve the desktop columns, but give phone fields room to type. */
+body.is-mobile .marginalia-app-page .marginalia-page-heading > * {max-width:100%;min-width:0;}
+body.is-mobile .marginalia-app-page .marginalia-page-search {width:100%;}
+body.is-mobile .marginalia-app-page .marginalia-page-heading h1 {overflow-wrap:anywhere;}
+body.is-mobile :is(.marginalia-app-nav-item,.marginalia-page-tabs button,.marginalia-speaker-option,.marginalia-suggest-list button) {min-height:44px;}
+body.is-mobile .marginalia-scripts .marginalia-outline-arrow {flex-basis:36px;min-height:44px;}
+body.is-mobile .marginalia-scripts .marginalia-outline-name {min-height:44px;}
+body.is-mobile .marginalia-speaker-picker {min-width:0;max-width:calc(100vw - 24px);}
+body.is-mobile .marginalia-project-card {overflow-wrap:anywhere;}
+@media (max-width:600px) {
+  body.is-mobile .marginalia-settings-section .setting-item {grid-template-columns:minmax(0,1fr);row-gap:12px;}
+  body.is-mobile .marginalia-settings-body > p {max-width:100%;}
+  body.is-mobile .marginalia-settings-section .setting-item:has(.checkbox-container),
+  body.is-mobile .marginalia-settings-section .setting-item:has(button) {grid-template-columns:minmax(0,2fr) minmax(0,1fr);}
 }
 @container (max-width:650px) {.marginalia-home-desk {grid-template-columns:1fr;}}
 @media(max-width:850px) {.marginalia-home-desk{grid-template-columns:1fr;}.marginalia-app-page{padding:20px!important;}}

@@ -1,0 +1,47 @@
+{
+  "results": [
+    {
+      "profile": "phone",
+      "engine": "Chromium",
+      "touch": true,
+      "navigation": "pass",
+      "pageFit": "pass",
+      "worldAndStoryboard": "pass",
+      "touchReferencePicker": "pass",
+      "scriptDisclosureAndNavigation": "pass",
+      "softKeyboardShortcutEvents": "pass",
+      "dialogueTouchAndFocus": "pass",
+      "undoAndComposition": "pass",
+      "physicalDevice": false
+    },
+    {
+      "profile": "android",
+      "engine": "Chromium",
+      "touch": true,
+      "navigation": "pass",
+      "pageFit": "pass",
+      "worldAndStoryboard": "pass",
+      "touchReferencePicker": "pass",
+      "scriptDisclosureAndNavigation": "pass",
+      "softKeyboardShortcutEvents": "pass",
+      "dialogueTouchAndFocus": "pass",
+      "undoAndComposition": "pass",
+      "physicalDevice": false
+    },
+    {
+      "profile": "tablet",
+      "engine": "Chromium",
+      "touch": true,
+      "navigation": "pass",
+      "pageFit": "pass",
+      "worldAndStoryboard": "pass",
+      "touchReferencePicker": "pass",
+      "scriptDisclosureAndNavigation": "pass",
+      "softKeyboardShortcutEvents": "pass",
+      "dialogueTouchAndFocus": "pass",
+      "undoAndComposition": "pass",
+      "physicalDevice": false
+    }
+  ],
+  "limits": "Browser device emulation and synthetic soft-keyboard events; not native iOS/Android acceptance."
+}

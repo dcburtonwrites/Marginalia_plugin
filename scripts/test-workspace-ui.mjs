@@ -79,11 +79,14 @@ try {
     await page.locator("#opened").textContent(),
     /08 Projects\/Copper Sky/,
   );
+  await open("Canon");
+  const fieldStyle = input => {const s=getComputedStyle(input);return {width:input.getBoundingClientRect().width,height:input.getBoundingClientRect().height,radius:s.borderRadius,padding:s.padding,font:s.font,border:s.border,background:s.backgroundColor};};
+  const searchStyle=await page.getByLabel("Find an entry",{exact:true}).evaluate(fieldStyle);
   await open("Home");
   assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),false);
   await page.getByRole("button",{name:"Edit pinned references",exact:true}).click();
   assert.equal(await page.getByLabel("Pin a reference",{exact:true}).isVisible(),true);
-  assert.equal(await page.getByLabel("Pin a reference",{exact:true}).evaluate(input=>getComputedStyle(input).borderRadius),"8px");
+  assert.deepEqual(await page.getByLabel("Pin a reference",{exact:true}).evaluate(fieldStyle),searchStyle);
   await page.getByLabel("Pin a reference",{exact:true}).fill("Mira");
   await page.getByRole("option",{name:"02 Character/Mira.md",exact:true}).click();
   await page.getByRole("heading", { name: "Pinned References" }).waitFor();
@@ -309,6 +312,16 @@ try {
   await form.getByRole("button",{name:"Create entry",exact:true}).click();
   await page.locator(".marginalia-project-card").filter({hasText:"New Project"}).waitFor();
   assert.match(await page.locator("#opened").textContent(),/08 Projects\/New Project\/Overview.md/);
+  await page.evaluate(()=>window.workspaceFixture.setHiddenFolders([]));
+  await open("Assets");
+  await page.getByRole("heading",{name:"Assets",exact:true}).waitFor();
+  assert.match(await page.locator(".marginalia-entry-card").textContent(),/Never list assets/);
+  await page.evaluate(()=>window.workspaceFixture.setHiddenFolders(["_Assets","_Research"]));
+  assert.equal(await nav().getByRole("button",{name:"Assets",exact:true}).count(),0);
+  assert.equal(await nav().getByRole("button",{name:"Research",exact:true}).count(),0);
+  await page.getByRole("heading",{name:"Copper Sky workspace",exact:true}).waitFor();
+  await page.evaluate(()=>window.workspaceFixture.setHiddenFolders(["_Assets"]));
+  await nav().getByRole("button",{name:"Research",exact:true}).waitFor();
   assert.deepEqual(errors, []);
   console.log(
     "Workspace checks passed: live pages, World/Storyboard menus, Canon/Brainstorm/project tabs, cards and native links, pins, search, module presentation, light/dark and narrow layout.",

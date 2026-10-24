@@ -9,5 +9,5 @@ await build({
   outfile: "main.js",
   logLevel: "info",
   loader: { ".md": "text" },
-  banner: { js: "/* Marginalia — desktop Obsidian plugin */" },
+  banner: { js: "/* Marginalia — Obsidian plugin */" },
 });

@@ -1,0 +1,16 @@
+{
+  "mobileBundleLoad": "pass",
+  "mobileStartup": "pass",
+  "restoredDesktopMessage": "pass",
+  "children": [
+    "ScriptFeature",
+    "WorkspaceFeature"
+  ],
+  "restoredDesktopViews": [
+    "marginalia-librarian",
+    "marginalia-expansion"
+  ],
+  "nodeImportsRequested": [],
+  "savedDesktopLibrarianPreference": true,
+  "physicalDeviceTested": false
+}

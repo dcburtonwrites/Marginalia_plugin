@@ -93,3 +93,16 @@ See verification/real-vault-review-2026-10-22.md. Successful runtime checks do n
 - [x] Per-vault setup table for canon types, folders/templates, project roots/options and explicit folder creation; owner defaults preserved.
 - [x] Vault-item, frontmatter-field and status-value suggestions with typed new-status support.
 - [x] Pure/host/browser regressions and native disposable-vault checks; user template, notes, word goal and totals preserved.
+
+## Mobile increment — D-0033
+- [x] Permit loading without Node/Electron APIs; preserve desktop AI transport behavior.
+- [x] Keep app pages/navigation and Script Studio in native leaves/drawers, with touch layout and controls.
+- [x] Route mobile script shortcuts through native CodeMirror transactions; touch character/suggestion selection.
+- [x] Skip mobile Librarian startup/actions/networking; explain the limitation and preserve desktop preferences.
+- [x] Package/typecheck, core/host regressions, Node-unavailable bundle startup, phone/tablet browser profiles and desktop native reload.
+- [ ] Physical iOS/Android acceptance: native file drawer integration, software keyboard/IME, touch dropdowns, Undo, background/resume, vault/settings persistence and sync. This remains required for mobile v1 readiness.
+
+## Phase 7 follow-up — D-0034
+- [x] Configurable hidden shared-menu folder list, editable _Assets default, empty-list support and live active-section fallback.
+- [x] Pinned Reference/Project selector matches Find an entry size and styling.
+- [x] Settings/model migration, World/Storyboard browser coverage, mobile regression and native settings verification.

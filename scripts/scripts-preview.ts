@@ -2,11 +2,17 @@ document.documentElement.dataset.theme =
   new URLSearchParams(location.search).get("theme") || "light";
 import { ScriptsView } from "../src/scripts/view.ts";
 import { TFile, TFolder, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { history, undo } from "@codemirror/commands";
+import { createScriptShortcutExtension } from "../src/scripts/shortcut-extension.ts";
+import { editorInfoField, Platform } from "obsidian";
 import { readWriting } from "../src/scripts/writing.ts";
 import { renderWritingSettings } from "../src/scripts/settings.ts";
 import { ProjectView } from "../src/scripts/project.ts";
 import { scriptMetadata } from "../src/scripts/controller.ts";
 import { readOrders } from "../src/scripts/model.ts";
+if (Platform.isMobile) document.body.classList.add("is-mobile");
 const base = "Projects/Copper Sky/Scripts/";
 const fixtures = [
   {
@@ -98,7 +104,7 @@ const app: any = {
   workspace: {
     getActiveFile: () => files[0],
     iterateAllLeaves: () => {},
-    leftSplit: {},
+    leftSplit: {collapse:()=>{document.body.dataset.drawer="closed";}},
     revealLeaf: async () => {},
     openLinkText: async (path: string) => {
       document.querySelector("main")!.textContent = "Editing " + path;
@@ -119,6 +125,26 @@ const mainLeaf: any = {
     mainView = undefined;
     const main = document.querySelector("main")!;
     main.textContent = `Editing ${file.path} at line ${options.eState?.line ?? 0}`;
+    if (Platform.isMobile) {
+      const cm = new EditorView({parent:main, state:EditorState.create({
+        doc:file.text,
+        extensions:[history(),editorInfoField.init(()=>({file,editor:{}})),
+          createScriptShortcutExtension(app),
+          EditorView.contentAttributes.of({"aria-label":"Script editor"}),
+          EditorView.updateListener.of(update=>{if(update.docChanged){
+            file.text=update.state.doc.toString();
+            plugin.scriptController.observeText(file.path,file.text,true);
+          }})],
+      })});
+      (window as any).mobileEditor={
+        set(text:string){cm.dispatch({changes:{from:0,to:cm.state.doc.length,insert:text},selection:{anchor:text.length}});cm.focus();},
+        text:()=>cm.state.doc.toString(),
+        selected:()=>cm.state.sliceDoc(cm.state.selection.main.from,cm.state.selection.main.to),
+        undo:()=>undo(cm),
+      };
+      cm.focus();
+      return;
+    }
     const editor = document.createElement("textarea");
     editor.setAttribute("aria-label", "Script editor");
     editor.value = file.text;

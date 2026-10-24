@@ -333,3 +333,28 @@ Runtime success does not pass writing-quality acceptance: unsupported character 
 ## Settings columns — 2026-10-23
 
 D-0032: typecheck and package passed. Installed and reloaded in the disposable test vault; native visual checks covered Theme status field/textarea, Scripts template/number inputs and Librarian endpoint/selectors. Descriptions wrap within the left column; field edges match, buttons/toggles remain native size and right aligned. Screenshots: design/verification/native-settings-columns-{theme,scripts,librarian}.png. CSS-only change; no model generation or note edits.
+
+## Mobile loading and writing — D-0033 · 2026-10-23
+
+| Requirement / rule | Evidence | Result |
+| --- | --- | --- |
+| Mobile may load without Node/Electron | Actual main.js evaluated with unavailable Node modules; onload selects Scripts/Workspace children and registers message-only restored AI leaves | Pass, synthetic host |
+| No mobile model startup; desktop preferences retained | Mobile lifecycle host regression; connection/generation guards; restored view message check | Pass |
+| World/Storyboard menu and app pages, touch references | Three Chromium touch/device profiles; real production pages/navigation within a simulated drawer shell, true mobile viewport widths; Canon/Home fit and reference selection | Pass, browser |
+| Native script organization and shortcuts | Production Studio/controller and real CodeMirror; closed page default, drawer navigation, all 11 slash commands, hardware Enter, synthetic paragraph/line-break input, touch speaker choice, Dialogue selection, Undo and composition guards | Pass, browser |
+| Desktop behavior retained | 95 pure + 48 host tests, existing script and workspace browser suites, typecheck/package; final native desktop reload shows Home, Script Studio and Local · Ready | Pass |
+| Source/preferences preserved | 16 disposable Markdown hashes unchanged; no new Markdown; writing preferences/workspace settings unchanged; original creative vaults not modified | Pass |
+| Physical mobile release acceptance | Native iOS/Android sidebar integration, software keyboard/IME, background/resume, persisted vault state and sync have not been exercised on a device | Pending |
+
+Evidence: verification/mobile-load.json, mobile-ui.json and mobile-preservation.json. Screenshots: design/verification/mobile-{phone,android,tablet}-{home,editor}.png and native-mobile-build-desktop.png. Chromium device profiles are not native iOS WebKit or Android Capacitor execution. The load smoke test records selected children but does not execute their entire real-device lifecycle. Android retains the host CodeMirror deferred Enter pipeline rather than intercepting its beforeinput/IME changes; iOS uses the shared guarded conversion for cancelable soft-keyboard line breaks. No LAN/cloud transport, model generation or efficiency experiment was added. The final three-file development package is installed/reloaded only in the disposable vault and the ZIP is updated.
+
+## Hidden menu folders and input parity — D-0034 · 2026-10-23
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Editable _Assets exclusion and all-prefix default rule | 96 pure tests include defaults, empty persisted list, normalization, World/Storyboard menus, unhidden Assets browsing and retained evidence exclusions | Pass |
+| Menu responds live and hidden active page returns Home | Workspace browser suite removes _Assets, opens its actual fixture card, hides Assets/Research, checks Home fallback and restores Research | Pass |
+| Pin field matches entry search | Workspace browser compares measured width/height, radius, padding, font, border and background of both production inputs | Pass |
+| Mobile and desktop stability | 48 host tests, typecheck/package, three mobile browser profiles, production mobile-load smoke; native disposable plugin reload and Hidden folders text/default | Pass |
+
+144 automated tests total. Updated three-file package and ZIP installed only in the disposable test vault. No model calls, preference edits or source-note edits performed for native verification. Physical mobile acceptance remains pending as described in D-0033.

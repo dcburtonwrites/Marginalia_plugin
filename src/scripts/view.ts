@@ -1,5 +1,6 @@
 import {
   ItemView,
+  Platform,
   MarkdownView,
   Notice,
   TFile,
@@ -646,6 +647,7 @@ export class ScriptsView extends ItemView {
       );
     const leaf = this.app.workspace.getLeaf(false);
     await leaf.openFile(file, { state: { mode: "source" }, eState: { line } });
+    if (Platform.isMobile) this.app.workspace.leftSplit.collapse();
     const view = leaf.view;
     if (view instanceof MarkdownView) {
       view.editor.setCursor({ line, ch: 0 });

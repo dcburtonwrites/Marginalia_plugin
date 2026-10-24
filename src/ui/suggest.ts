@@ -41,6 +41,7 @@ export function suggest(input: HTMLInputElement, choices: () => string[]) {
       item.setAttribute("role", "option");
       item.setAttribute("aria-selected", String(index === selected));
       item.onmousedown = event => event.preventDefault();
+      item.onpointerdown = event => event.preventDefault();
       item.onclick = () => choose(value);
       list.append(item);
     });

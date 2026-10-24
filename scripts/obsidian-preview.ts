@@ -1,4 +1,6 @@
-export const editorInfoField = {} as any;
+import { StateField } from "@codemirror/state";
+export const editorInfoField = StateField.define<any>({create:()=>null,update:value=>value});
+export const Platform = {isMobile: location.search.includes("mobile"),isAndroidApp: /Android/.test(navigator.userAgent)};
 export class ItemView {
   app: any;
   contentEl: HTMLElement;

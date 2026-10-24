@@ -1,4 +1,5 @@
 export const editorInfoField = {} as any;
+export const Platform = {isMobile: false};
 export class Plugin {
   app: any;
   manifest = { id: "marginalia" };

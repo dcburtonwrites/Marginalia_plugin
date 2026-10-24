@@ -1,0 +1,14 @@
+{
+  "decision": "D-0034",
+  "date": "2026-10-23",
+  "automatedTests": 144,
+  "typecheck": "pass",
+  "package": "pass",
+  "workspaceBrowser": "pass: live menu exclusions, Assets browsing, Home fallback, exact input geometry/style parity",
+  "mobileBrowser": "pass: three touch profiles",
+  "mobileBundleLoad": "pass",
+  "native": "pass: reloaded disposable build; Hidden folders heading, explanation and _Assets textarea observed",
+  "creativeVaultWrites": false,
+  "nativePreferenceEdits": false,
+  "physicalMobileAcceptance": "pending"
+}

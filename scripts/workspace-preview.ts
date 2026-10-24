@@ -1,9 +1,11 @@
+import { Platform } from "obsidian";
 import { AppPage, WorkspaceFeature, PAGES } from "../src/workspace/feature.ts";
-import { readWorkspace } from "../src/workspace/model.ts";
+import { readWorkspace, readHiddenFolders } from "../src/workspace/model.ts";
 import { TFolder, TFile, stringifyYaml, parseYaml } from "obsidian";
 import { readWriting } from "../src/scripts/writing.ts";
 import { ScriptController, scriptMetadata } from "../src/scripts/controller.ts";
 import { VaultSetupModal } from "../src/workspace/setup.ts";
+if (Platform.isMobile) document.body.classList.add("is-mobile");
 const storyboard = location.search.includes("storyboard");
 const sources = [
   [
@@ -117,6 +119,7 @@ const app: any = {
     iterateAllLeaves: () => {},
   },
   workspace: {
+    leftSplit:{collapse:()=>{document.body.dataset.drawer="closed";}},
     on: () => ({}),
     onLayoutReady: (fn: any) => fn(),
     getLeavesOfType: (type: string) =>
@@ -171,6 +174,7 @@ const feature = new WorkspaceFeature(owner);
 owner.themeFeature = feature;
 (window as any).workspaceFixture = {
   setup:()=>new VaultSetupModal(owner).open(),
+  setHiddenFolders(value:string[]) {owner.workspaceSettings.hiddenFolders=readHiddenFolders(value);feature.refresh();},
   sources:()=>Object.fromEntries(files.map(file=>[file.path,file.body])),
   setStatusFlow(field: string, order: string[]) {
     owner.workspaceSettings = readWorkspace({

@@ -1,5 +1,6 @@
 import {
   Plugin,
+  Platform,
   ItemView,
   WorkspaceLeaf,
   MarkdownView,
@@ -64,6 +65,7 @@ import { defaultEntrySetup } from "./workspace/setup-model.ts";
 import { suggest, propertyNames } from "./ui/suggest.ts";
 import {
   readWorkspace,
+  readHiddenFolders,
   readStatusOrder,
   entryType,
   type ModuleName,
@@ -74,6 +76,7 @@ import canonWriter from "./prompts/canon-writer.md";
 
 const LIBRARIAN = "marginalia-librarian",
   EXPANSION = "marginalia-expansion";
+const MOBILE_LIBRARIAN_MESSAGE = "Librarian is available on desktop only. App pages, Script Studio and script editing work on mobile. Connecting to a computer’s local model over your network is not supported by this version.";
 const M_ICON =
   '<path d="M8 71V21l17 9 25 37 25-37 17-9v50L67 63M8 71l25-8" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path fill="currentColor" fill-rule="evenodd" d="m50 54 17 21-17 21-17-21ZM47.5 74A3.4 3.4 0 1 1 52.5 74V90h-5Z"/>';
 const L_ICON =
@@ -149,6 +152,11 @@ export default class Marginalia extends Plugin {
     addIcon("marginalia-lantern", L_ICON);
     addIcon("marginalia-m", M_ICON);
     this.addSettingTab(new MarginaliaSettings(this.app, this));
+    if (Platform.isMobile) {
+      // Restore synced desktop leaves as an explanation, without AI startup.
+      for (const type of [LIBRARIAN, EXPANSION])
+        this.registerView(type, leaf => new MobileLibrarianView(leaf, type));
+    }
     this.applyModules();
   }
   async setModule(name: ModuleName, enabled: boolean) {
@@ -179,9 +187,9 @@ export default class Marginalia extends Plugin {
       this.scriptsFeature = undefined;
       this.scriptController = undefined;
     }
-    if (modules.librarian && !this.librarianFeature) {
+    if (modules.librarian && !Platform.isMobile && !this.librarianFeature) {
       this.librarianFeature = this.addChild(new LibrarianFeature(this));
-    } else if (!modules.librarian && this.librarianFeature) {
+    } else if ((!modules.librarian || Platform.isMobile) && this.librarianFeature) {
       this.operation?.abort();
       for (const type of [LIBRARIAN, EXPANSION])
         for (const leaf of this.app.workspace.getLeavesOfType(type))
@@ -309,7 +317,7 @@ export default class Marginalia extends Plugin {
     }
   }
   noteActions() {
-    if (!this.workspaceSettings.modules.librarian) return;
+    if (Platform.isMobile || !this.workspaceSettings.modules.librarian) return;
     const live = new Set<MarkdownView>();
     this.app.workspace.iterateAllLeaves((leaf) => {
       const view = leaf.view;
@@ -336,6 +344,10 @@ export default class Marginalia extends Plugin {
       }
   }
   async openLibrarian() {
+    if (Platform.isMobile) {
+      new Notice(MOBILE_LIBRARIAN_MESSAGE);
+      return;
+    }
     if (!this.workspaceSettings.modules.librarian) {
       new Notice("Enable Librarian in Marginalia settings first.");
       return;
@@ -360,6 +372,7 @@ export default class Marginalia extends Plugin {
     ).setting.openTabById(this.manifest.id);
   }
   async checkConnection(signal = new AbortController().signal) {
+    if (Platform.isMobile) throw new Error(MOBILE_LIBRARIAN_MESSAGE);
     try {
       const models = await localModels(this.settings, signal);
       this.status = this.settings.model
@@ -555,6 +568,7 @@ export default class Marginalia extends Plugin {
     }
   }
   async generateText(system: string, user: string, signal: AbortSignal) {
+    if (Platform.isMobile) throw new Error(MOBILE_LIBRARIAN_MESSAGE);
     return generate(
       this.settings,
       system,
@@ -575,7 +589,7 @@ export default class Marginalia extends Plugin {
     );
   }
   async run(mode: "enhancement" | "expansion") {
-    if (!this.workspaceSettings.modules.librarian) return;
+    if (Platform.isMobile || !this.workspaceSettings.modules.librarian) return;
     const path = this.target;
     if (!path) return;
     await this.task(async (signal) => {
@@ -643,7 +657,7 @@ export default class Marginalia extends Plugin {
     });
   }
   async ask(question: string) {
-    if (!this.workspaceSettings.modules.librarian) return;
+    if (Platform.isMobile || !this.workspaceSettings.modules.librarian) return;
     const path = this.target;
     if (!path || this.operation) return;
     const state = this.current(path);
@@ -808,6 +822,16 @@ export default class Marginalia extends Plugin {
   }
   source(path: string) {
     void this.app.workspace.openLinkText(path, this.target ?? "", true);
+  }
+}
+
+class MobileLibrarianView extends ItemView {
+  constructor(leaf: WorkspaceLeaf, private type: string) { super(leaf); }
+  getViewType() { return this.type; }
+  getDisplayText() { return "Librarian · Desktop only"; }
+  getIcon() { return "marginalia-lantern"; }
+  async onOpen() {
+    this.contentEl.replaceChildren(el("p", "marginalia-muted", MOBILE_LIBRARIAN_MESSAGE));
   }
 }
 
@@ -1146,6 +1170,10 @@ class MarginaliaSettings extends PluginSettingTab {
       section.open = true;
       section.append(el("summary", "", label));
       root.append(section);
+      if (key === "librarian" && Platform.isMobile) {
+        section.append(el("p", "marginalia-muted", MOBILE_LIBRARIAN_MESSAGE));
+        continue;
+      }
       new Setting(section)
         .setName(`Enable ${label}`)
         .setDesc(
@@ -1256,6 +1284,17 @@ class MarginaliaSettings extends PluginSettingTab {
                 p.themeFeature?.refresh();
               }),
           );
+        body.append(el("h3", "", "Hidden folders"));
+        new Setting(body)
+          .setName("Hide from menu")
+          .setDesc("All top-level folders with an _ prefix appear in the Marginalia menu except those listed here. Enter one full folder name per line, for example _Assets. This only hides menu sections; it does not hide files in Obsidian’s file viewer.")
+          .addTextArea(input => input
+            .setValue(p.workspaceSettings.hiddenFolders.join("\n"))
+            .onChange(async value => {
+              p.workspaceSettings.hiddenFolders = readHiddenFolders(value);
+              await p.savePluginData();
+              p.themeFeature?.refresh();
+            }));
       } else if (key === "scripts") renderWritingSettings(body, p);
       else this.renderLibrarian(body);
     }

@@ -2,7 +2,7 @@
 
 ## Current request and status
 
-The user explicitly requested a separate “Marginalia Plugin” Codex project with build folder `/Users/dante/Documents/GitHub/ai/Marginalia_plugin`. The icon directions have now been explicitly selected: B (Knowledge lantern) for Librarian and F (Winged M + nib) for Marginalia. This approves those directions, not the earlier book+nib+star proposal. The user has approved desktop/local scope and asked to follow the prior mockup. Initial Librarian implementation and installation in a disposable test vault are authorized. The corrected development build is installed in `.preview/Marginalia Test Vault`; native functional checks have passed, while prose quality remains unaccepted. This is an Obsidian plugin, not a Codex/ChatGPT MCP plugin.
+The user explicitly requested a separate “Marginalia Plugin” Codex project with build folder `/Users/dante/Documents/GitHub/ai/Marginalia_plugin`. The icon directions have now been explicitly selected: B (Knowledge lantern) for Librarian and F (Winged M + nib) for Marginalia. This approves those directions, not the earlier book+nib+star proposal. The user initially approved desktop/local scope and has now added mobile app pages/script editing (D-0033); follow the prior mockup. Initial Librarian implementation and installation in a disposable test vault are authorized. The corrected development build is installed in `.preview/Marginalia Test Vault`; native functional checks have passed, while prose quality remains unaccepted. This is an Obsidian plugin, not a Codex/ChatGPT MCP plugin.
 
 ## Agreed direction
 
@@ -36,7 +36,7 @@ Hidden-folder sync is UNVERIFIED; vault-local placement does not guarantee Obsid
 
 ### Runtime
 
-Local-first and source-grounded. Deterministic checks/retrieval separate from model generation. The user has now approved desktop Obsidian and local Ollama as the starting scope, with selectable local model. Cloud and mobile are deferred. Model availability, context budgeting and performance require implementation validation. Existing embedded Rust/Swift inference cannot simply run in mobile Obsidian; mobile lacks Node/Electron APIs. Do not promise full mobile model parity. Preserve original evidence, source-role attribution and omission disclosure.
+Local-first and source-grounded. Deterministic checks/retrieval separate from model generation. The user has now approved desktop Obsidian and local Ollama as the starting scope, with selectable local model. Cloud and mobile Librarian/network connections are deferred; app pages and script tools now permit mobile loading (D-0033). Model availability, context budgeting and performance require implementation validation. Existing embedded Rust/Swift inference cannot simply run in mobile Obsidian; mobile lacks Node/Electron APIs. Do not promise full mobile model parity. Preserve original evidence, source-role attribution and omission disclosure.
 
 ## Scripts
 
@@ -185,3 +185,11 @@ Home Pinned References/Projects now shows a right-aligned Edit button and existi
 
 ### Latest follow-up — D-0032 settings columns
 Main module settings now share proportional text/control columns and equal field widths, preserving native button/toggle dimensions. CSS-only; package/typecheck and native Theme/Scripts/Librarian visual checks passed. Disposable vault installation and development ZIP updated; no note or preference edits.
+
+### Latest follow-up — D-0033 mobile pages and scripts
+
+Manifest now permits mobile. Desktop Node HTTP loading is lazy. Mobile runtime skips Librarian startup, commands, model requests and note actions, showing desktop-only messages in settings/restored desktop leaves while preserving desktop preferences. Pages/Script Studio close the native drawer after navigation; touch suggestions and larger targets are supported. iOS soft Enter uses the shared shortcut planner; Android retains native CodeMirror deferred Enter. Package/typecheck, 143 tests, Node-unavailable bundle startup and three Chromium touch profiles pass. Physical iOS/Android acceptance remains open. No original creative vault edits or inference/efficiency experiments.
+
+### Latest follow-up — D-0034 hidden menu folders/search input parity
+
+Theme now has Hidden folders → Hide from menu, a newline list defaulting to _Assets. Empty means all top-level underscore folders appear; root names match case-insensitively. _Assets can be unhidden and browsed in its section. General evidence filtering and native files remain unchanged. Pinned Reference/Project input uses the same native search type/style and responsive 260px width as Find an entry. 144 tests, typecheck/package, workspace/mobile browser checks and mobile-load smoke pass; native settings confirms the section/default after reloading the disposable installation. Package ZIP updated. No creative vault or model changes.

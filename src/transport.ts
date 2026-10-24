@@ -1,4 +1,4 @@
-import { request, type ClientRequest, type IncomingMessage } from "node:http";
+import type { request, ClientRequest, IncomingMessage } from "node:http";
 
 export interface GenerationProgress {
   phase: "thinking" | "generating";
@@ -101,7 +101,7 @@ export interface TransportLimits {
 }
 export function createHttpTransport(
   limits: TransportLimits = {},
-  requester: typeof request = request,
+  requester?: typeof request,
 ): Transport {
   return (url, body, signal, onProgress) =>
     new Promise((resolve, reject) => {
@@ -182,7 +182,10 @@ export function createHttpTransport(
           );
       };
       try {
-        req = requester(
+        // Mobile must be able to load the plugin without a Node runtime.
+        // Only desktop Librarian requests enter this path.
+        const send = requester ?? (require("node:http") as typeof import("node:http")).request;
+        req = send(
           url,
           {
             method: encoded === undefined ? "GET" : "POST",

@@ -1,5 +1,6 @@
 import {
   Plugin,
+  Platform,
   ItemView,
   type TAbstractFile,
   TFolder,
@@ -136,6 +137,7 @@ export class WorkspaceFeature extends Plugin {
         this.owner.workspaceSettings.vaultType,
         this.owner.workspaceSettings.modules.scripts,
         folderPaths(this.app),
+        this.owner.workspaceSettings.hiddenFolders,
       )) {
         const item = button(
           sectionName(name),
@@ -209,6 +211,7 @@ export async function openPage(
     active: true,
   });
   await owner.app.workspace.revealLeaf(leaf);
+  if (Platform.isMobile) owner.app.workspace.leftSplit.collapse();
 }
 export class AppPage extends ItemView {
   section = "Home";
@@ -270,7 +273,7 @@ export class AppPage extends ItemView {
       await Promise.all(
         this.app.vault
           .getMarkdownFiles()
-          .filter((f) => eligible(f.path) || sharedEntry(f.path, this.section))
+          .filter((f) => eligible(f.path) || sharedEntry(f.path, this.section, this.owner.workspaceSettings.hiddenFolders))
           .map(async (file) => {
             const fields =
               this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
@@ -375,11 +378,11 @@ export class AppPage extends ItemView {
       root.append(page);
       const type = this.owner.workspaceSettings.vaultType;
       const folders = folderPaths(this.app);
-      const legacy = sharedFolders(folders).find(
+      const legacy = sharedFolders(folders, this.owner.workspaceSettings.hiddenFolders).find(
         (path) => sectionName(path) === this.section,
       );
       if (legacy) this.section = legacy;
-      if (!navigation(type, true, folders).includes(this.section)) {
+      if (!navigation(type, true, folders, this.owner.workspaceSettings.hiddenFolders).includes(this.section)) {
         this.section = "Home";
         this.project = undefined;
         this.tab = "All Entries";
@@ -588,7 +591,8 @@ export class AppPage extends ItemView {
       );
       pins.append(row);
     }
-    const choose = el("input");
+    const choose = el("input", "marginalia-page-search");
+    choose.type = "search";
     choose.setAttribute("aria-label", "Pin a reference");
     choose.placeholder="Type a note name or path…";
     const selectorLabel = el("label", "marginalia-pin-selector");

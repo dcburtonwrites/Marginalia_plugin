@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   readWorkspace,
+  readHiddenFolders,
   navigation,
   sharedFolders,
   sectionName,
@@ -243,4 +244,22 @@ test('vault setup defaults match numbered folders and custom canon/project roots
   assert.equal(folderPath('World/Creatures'),'World/Creatures');
   for(const title of ['', '../other','Bad|name','.hidden']) assert.throws(()=>entryName(title));
   assert.equal(defaultCanonTypes.length,7);
+});
+
+
+test("hidden folders are a persisted user menu rule, including optional Assets", () => {
+  assert.deepEqual(readWorkspace(undefined).hiddenFolders,["_Assets"]);
+  const hidden=readHiddenFolders(" _Research \n_assets\n_RESEARCH\nNested/_Private\nPlain\n\n");
+  assert.deepEqual(hidden,["_Research","_assets"]);
+  const settings=readWorkspace({hiddenFolders:[]});
+  assert.deepEqual(readWorkspace(JSON.parse(JSON.stringify(settings))).hiddenFolders,[]);
+  for (const type of ["World","Storyboard"] as const) {
+    assert.ok(navigation(type,true,["_Assets"],settings.hiddenFolders).includes("_Assets"));
+    assert.ok(!navigation(type,true,["_Research"],hidden).includes("_Research"));
+  }
+  assert.equal(sharedEntry("_Assets/Index.md","_Assets",[]),true);
+  assert.equal(sharedEntry("_Assets/.private/Index.md","_Assets",[]),false);
+  assert.equal(sharedEntry("_Research/Index.md","_Research",hidden),false);
+  assert.ok(sharedFolders(["__Assets"],hidden).includes("__Assets"));
+  assert.equal(eligible("_Assets/Index.md"),false); // Browsing does not make assets retrieval evidence.
 });
