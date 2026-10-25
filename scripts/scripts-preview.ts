@@ -1,5 +1,10 @@
 document.documentElement.dataset.theme =
   new URLSearchParams(location.search).get("theme") || "light";
+import { CompilationView, COMPILATION } from "../src/scripts/compile.ts";
+import { numberRenderedScript, restoreNumbering } from "../src/scripts/numbering.ts";
+import { parseScript } from "../src/scripts/model.ts";
+(window as any).numberingTestApi = {numberRenderedScript, restoreNumbering, parseScript};
+import { writingFocus } from "../src/scripts/focus.ts";
 import { ScriptsView } from "../src/scripts/view.ts";
 import { TFile, TFolder, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
 import { EditorState } from "@codemirror/state";
@@ -56,7 +61,7 @@ for(const [path,text] of Object.entries(savedTexts)) {
   if(!files.some(f=>f.path===path)) files.push(Object.assign(new TFile(path),{text:text as string}));
 }
 const folders = [...new Set(files.flatMap(f=>f.path.split('/').slice(0,-1).map((_,i)=>f.path.split('/').slice(0,i+1).join('/'))))].map(path=>new TFolder(path));
-let mainView: ProjectView | undefined;
+let mainView: ProjectView | CompilationView | undefined;
 const outlineRoot = document.querySelector<HTMLElement>("#sidebar")!;
 let view: ScriptsView;
 const plugin: any = {
@@ -74,6 +79,7 @@ const plugin: any = {
 };
 const app: any = {
   vault: {
+    on: () => ({}),
     getMarkdownFiles: () => files,
     cachedRead: async (f: any) => f.text,
     read: async (f: any) => f.text,
@@ -102,6 +108,7 @@ const app: any = {
       ),
   },
   workspace: {
+    on: () => ({}),
     getActiveFile: () => files[0],
     iterateAllLeaves: () => {},
     leftSplit: {collapse:()=>{document.body.dataset.drawer="closed";}},
@@ -128,7 +135,7 @@ const mainLeaf: any = {
     if (Platform.isMobile || location.search.includes("editor")) {
       const cm = new EditorView({parent:main, state:EditorState.create({
         doc:file.text,
-        extensions:[history(),editorInfoField.init(()=>({file,editor:{}})),
+        extensions:[focus.extension, history(),editorInfoField.init(()=>({file,editor:{}})),
           createScriptShortcutExtension(app),
           EditorView.contentAttributes.of({"aria-label":"Script editor"}),
           EditorView.updateListener.of(update=>{if(update.docChanged){
@@ -139,6 +146,10 @@ const mainLeaf: any = {
       (window as any).mobileEditor={
         set(text:string){cm.dispatch({changes:{from:0,to:cm.state.doc.length,insert:text},selection:{anchor:text.length}});cm.focus();},
         text:()=>cm.state.doc.toString(),
+        cursor(offset:number){cm.dispatch({selection:{anchor:offset}});cm.focus();},
+        metrics(){const caret=cm.coordsAtPos(cm.state.selection.main.head),rect=cm.scrollDOM.getBoundingClientRect(), vv=window.visualViewport;
+          const top=Math.max(rect.top,vv?.offsetTop??0), bottom=Math.min(rect.bottom,(vv?.offsetTop??0)+(vv?.height??window.innerHeight));
+          return {caret:caret?(caret.top+caret.bottom)/2:null,target:top+(bottom-top)*(Platform.isMobile?1/3:1/2),scrollTop:cm.scrollDOM.scrollTop,head:cm.state.selection.main.head};},
         selected:()=>cm.state.sliceDoc(cm.state.selection.main.from,cm.state.selection.main.to),
         undo:()=>undo(cm),
         destroy:()=>cm.destroy(),
@@ -165,7 +176,8 @@ const mainLeaf: any = {
   setViewState: async (state: any) => {
     if (mainView) await mainView.onClose();
     const leaf = { app, contentEl: document.querySelector("main") } as any;
-    mainView = new ProjectView(leaf, plugin.scriptController);
+    mainView = state.type === COMPILATION ? new CompilationView(leaf, plugin.scriptController) : new ProjectView(leaf, plugin.scriptController);
+    await mainView.onOpen();
     await mainView.setState(state.state, { history: false });
   },
 };
@@ -175,6 +187,8 @@ const sidebarLeaf: any = {
   setViewState: async () => {},
 };
 plugin.app = app;
+const focus = writingFocus(plugin);
+plugin.refreshWritingFocus = focus.refresh;
 view = new ScriptsView({ app, contentEl: outlineRoot } as any, plugin);
 plugin.scriptController.onChange = () => {
   void view.draw();

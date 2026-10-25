@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "model": "gemma4:12b-mlx",
+  "source": "## Page 1\n\nAt an abandoned laboratory, Mira watches Len bind a cut on Orin's arm. The scene does not identify the laboratory's owner or maker.\n\nMira remembers a childhood story in which a lantern spoke. She calls it a dream, not a waking encounter.\n\nLen says he suspects Mira built the laboratory. Mira does not confirm this; the narration gives no account of its construction.\n\nMira says, \"I want to repair the gate today.\" She leaves with the tools; no repair is shown.",
+  "results": [
+    {
+      "version": "before",
+      "mode": "enhancement",
+      "raw": "> [!abstract] Summary\n>- Mira is a figure associated with an abandoned laboratory who expresses a focused intent to repair a gate. She maintains a quiet presence, observing others and reflecting on personal memories of lanterns and dreams.\n\n## Backstory\nMira\u2019s history is marked by a distinction between waking life and the internal landscape of her memories. She recalls a childhood story involving a speaking lantern, though she explicitly categorizes this as a dream rather than a waking experience. Her connection to the abandoned laboratory is a point of contention; while Len suspects she built the facility, the records provide no confirmation of her role in its construction.\n\n## Goals\nMira is driven by the immediate objective of repairing the gate. She identifies this as a priority for the present day, a desire she expresses before departing with the necessary tools.\n\n## Relationships\nMira\u2019s interactions are defined by her presence in shared spaces with others. She observes Len as he tends to a cut on Orin's arm, maintaining a watchful but non-intervening role in their immediate dynamic.\n\n## Key Scenes\n*   Watching Len bind a cut on Orin's arm at the abandoned laboratory.\n*   Recalling a dream of a speaking lantern from her childhood.\n*   Expressing her intent to repair the gate and departing with tools.\n\n## Related Entries\n*   [[Gate]] | [Laboratory]",
+      "validation": "Accepted structurally",
+      "seconds": 18.513
+    },
+    {
+      "version": "before",
+      "mode": "expansion",
+      "raw": "> [!abstract] Summary\n>- Mira is a figure associated with an abandoned laboratory, where she maintains a focused presence alongside Len and Orin. She is defined by her intent to repair a gate and her internal distinction between waking reality and the dream-like memories of her childhood.\n\n## Backstory\nThe history of Mira\u2019s life is anchored in a specific childhood memory that she categorizes as a dream rather than a waking experience. In this memory, she recalls a story involving a lantern that spoke. While the narrative of her life remains largely obscured, this specific instance of a talking lantern serves as a foundational memory for her character.\n\nHer current life is centered around an abandoned laboratory. While Len suspects that Mira was the one who built the laboratory, the records do not provide confirmation of her role in its construction. She remains in the vicinity of the site, where she is observed interacting with others in the ruins.\n\n## Personality\nMira demonstrates a practical and determined disposition, particularly regarding her objectives. She speaks clearly about her intentions, such as her stated desire to repair the gate. Her actions are purposeful; when she identifies a task, she gathers the necessary tools and departs to address it. She does not engage in idle conversation regarding her past or the origins of her surroundings, maintaining a focused demeanor on the immediate requirements of the laboratory and the gate.\n\n## Abilities\nMira possesses the intent and the tools required to perform repairs on the gate. While the text does not describe the successful completion of a repair, she is shown to be capable of identifying the necessary equipment and moving toward the task of maintenance.\n\n## Goals\nMira\u2019s primary stated goal is to repair the gate. She expresses this desire directly, indicating a clear priority for the functionality of the gate within the context of the abandoned laboratory.\n\n## Relationships\nMira is currently associated with Len and Orin. She is observed in a shared space with them at the abandoned laboratory. During one instance, she watches Len as he binds a cut on Orin's arm, establishing a dynamic where she is a witness to the care provided between the others.\n\n## Key Scenes\n*   Watching Len bind a cut on Orin's arm at the abandoned laboratory.\n*   Recalling a dream-like childhood story of a speaking lantern.\n*   The exchange where Len suspects her of building the laboratory.\n*   Mira stating her intent to repair the gate and departing with her tools.\n\n## Related Entries\n*   [[08 Projects/Copper Sky/Scripts/Gate.md]]|Gate",
+      "validation": "Accepted structurally",
+      "seconds": 24.582
+    },
+    {
+      "version": "after",
+      "mode": "enhancement",
+      "raw": "> [!abstract] Summary\n>- Mira is a character present at an abandoned laboratory who expresses a desire to repair a gate.\n\n## Backstory\nMira remembers a childhood story involving a speaking lantern, though she characterizes this memory as a dream rather than a waking encounter.\n\n## Goals\nMira expresses a desire to repair the gate. She departs with tools, though the repair is not shown.\n\n## Key Scenes\n* Mira watches Len bind a cut on Orin's arm at an abandoned laboratory.\n* Mira states her intention to repair the gate.\n\n## Related Entries\n* [[08 Projects/Copper Sky/Scripts/Gate|Gate]]",
+      "validation": "Accepted structurally",
+      "seconds": 7.741
+    },
+    {
+      "version": "after",
+      "mode": "expansion",
+      "raw": "> [!abstract] Summary\n>- Mira is a character present at an abandoned laboratory who expresses a desire to repair a gate.\n\n## Backstory\nMira remembers a childhood story involving a speaking lantern, though she characterizes this memory as a dream rather than a waking encounter.\n\n## Goals\nMira states, \"I want to repair the gate today.\" She departs with tools, but the repair is not shown.\n\n## Key Scenes\n* Mira watches Len bind a cut on Orin's arm at an abandoned laboratory.\n* Mira expresses her intent to repair the gate.\n\n## Related Entries\n* [[08 Projects/Copper Sky/Scripts/Gate]] | Gate",
+      "validation": "Accepted structurally",
+      "seconds": 7.568
+    },
+    {
+      "version": "after",
+      "mode": "ask",
+      "raw": "The supplied evidence does not identify the laboratory's owner or maker [[S1]]. While Len suspects Mira built the laboratory, Mira does not confirm this, and the narration provides no account of its construction [[S3]].\n\nRegarding the repair, Mira states, \"I want to repair the gate today,\" and leaves with tools, but no repair is shown [[S4]]. The evidence does not state whether Mira completed the repair.",
+      "text": "The supplied evidence does not identify the laboratory's owner or maker [[08 Projects/Copper Sky/Scripts/Gate|Gate]]. While Len suspects Mira built the laboratory, Mira does not confirm this, and the narration provides no account of its construction [[08 Projects/Copper Sky/Scripts/Gate|Gate]].\n\nRegarding the repair, Mira states, \"I want to repair the gate today,\" and leaves with tools, but no repair is shown [[08 Projects/Copper Sky/Scripts/Gate|Gate]]. The evidence does not state whether Mira completed the repair.",
+      "warnings": []
+    }
+  ]
+}

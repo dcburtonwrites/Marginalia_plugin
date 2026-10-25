@@ -1,0 +1,39 @@
+{
+  "synthetic": true,
+  "model": "gemma4:12b-mlx",
+  "source": "Nara waits at an abandoned laboratory. Its owner and maker are not named. Len says he suspects Nara built it, but Nara does not confirm this. Nara says, \"I want to repair the gate today.\" She leaves with tools. No repair is shown.",
+  "results": [
+    {
+      "name": "changed object",
+      "prose": "Len suspects Nara built the gate, though Nara does not confirm this.",
+      "raw": "```json\n{\"unsupported\":[{\"section\":\"Summary\",\"reason\":\"The source states Len suspects Nara built 'it' (the abandoned laboratory), not the gate.\"}]}\n```",
+      "accepted": false,
+      "reason": "Error: Draft withheld after source-grounding review: Summary: The source states Len suspects Nara built 'it' (the abandoned laboratory), not the gate. Previous results retained.",
+      "expected": false
+    },
+    {
+      "name": "unsupported certainty",
+      "prose": "Nara departs with tools, but no repair occurs.",
+      "raw": "{\"unsupported\": []}",
+      "accepted": false,
+      "reason": "Error: Draft withheld after source-grounding review: Summary turns an event that is not shown into a claim that it did not occur. Previous results retained.",
+      "expected": false
+    },
+    {
+      "name": "invented ownership",
+      "prose": "Nara owns the abandoned laboratory.",
+      "raw": "```json\n{\"unsupported\":[{\"section\":\"Summary\",\"reason\":\"The source states the owner and maker of the laboratory are not named; it does not establish Nara as the owner.\"}]}\n```",
+      "accepted": false,
+      "reason": "Error: Draft withheld after source-grounding review: Summary: The source states the owner and maker of the laboratory are not named; it does not establish Nara as the owner. Previous results retained.",
+      "expected": false
+    },
+    {
+      "name": "supported",
+      "prose": "Nara waits at an abandoned laboratory. She says she wants to repair the gate today and leaves with tools; no repair is shown.",
+      "raw": "```json\n{\"unsupported\": []}\n```",
+      "accepted": true,
+      "reason": "",
+      "expected": true
+    }
+  ]
+}

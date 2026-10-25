@@ -20,7 +20,10 @@ export interface Stamp {
   mtime: number;
   hash: string;
 }
+export interface Freshness { inventory:string; configuration:string; }
 export interface Packet {
+  freshness?: Freshness;
+  entryType?: string;
   target: Note;
   sources: Source[];
   stamps: Stamp[];
@@ -38,6 +41,7 @@ export interface Suggestion {
   state: "pending" | "inserted" | "dismissed";
 }
 export interface Expansion {
+  freshness?: Freshness;
   entry: string;
   original: string;
   generatedAt: string;

@@ -1,3 +1,4 @@
+export const loadPdfJs = async () => {throw new Error("The browser harness does not provide the native PDF viewer.");};
 import { StateField } from "@codemirror/state";
 export const editorInfoField = StateField.define<any>({create:()=>null,update:value=>value});
 export const Platform = {isMobile: location.search.includes("mobile"),isAndroidApp: /Android/.test(navigator.userAgent)};
@@ -8,6 +9,7 @@ export class ItemView {
     this.app = leaf.app;
     this.contentEl = leaf.contentEl ?? document.querySelector("#sidebar")!;
   }
+  registerEvent(_event: any) {}
   addChild(_child: any) {}
   removeChild(_child: any) {}
   async setState(_state: any, _result: any) {}
@@ -27,6 +29,7 @@ export class Notice {
   }
 }
 export class Component {}
+export class MarkdownRenderChild { constructor(public containerEl: any) {} }
 export class FuzzySuggestModal {}
 export const normalizePath = (path: string) => path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\/(?!$)|\/$/g, "") || "/";
 export class Modal {
@@ -163,6 +166,7 @@ export class Setting {
       setButtonText: (text: string) => { button.textContent = text; return api; },
       setDisabled: (value: boolean) => { button.disabled = value; return api; },
       setCta: () => api,
+      setWarning: () => api,
       onClick: (callback: any) => { button.onclick = callback; return api; },
     };
     fn(api);

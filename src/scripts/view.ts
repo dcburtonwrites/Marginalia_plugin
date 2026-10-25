@@ -20,6 +20,7 @@ import { ProjectView, PROJECT } from "./project.ts";
 import { el, button } from "../ui/sidebar.ts";
 import {
   parseScript,
+  pageLabel, panelLabel,
   orderKey,
   reorderScript,
   renameOrders,
@@ -30,7 +31,12 @@ import {
   type ScriptOrders,
   type ScriptGroup,
 } from "./model.ts";
+import { writingFocus } from "./focus.ts";
+import { registerCompilation, openCompileOptions } from "./compile.ts";
+import { registerScriptNumbering } from "./numbering.ts";
+import { WritingHistoryModal } from "./history.ts";
 export interface ScriptHost extends Plugin {
+  refreshWritingFocus?: () => void;
   scriptOrders: ScriptOrders;
   writing: WritingData;
   savePluginData(): Promise<void>;
@@ -39,12 +45,24 @@ export interface ScriptHost extends Plugin {
 export const SCRIPTS = "marginalia-scripts";
 
 export function registerScripts(plugin: ScriptHost) {
-  plugin.registerEditorExtension([scriptFoldingExtension, createScriptShortcutExtension(plugin.app)]);
+  const focus = writingFocus(plugin);
+  plugin.refreshWritingFocus = focus.refresh;
+  plugin.register(() => { plugin.refreshWritingFocus = undefined; });
+  plugin.registerEditorExtension([focus.extension, scriptFoldingExtension, createScriptShortcutExtension(plugin.app)]);
   const controller = (plugin.scriptController ??= new ScriptController(plugin));
   plugin.registerView(STUDIO, (leaf) => new StudioView(leaf, controller));
   plugin.registerView(PROJECT, (leaf) => new ProjectView(leaf, controller));
   plugin.registerView(SCRIPTS, (leaf) => new ScriptsView(leaf, plugin));
+  registerScriptNumbering(controller);
+  registerCompilation(controller);
   const open = () => controller.openStudio();
+  plugin.addCommand({ id: "toggle-writing-focus", name: "Toggle focused writing", callback: () => {
+    plugin.writing.preferences.focusMode = !plugin.writing.preferences.focusMode;
+    focus.refresh();
+    void plugin.savePluginData().catch(() => new Notice("Could not save focus preference."));
+    new Notice(plugin.writing.preferences.focusMode ? "Focused writing enabled for script editors." : "Focused writing disabled.");
+  } });
+  plugin.addCommand({ id: "writing-history", name: "View writing history and progress", callback: () => new WritingHistoryModal(controller).open() });
   plugin.addRibbonIcon(
     "marginalia-m",
     "Open Script Studio",
@@ -344,6 +362,8 @@ export class ScriptsView extends ItemView {
         });
       });
       root.append(picker);
+      const compile=button("Compile PDF…",()=>openCompileOptions(this.controller),"marginalia-compile-launcher");
+      compile.disabled=!selection;root.append(compile);
       groups = selectedGroups(groups, selection);
       if (selection) {
         const actions = el("details", "marginalia-script-actions");
@@ -499,9 +519,8 @@ export class ScriptsView extends ItemView {
             const start = group.starts.get(script.path);
             const range =
               start !== undefined &&
-              script.declared !== undefined &&
-              script.declared > 0
-                ? ` · pp. ${start}–${start + script.declared - 1}`
+              script.slots > 0
+                ? ` · pp. ${start}–${start + script.slots - 1}`
                 : "";
             file.children.append(
               el(
@@ -516,15 +535,15 @@ export class ScriptsView extends ItemView {
                   "p",
                   "marginalia-script-mismatch",
                   script.declared === undefined
-                    ? "Pages is missing or invalid. Later global page ranges are unknown."
-                    : "Page count differs from Pages. Global ranges follow the declared count.",
+                    ? "Pages is missing or invalid. Numbering follows the actual pages."
+                    : "Page count differs from Pages. Numbering follows the actual pages.",
                 ),
               );
             for (const page of script.pages) {
               const pageKey = script.path + ":" + page.from;
               const pageRow = outlineRow(
                 file.children,
-                page.title,
+                pageLabel(page),
                 pageKey,
                 this.expandedPages.has(pageKey),
                 () => visit(script.path, page.line),
@@ -537,7 +556,7 @@ export class ScriptsView extends ItemView {
               );
               page.panels.forEach((panel, i) => {
                 const row = button(
-                  `${i + 1}  ${panel.title}`,
+                  panelLabel(panel.title, i),
                   () => visit(script.path, panel.line),
                   "marginalia-script-row",
                 );

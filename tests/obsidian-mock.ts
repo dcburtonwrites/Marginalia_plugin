@@ -1,3 +1,4 @@
+export const loadPdfJs = async () => ({});
 export const editorInfoField = {} as any;
 export const Platform = {isMobile: false};
 export class Plugin {
@@ -8,6 +9,7 @@ export class Plugin {
   }
 }
 export class Component {}
+export class MarkdownRenderChild { constructor(public containerEl: any) {} }
 export class ItemView {}
 export class WorkspaceLeaf {}
 export class MarkdownView {

@@ -85,10 +85,11 @@ export function parseScript(input: ScriptInput): Script | null {
   const pages: Page[] = [];
   let fence = "",
     frontmatter = false,
-    comment = false;
+    comment = "";
   const lines = sourceLines(input.text);
   for (let i = 0; i < lines.length; i++) {
-    const { text, from } = lines[i];
+    let { text } = lines[i];
+    const {from}=lines[i];
     if (i === 0 && text.replace(/^\uFEFF/, "") === "---") {
       frontmatter = true;
       continue;
@@ -97,26 +98,22 @@ export function parseScript(input: ScriptInput): Script | null {
       if (/^(---|\.\.\.)\s*$/.test(text)) frontmatter = false;
       continue;
     }
-    if (comment) {
-      if (text.includes("-->")) comment = false;
-      continue;
-    }
-    if (text.trimStart().startsWith("<!--")) {
-      comment = !text.includes("-->");
-      continue;
-    }
     const f = text.match(/^ {0,3}(`{3,}|~{3,})/);
-    if (f) {
+    if (!comment && f) {
       if (!fence) fence = f[1];
-      else if (
-        f[1][0] === fence[0] &&
-        f[1].length >= fence.length &&
-        /^ {0,3}(?:`+|~+)\s*$/.test(text)
-      )
-        fence = "";
+      else if (f[1][0] === fence[0] && f[1].length >= fence.length && /^ {0,3}(?:`+|~+)\s*$/.test(text)) fence = "";
       continue;
     }
     if (fence) continue;
+    // Author comments can start after prose and continue over structural-looking lines.
+    let visible="",position=0;
+    while(position<text.length){
+      if(comment){const end=text.indexOf(comment,position);if(end<0)break;position=end+comment.length;comment="";}
+      else if(text.startsWith("<!--",position)){comment="-->";position+=4;}
+      else if(text.startsWith("%%",position)){comment="%%";position+=2;}
+      else visible+=text[position++];
+    }
+    text=visible;
     if (/^##\s+Page(?:\s|$)/i.test(text)) {
       const previous = pages.at(-1);
       if (previous) {
@@ -285,8 +282,8 @@ export function organize(
         sequence.push(current);
         if (start !== undefined) group.starts.set(current.path, start);
         start =
-          start !== undefined && current.declared !== undefined
-            ? start + current.declared
+          start !== undefined
+            ? start + current.slots
             : undefined;
         const path: string | undefined = next
           .get(current.path)
@@ -458,8 +455,8 @@ export function arrangedGroups(
       for (const script of group.sequences[0]) {
         if (start !== undefined) group.starts.set(script.path, start);
         start =
-          start !== undefined && script.declared !== undefined
-            ? start + script.declared
+          start !== undefined
+            ? start + script.slots
             : undefined;
       }
     }
@@ -541,4 +538,14 @@ export function renameOrders(
     ];
   }
   return result;
+}
+
+export function pageLabel(page: Page) {
+  const name = page.title.replace(/^Page\b\s*(?:\d+(?:[–-]\d+)?|[?#]+)?\s*/i, "")
+    .replace(/\bDouble Spread\b/ig, "").replace(/^\s*[—–:-]\s*|\s*[—–:-]\s*$/g, "").trim();
+  return `Page ${page.local}${page.slots === 2 ? `–${page.local + 1}` : ""}${name ? ` — ${name}` : ""}`;
+}
+export function panelLabel(title: string, index: number) {
+  const name = title.replace(/^Panel(?:\s+\d+)?(?:\s*[—–:.-]\s*|\s*$)/i, "").trim();
+  return `Panel ${index + 1}${name ? ` — ${name}` : ""}`;
 }

@@ -6,6 +6,7 @@ await build({
   bundle: true,
   format: "iife",
   platform: "browser",
+  external: ["node:*", "electron", "@electron/remote"],
   outfile: ".preview/preview.js",
 });
 await copyFile("styles.css", ".preview/styles.css");
@@ -15,6 +16,7 @@ await build({
   bundle: true,
   format: "iife",
   platform: "browser",
+  external: ["node:*", "electron", "@electron/remote"],
   outfile: ".preview/scripts-preview.js",
   plugins: [
     {
@@ -47,5 +49,5 @@ html = html.replace(
   `<main class="note"><div class="breadcrumb">Projects / Copper Sky / Scripts</div><h1>Opening</h1><p>Native Obsidian editing stays in the main pane.</p><h2>Page 1</h2><blockquote><b>The arrival</b><p>A courier waits beneath the observatory.</p></blockquote><p><b>MIRA:</b> Is anyone here?</p><h2>Page 2–3 · Double Spread</h2><p>The archive fills both pages.</p><div id="notice"></div></main>`,
 );
 await writeFile(".preview/scripts.html", html);
-await build({entryPoints:["scripts/workspace-preview.ts"],bundle:true,format:"iife",platform:"browser",outfile:".preview/workspace-preview.js",plugins:[{name:"workspace-host",setup(b){b.onResolve({filter:/^obsidian$/},()=>({path:new URL("./obsidian-preview.ts",import.meta.url).pathname}));}}]});
+await build({entryPoints:["scripts/workspace-preview.ts"],bundle:true,format:"iife",platform:"browser",external:["node:*","electron","@electron/remote"],outfile:".preview/workspace-preview.js",plugins:[{name:"workspace-host",setup(b){b.onResolve({filter:/^obsidian$/},()=>({path:new URL("./obsidian-preview.ts",import.meta.url).pathname}));}}]});
 await copyFile("scripts/workspace-preview.html",".preview/workspace.html");

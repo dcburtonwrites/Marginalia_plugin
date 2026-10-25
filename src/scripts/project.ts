@@ -5,6 +5,7 @@ import {
   type WorkspaceLeaf,
 } from "obsidian";
 import type { ScriptController } from "./controller.ts";
+import { numberRenderedScript } from "./numbering.ts";
 import { frontmatter } from "./properties.ts";
 import { el, button } from "../ui/sidebar.ts";
 export const PROJECT = "marginalia-project";
@@ -135,6 +136,7 @@ export class ProjectView extends ItemView {
             component,
           );
           if (this.closed || revision !== this.revision) return;
+          numberRenderedScript(body, script);
           prepareReadingFolds(body);
         }
       }

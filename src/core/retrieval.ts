@@ -91,8 +91,11 @@ export function retrieve(
   budget = 18000,
   explicit: string[] = [],
   guidance = "",
+  scope: (note:Note)=>string|undefined = note=>project(note.path),
 ): Packet {
-  const allowed = notes.filter((n) => permitted(n.path));
+  const targetScope=scope(target);
+  const eligible=notes.filter(n=>permitted(n.path));
+  const allowed = eligible.filter(n=>!targetScope||!scope(n)||scope(n)===targetScope);
   const ownNames = names(target).filter((s) => s.trim().length > 1);
   const others = allowed.filter((n) => n.path !== target.path);
   const ambiguous = ownNames.filter((name) =>
@@ -145,21 +148,18 @@ export function retrieve(
       [target, ...connected, ...supporting].map((n) => [n.path, n]),
     ).values(),
   ];
-  let excluded = 0;
+  let excluded = eligible.length-allowed.length;
   const groups: Omit<Source, "id">[][] = [];
   for (const n of candidates) {
     if (
       n.path !== target.path &&
-      (provisional(n) ||
-        (project(target.path) &&
-          project(n.path) &&
-          project(target.path) !== project(n.path)))
+      provisional(n)
     ) {
       excluded++;
       continue;
     }
     let units = passages(n);
-    if (n.path !== target.path && (script(n) || project(n.path))) {
+    if (n.path !== target.path && !explicit.includes(n.path) && (script(n) || scope(n))) {
       const hits = new Set(
         units.flatMap((u, i) => (mentioned(u.excerpt) ? [i] : [])),
       );

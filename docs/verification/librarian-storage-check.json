@@ -1,0 +1,11 @@
+{
+  "portableCopy": "pass",
+  "recoveryRestore": "pass",
+  "notes": 1200,
+  "runs": 12,
+  "medianMs": {
+    "retrieval": 1.34,
+    "inventory": 0.77
+  },
+  "scope": "Synthetic local copy; real Sync and physical devices not tested."
+}

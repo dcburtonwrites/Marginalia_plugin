@@ -3,6 +3,7 @@ import { suggest, vaultFiles } from "../ui/suggest.ts";
 import { el } from "../ui/sidebar.ts";
 import type { ScriptHost } from "./view.ts";
 import type { GoalMode } from "./writing.ts";
+import { WritingHistoryModal } from "./history.ts";
 export function renderWritingSettings(root: HTMLElement, plugin: ScriptHost) {
   const data = plugin.writing,
     p = data.preferences,
@@ -28,7 +29,20 @@ export function renderWritingSettings(root: HTMLElement, plugin: ScriptHost) {
           await save();
         });
     });
+  new Setting(root).setName("Focused writing").setDesc("Optional script-editor mode: dim surrounding paragraphs and keep the typed line centered on desktop, or in the upper third on mobile. Does not change notes or hide navigation.")
+    .addToggle(toggle => toggle.setValue(p.focusMode).onChange(async value => {
+      p.focusMode = value; plugin.refreshWritingFocus?.(); await save();
+    }));
   root.append(el("h3", "", "Writing session"));
+  new Setting(root).setName("Record session history").setDesc("Optional local history for countdown sessions started after enabling. Saves active minutes and added/deleted/net words; keeps up to 500 finished sessions. Turning off retains saved history.")
+    .addToggle(toggle => toggle.setValue(p.sessionHistory).onChange(async value => {
+      if (session) session.setHistoryEnabled(value); else p.sessionHistory = value;
+      await save();
+    }));
+  new Setting(root).setName("Session history and progress").setDesc("Review sessions, 7/30-day totals, export CSV, or clear history.")
+    .addButton(button => button.setButtonText("View history").setDisabled(!plugin.scriptController).onClick(() => {
+      if (plugin.scriptController) new WritingHistoryModal(plugin.scriptController).open();
+    }));
   new Setting(root)
     .setName("Show countdown timer")
     .setDesc("Show the timer below the Scripts outline.")

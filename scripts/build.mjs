@@ -2,7 +2,7 @@ import { build } from "esbuild";
 await build({
   entryPoints: ["src/main.ts"],
   bundle: true,
-  external: ["obsidian", "node:*", "@codemirror/*", "@lezer/*"],
+  external: ["obsidian", "electron", "@electron/remote", "node:*", "@codemirror/*", "@lezer/*"],
   format: "cjs",
   platform: "node",
   target: "es2022",

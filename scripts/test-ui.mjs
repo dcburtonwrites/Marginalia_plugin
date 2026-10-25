@@ -156,7 +156,7 @@ try {
       .locator(".marginalia-script-file")
       .first()
       .getByRole("button", {
-        name: "1  The arrival",
+        name: "Panel 1 — The arrival",
         exact: true,
         includeHidden: true,
       })
@@ -202,15 +202,15 @@ try {
       .getAttribute("aria-expanded"),
     "false",
   );
-  assert.equal(await first.getByRole("button", {name:"1  The arrival",exact:true}).isVisible(),false);
+  assert.equal(await first.getByRole("button", {name:"Panel 1 — The arrival",exact:true}).isVisible(),false);
   await first.getByRole("button",{name:"Expand or collapse Page 1",exact:true}).click();
-  assert.equal(await first.getByRole("button", {name:"1  The arrival",exact:true}).isVisible(),true);
+  assert.equal(await first.getByRole("button", {name:"Panel 1 — The arrival",exact:true}).isVisible(),true);
   await first
     .getByRole("button", { name: "Expand or collapse Page 1", exact: true })
     .click();
   assert.equal(
     await first
-      .getByRole("button", { name: "1  The arrival", exact: true })
+      .getByRole("button", { name: "Panel 1 — The arrival", exact: true })
       .isVisible(),
     false,
   );

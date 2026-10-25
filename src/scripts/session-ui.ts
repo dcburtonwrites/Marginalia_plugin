@@ -2,6 +2,7 @@ import { el, button } from "../ui/sidebar.ts";
 import type { ScriptController } from "./controller.ts";
 import { clockLabel } from "./writing.ts";
 import { TimerDurationModal } from "./timer.ts";
+import { WritingHistoryModal } from "./history.ts";
 import { Notice } from "obsidian";
 export function renderSessionFooter(
   controller: ScriptController,
@@ -11,7 +12,7 @@ export function renderSessionFooter(
     data = session.data,
     p = data.preferences;
   const footer = el("div", "marginalia-writing-footer");
-  footer.hidden = !data.selection || (!p.showTimer && !p.showWordCount);
+  footer.hidden = !data.selection || (!p.showTimer && !p.showWordCount && !p.sessionHistory);
   if (p.showTimer) {
     const row = el("div", "marginalia-writing-timer");
     const value = el(
@@ -80,5 +81,6 @@ export function renderSessionFooter(
       footer.append(progress);
     }
   }
+  if (p.sessionHistory) footer.append(button("History & progress", () => new WritingHistoryModal(controller).open()));
   return footer;
 }

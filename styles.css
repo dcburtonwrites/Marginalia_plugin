@@ -945,3 +945,58 @@ body.is-mobile .marginalia-project-card {overflow-wrap:anywhere;}
 .marginalia-mobile-speaker-choice small {color:var(--text-muted);}
 .marginalia-mobile-speaker-actions {display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;}
 .marginalia-mobile-speaker-actions button {min-height:44px;}
+
+/* Focus is local to recognized native script editors. */
+.marginalia-writing-focus .cm-line { opacity: .45; }
+.marginalia-writing-focus .cm-line.marginalia-focus-paragraph,
+.marginalia-writing-focus .cm-line:focus-within { opacity: 1; }
+.marginalia-history-table { overflow: auto; max-height: 55vh; }
+.marginalia-history-table table { width: 100%; border-collapse: collapse; }
+.marginalia-history-table th, .marginalia-history-table td {
+  padding: var(--size-4-2); text-align: left; border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Space at both ends lets the first and last lines reach the focus target. */
+.cm-editor.marginalia-writing-focus .cm-content {
+  padding-top: var(--marginalia-focus-top, 0px) !important;
+  padding-bottom: var(--marginalia-focus-bottom, 0px) !important;
+}
+
+.marginalia-compile-launcher { width: 100%; margin: 10px 0 4px; }
+.marginalia-compile-modal { width: min(560px, 94vw); }
+.marginalia-compile-modal h2 { margin-bottom: 8px; }
+.marginalia-compile-context { color: var(--text-muted); margin: 0 0 18px; }
+.marginalia-compile-section { border-top: 1px solid var(--background-modifier-border); padding-top: 12px; margin-top: 14px; }
+.marginalia-compile-section summary { margin-bottom: 8px; }
+.marginalia-compile-check { display:flex; align-items:flex-start; gap:10px; padding:8px 0; }
+.marginalia-compile-check input { flex-shrink:0; margin-top:4px; }
+.marginalia-compile-check small { display:block; margin-top:3px; }
+.marginalia-compile-modal-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--background-modifier-border); padding-top:18px; margin-top:18px; }
+.marginalia-compile-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.marginalia-compile-preview-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+.marginalia-compile-preview-header h2 { margin:0; }
+.marginalia-compile-preview-header p { margin:6px 0; }
+.marginalia-compile-status { color:var(--text-muted); }
+.marginalia-compilation { padding:24px; overflow:auto; }
+.marginalia-compile-document { background:#fff; color:#171717; padding:40px; border:1px solid var(--background-modifier-border); font:11pt/1.5 Arial,Helvetica,sans-serif; }
+.marginalia-compile-document h1,.marginalia-compile-document h2,.marginalia-compile-document h3,.marginalia-compile-document p,.marginalia-compile-document strong,.marginalia-compile-document a { color:inherit; }
+.marginalia-compile-document .callout { background:none; border:0; padding:0; color:inherit; margin:20px 0; }
+.marginalia-compile-document .callout-title { color:inherit; font-weight:600; }
+.marginalia-compile-document .callout-title::before,.marginalia-compile-document .callout-title::after { content:none!important; }
+.marginalia-compile-document .callout-icon,.marginalia-compile-document .callout-fold { display:none; }
+.marginalia-compile-document img { max-width:100%; }
+.marginalia-compile-script { margin-bottom:40px; }
+.marginalia-compile-cover { text-align:center; padding:80px 0; border-bottom:1px solid #ddd; margin-bottom:40px; }
+.marginalia-compile-metadata { font-size:9pt; color:#555; }
+.marginalia-compile-accessible-source { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); padding:0; border:0; }
+.marginalia-compile-pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:12px; margin:18px 0; }
+.marginalia-compile-sheet { max-width:850px; margin:auto; background:#fff; border:1px solid var(--background-modifier-border); }
+.marginalia-compile-sheet canvas { width:100%; height:auto; display:block; }
+body.is-mobile .marginalia-compile-check { min-height:44px; }
+body.is-mobile .marginalia-compilation { padding:16px; }
+body.is-mobile .marginalia-compile-document { padding:20px; }
+
+.marginalia-compile-content-title { margin:0 0 8px; font-size:var(--font-ui-medium); }
+.marginalia-compile-modal .marginalia-script-warning[hidden] { display:none; }
+
+.marginalia-answer-warning { color:var(--text-warning); font-size:var(--font-ui-smaller); margin:8px 0; }

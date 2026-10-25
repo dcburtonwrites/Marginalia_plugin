@@ -7,6 +7,7 @@ import {
   countWords,
   dayKey,
   clockLabel,
+  sessionCSV,
 } from "../src/scripts/writing.ts";
 import { arrangedGroups, parseScript } from "../src/scripts/model.ts";
 const today = new Date(2026, 9, 22, 10, 0).getTime();
@@ -221,4 +222,81 @@ test('one-session timer override cannot change a running or paused session and l
   h.session.setDuration(3);
   assert.equal(h.session.remaining(),3*60000);
   for(const value of [0,-1,1.5,1441,NaN]) assert.throws(()=>h.session.setDuration(value),/whole number/);
+});
+
+test("optional history records running edits, excludes pause/imports and survives restart", () => {
+  const { session, data, advance } = writing();
+  assert.equal(data.preferences.sessionHistory, false);
+  assert.equal(data.preferences.focusMode, false);
+  session.ready = true;
+  session.observe("A.md", "one", "A", false);
+  session.setHistoryEnabled(true);
+  data.selection = { scope: "A", group: "Revision" };
+  session.start();
+  advance(10000);
+  session.observe("A.md", "one two three", "A", true);
+  session.pause();
+  advance(60000);
+  session.observe("A.md", "one two", "A", true);
+  session.observe("A.md", "imported text here", "A", false);
+  assert.equal(data.activeSession!.added, 2);
+  assert.equal(data.activeSession!.deleted, 0);
+  assert.equal(data.activeSession!.elapsedMs, 10000);
+  const restored = readWriting(JSON.parse(JSON.stringify(data)), today + 70000);
+  const next = new WritingSession(restored, () => today + 70000);
+  assert.equal(next.running, false);
+  assert.equal(restored.activeSession!.elapsedMs, 10000);
+  next.start(); next.reset();
+  assert.equal(restored.history.length, 1);
+  assert.equal(restored.history[0].selection!.group, "Revision");
+  assert.equal(restored.history[0].outcome, "stopped");
+  assert.equal(restored.activeSession, null);
+});
+
+test("completed history caps time at deadline, tracks Undo and cannot duplicate", () => {
+  const { session, data, advance } = writing();
+  session.ready = true; session.setHistoryEnabled(true);
+  session.observe("A.md", "one two", "A", false);
+  session.setDuration(1); session.start();
+  session.observe("A.md", "one two three", "A", true);
+  session.observe("A.md", "one two", "A", true);
+  advance(120000);
+  session.observe("A.md", "one two late", "A", true);
+  assert.equal(session.tick(), true);
+  assert.equal(session.tick(), false);
+  assert.equal(data.history.length, 1);
+  assert.equal(data.history[0].elapsedMs, 60000);
+  assert.equal(data.history[0].added, 1);
+  assert.equal(data.history[0].deleted, 1);
+  assert.deepEqual(data.history[0].projects.A, {added: 1, deleted: 1});
+  session.reset(); assert.equal(data.history.length, 1);
+});
+
+test("disabling history finalizes once and preserves earlier records", () => {
+  const { session, data, advance } = writing();
+  session.setHistoryEnabled(true); session.start(); advance(1000);
+  session.setHistoryEnabled(false);
+  assert.equal(session.running, true);
+  assert.equal(data.history.length, 1);
+  advance(5000); session.reset();
+  assert.equal(data.history.length, 1);
+  assert.equal(data.history[0].elapsedMs, 1000);
+});
+
+test("history validation rejects corrupt records and retains only the latest 500", () => {
+  const { session, data } = writing();
+  session.setHistoryEnabled(true); session.start(); session.reset();
+  const record = data.history[0];
+  const restored = readWriting({history: [null, { ...record, elapsedMs: NaN }, ...Array(505).fill(record)]}, today);
+  assert.equal(restored.history.length, 500);
+  assert.equal(readWriting({activeSession:{bad: true}}, today).activeSession, null);
+});
+
+test("CSV quotes labels and neutralizes spreadsheet formulas", () => {
+  const {session, data} = writing();
+  data.selection = {scope: '=PROJECT,"name"', group: "Draft"};
+  session.setHistoryEnabled(true); session.start(); session.reset();
+  const csv = sessionCSV(data.history);
+  assert.ok(csv.includes('"\'=PROJECT,""name"""'));
+  assert.ok(csv.startsWith("Started,Project,Group,Minutes,Added,Deleted,Net,Status\r\n"));
 });

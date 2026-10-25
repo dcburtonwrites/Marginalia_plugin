@@ -26,10 +26,15 @@ import {
   type Suggestion,
   type Expansion,
 } from "./core/types.ts";
+import {freshness,sameFreshness} from "./core/freshness.ts";
 import { retrieve } from "./core/retrieval.ts";
+import {librarianProject,librarianType,projectBrief} from "./core/context.ts";
+import {cleanAnswer} from "./core/answers.ts";
+import {bindOriginalLinks} from "./ui/original-links.ts";
 import {
   insertion,
   cleanDraft,
+  GroundingFailure,groundingReviewSystem,groundingReviewPrompt,validateGroundingReview,validateEvidenceBoundaries,
   librarianSystem,
   prompt,
 } from "./core/writing.ts";
@@ -38,6 +43,7 @@ import {
   makeExpansion,
   saveExpansion,
   stale,
+  inspectExpansion, pluginOwned, recoveryPath, restoreExpansion, type SavedEntry,
   type HiddenPort,
 } from "./core/storage.ts";
 import {
@@ -113,10 +119,12 @@ export default class Marginalia extends Plugin {
   progress = "";
   lastProgressUpdate = 0;
   sessions = new Map<string, Session>();
-  expansions: { entry: string; generatedAt: string }[] = [];
+  expansions: SavedEntry[] = [];
+  timings = {retrieval:0,generation:0,rendering:0,storage:0};
   operation: AbortController | null = null;
   closing = false;
   headerActions = new Map<MarkdownView, HTMLElement>();
+  refreshWritingFocus?: () => void;
   scriptController?: import("./scripts/controller.ts").ScriptController;
   scriptOrders: ScriptOrders = Object.create(null);
   writing = readWriting(undefined);
@@ -125,6 +133,7 @@ export default class Marginalia extends Plugin {
   librarianFeature?: Plugin;
   themeFeature?: WorkspaceFeature;
   private saveQueue: Promise<void> = Promise.resolve();
+  private librarianTabPromise?: Promise<import("obsidian").WorkspaceLeaf>;
   savePluginData(): Promise<void> {
     this.scriptController?.session.snapshot();
     const write = this.saveQueue
@@ -179,6 +188,7 @@ export default class Marginalia extends Plugin {
       for (const type of [
         "marginalia-scripts",
         "marginalia-project",
+        "marginalia-compile",
         "marginalia-script-studio",
       ])
         for (const leaf of this.app.workspace.getLeavesOfType(type))
@@ -266,15 +276,38 @@ export default class Marginalia extends Plugin {
         this.refresh();
       }),
     );
+    let startupTimer: ReturnType<typeof setTimeout> | undefined;
+    feature.register(() => clearTimeout(startupTimer));
     this.app.workspace.onLayoutReady(() => {
       if (this.closing || !this.workspaceSettings.modules.librarian) return;
       const file = this.app.workspace.getActiveFile();
       if (file?.extension === "md" && permitted(file.path))
         this.followNote(file.path);
       this.noteActions();
+      startupTimer = setTimeout(() => {
+        if (this.librarianFeature !== feature || this.closing) return;
+        void this.ensureLibrarianTab().catch(() => new Notice("Could not add Librarian. Use the Open Librarian command to try again."));
+      }, 100);
       this.refresh();
     });
   }
+  async ensureLibrarianTab() {
+    if (Platform.isMobile || this.closing || !this.workspaceSettings.modules.librarian) return;
+    let existing = this.app.workspace.getLeavesOfType(LIBRARIAN)[0];
+    this.app.workspace.iterateAllLeaves(leaf => {
+      if (!existing && leaf.getViewState?.().type === LIBRARIAN) existing = leaf;
+    });
+    if (existing) return existing;
+    if (this.librarianTabPromise) return this.librarianTabPromise;
+    const creation = this.app.workspace.ensureSideLeaf(LIBRARIAN, "right", {active: false, reveal: false});
+    this.librarianTabPromise = creation;
+    try {
+      const leaf = await creation;
+      if (this.closing || !this.workspaceSettings.modules.librarian) { leaf.detach(); return; }
+      return leaf;
+    } finally { this.librarianTabPromise = undefined; }
+  }
+
   followNote(path: string) {
     this.lastNotePath = path;
     if (!this.pinned) {
@@ -310,10 +343,8 @@ export default class Marginalia extends Plugin {
       if (view instanceof LibrarianView) view.draw();
     }
     for (const leaf of this.app.workspace.getLeavesOfType(EXPANSION)) {
-      const b = leaf.view.containerEl.querySelector<HTMLButtonElement>(
-        ".marginalia-regenerate",
-      );
-      if (b) b.disabled = !!this.operation;
+      for(const button of leaf.view.containerEl.querySelectorAll<HTMLButtonElement>(".marginalia-regenerate,.marginalia-recovery"))
+        button.disabled=!!this.operation || button.dataset.readOnly==="true";
     }
   }
   noteActions() {
@@ -400,11 +431,12 @@ export default class Marginalia extends Plugin {
     });
     return text;
   }
-  async snapshot(signal: AbortSignal): Promise<Note[]> {
+  async snapshot(signal: AbortSignal, fresh=false): Promise<Note[]> {
+    const templates=new Set([...this.workspaceSettings.canonTypes.map(type=>type.template),...this.workspaceSettings.entrySetup.projectOptions.map(route=>route.template),this.workspaceSettings.entrySetup.brainstorm.template]);
     const notes: Note[] = [];
     for (const file of this.app.vault.getMarkdownFiles()) {
       signal.throwIfAborted();
-      if (!permitted(file.path)) continue;
+      if (!permitted(file.path)||templates.has(file.path)) continue;
       const cache = this.app.metadataCache.getFileCache(file);
       const metadata = cache?.frontmatter ?? {};
       const allStrings = (v: unknown): string[] =>
@@ -439,7 +471,7 @@ export default class Marginalia extends Plugin {
       const aliases = allStrings(metadata.aliases ?? metadata.alias ?? []);
       notes.push({
         path: file.path,
-        text: this.activeText(file) ?? (await this.app.vault.read(file)),
+        text: this.activeText(file) ?? (await (!fresh && this.app.vault.cachedRead ? this.app.vault.cachedRead(file) : this.app.vault.read(file))),
         mtime: file.stat.mtime,
         aliases,
         links,
@@ -449,42 +481,34 @@ export default class Marginalia extends Plugin {
     return notes;
   }
   async packet(path: string, signal: AbortSignal): Promise<Packet> {
+    const started=performance.now();
     const notes = await this.snapshot(signal),
       target = notes.find((n) => n.path === path);
     if (!target) throw new Error("The selected entry is no longer available.");
-    const type =
-      Object.keys(profiles).find((k) =>
-        JSON.stringify([
-          target.metadata.tags,
-          target.metadata.cssclasses,
-          target.path,
-          target.metadata["canon-type"],
-        ])
-          .toLowerCase()
-          .includes(k.toLowerCase()),
-      ) ?? (/character/i.test(target.path) ? "Character" : "Lore");
+    const type=librarianType(target,this.workspaceSettings);
     const subtype = String(
       target.metadata["sub-type"] ?? target.metadata.type ?? "Other",
     );
-    const profile = profiles[type];
+    const profile: {guidance:string;headings?:string[];variants?:Record<string,string[]>}|undefined = type==="Project"?projectBrief:profiles[Object.keys(profiles).find(name=>name.toLowerCase()===type.toLowerCase())??type];
     const packet = retrieve(
       notes,
       target,
       Math.max(1000, this.settings.context - 16000),
       this.current(path).references,
-      profile?.guidance ??
-        "Describe only this individual. Preserve chronology, source owner and supported relationships.",
+      `Configured entry type: ${type}. `+(profile?.guidance ??
+        "Describe this subject using only direct evidence. Do not infer category-wide traits, history or relationships. Follow the configured template sections."),
+      note=>librarianProject(note,this.workspaceSettings),
     );
+    packet.entryType=type;
+    packet.freshness=freshness(notes,target,this.workspaceSettings,this.settings.context);
     // Read literal headings only; Templater execution remains with Templater.
-    const template = this.app.vault
-      .getMarkdownFiles()
-      .find(
-        (f) =>
-          /^_?templates\//i.test(f.path) &&
-          f.basename.toLowerCase() === type.toLowerCase(),
-      );
+    const configuredTemplate=type==="Project"
+      ? this.workspaceSettings.entrySetup.projectOptions.find(route=>route.name==="Overview")?.template
+      : this.workspaceSettings.canonTypes.find(entry=>entry.name===type)?.template;
+    const template=this.app.vault.getMarkdownFiles().find(file=>file.path===configuredTemplate)
+      ?? (!configuredTemplate||configuredTemplate===`_templates/Canon/${type}.md`?this.app.vault.getMarkdownFiles().find(file=>/^_?templates\//i.test(file.path)&&file.basename.toLowerCase()===type.toLowerCase()):undefined);
     const defaults =
-      type === "Character"
+      type.toLowerCase() === "character"
         ? [
             "Summary",
             "Backstory",
@@ -499,7 +523,8 @@ export default class Marginalia extends Plugin {
         : (profile?.variants?.[subtype] ??
           profile?.variants?.Other ??
           profile?.headings ?? ["Summary", "Related Entries"]);
-    const templateText = template ? await this.app.vault.read(template) : "";
+    const templateText = template ? this.activeText(template)??await this.app.vault.read(template) : "";
+    if(template)packet.stamps.push({path:template.path,mtime:template.stat.mtime,hash:hash(templateText)});
     // Conditional template source has several mutually exclusive branches; use its selected type profile instead.
     const templateHeadings = /<%/.test(templateText)
       ? []
@@ -509,16 +534,24 @@ export default class Marginalia extends Plugin {
     ].map((m) => m[1].trim());
     packet.headings = [
       ...new Set([
-        ...(type === "Character" ? ["Summary"] : []),
+        ...(type.toLowerCase() === "character" ? ["Summary"] : []),
         ...(templateHeadings.length ? templateHeadings : defaults),
         ...existing,
         "Related Entries",
       ]),
     ].filter((h) => !/research|questions|inspiration|references/i.test(h));
     if (!packet.headings.length) packet.headings = ["Summary"];
+    this.timings.retrieval=performance.now()-started;
     return packet;
   }
   async verify(packet: Packet, signal: AbortSignal) {
+    let notes:Note[]|undefined;
+    if(packet.freshness){
+      notes=await this.snapshot(signal);
+      const target=notes.find(note=>note.path===packet.target.path);
+      if(!target || !sameFreshness(packet.freshness,freshness(notes,target,this.workspaceSettings,this.settings.context)))
+        throw new Error("Source notes changed, new evidence is available or Librarian configuration changed. Generate again before using this result.");
+    }
     for (const stamp of packet.stamps) {
       signal.throwIfAborted();
       const file = this.app.vault.getAbstractFileByPath(stamp.path);
@@ -531,6 +564,7 @@ export default class Marginalia extends Plugin {
           "Source notes changed. Generate again before using this result.",
         );
     }
+    return notes;
   }
   port(): HiddenPort {
     const adapter = this.app.vault.adapter;
@@ -554,6 +588,7 @@ export default class Marginalia extends Plugin {
     this.operation = op;
     this.progress = "Waiting for local model…";
     this.lastProgressUpdate = 0;
+    this.timings={retrieval:0,generation:0,rendering:0,storage:0};
     this.refresh();
     try {
       await work(op.signal);
@@ -567,9 +602,10 @@ export default class Marginalia extends Plugin {
       this.refresh();
     }
   }
-  async generateText(system: string, user: string, signal: AbortSignal) {
+  async generateText(system: string, user: string, signal: AbortSignal, stage?:string) {
     if (Platform.isMobile) throw new Error(MOBILE_LIBRARIAN_MESSAGE);
-    return generate(
+    const started=performance.now();
+    try{return await generate(
       this.settings,
       system,
       user,
@@ -581,12 +617,37 @@ export default class Marginalia extends Plugin {
         if (now - this.lastProgressUpdate < 500) return;
         this.lastProgressUpdate = now;
         this.progress =
-          progress.phase === "thinking"
+          stage??(progress.phase === "thinking"
             ? "Thinking locally…"
-            : `Generating locally · ${progress.characters.toLocaleString()} characters`;
-        this.refresh();
+            : `Generating locally · ${progress.characters.toLocaleString()} characters`);
+        this.updateProgress();
       },
-    );
+    );}finally{this.timings.generation+=performance.now()-started;}
+  }
+  updateProgress(){
+    for(const leaf of this.app.workspace.getLeavesOfType(LIBRARIAN)){
+      const label=(leaf.view as ItemView).contentEl.querySelector(".marginalia-progress > span");
+      if(label)label.textContent=this.progress;
+    }
+  }
+  async reviewGrounding(packet:Packet,sections:{section:string;prose:string}[],signal:AbortSignal){
+    validateEvidenceBoundaries(packet,sections);
+    this.progress="Checking source grounding…";this.refresh();
+    const review=await this.generateText(groundingReviewSystem,groundingReviewPrompt(packet,sections),signal,"Checking source grounding…");
+    await this.verify(packet,signal);validateGroundingReview(review,sections);
+  }
+  async groundedDraft(packet:Packet,raw:string,mode:"enhancement"|"expansion",signal:AbortSignal,system:string,question=""){
+    let sections=cleanDraft(raw,packet);
+    try{await this.reviewGrounding(packet,sections,signal);return sections;}
+    catch(error){
+      if(!(error instanceof GroundingFailure))throw error;
+      signal.throwIfAborted();
+      this.progress="Revising unsupported draft…";this.refresh();
+      const correction=await this.generateText(system,prompt(packet,mode,
+        question+"\nEvidence review correction: revise the proposed draft using ONLY original evidence. Remove unsupported claims or omit their sections. Preserve exact participants, objects and uncertainty. The prior draft and reviewer feedback are not evidence. Return only corrected finished entry sections.\n"+JSON.stringify({priorDraft:sections,reviewFeedback:error.message})),signal,"Revising unsupported draft…");
+      await this.verify(packet,signal);sections=cleanDraft(correction,packet);
+      await this.reviewGrounding(packet,sections,signal);return sections;
+    }
   }
   async run(mode: "enhancement" | "expansion") {
     if (Platform.isMobile || !this.workspaceSettings.modules.librarian) return;
@@ -598,20 +659,14 @@ export default class Marginalia extends Plugin {
           ? await this.port().read(expansionPath(path))
           : null;
       if (previous !== null) {
-        decode(previous, path);
-        if (!/^marginalia-plugin: 1\r?$/m.test(previous))
+        if (!pluginOwned(previous))
           throw new Error(
             "An existing standalone expansion is preserved. Open it in Library; migration is required before replacement.",
           );
+        decode(previous, path);
       }
       const packet = await this.packet(path, signal);
-      const type = /character/i.test(
-        JSON.stringify([
-          packet.target.path,
-          packet.target.metadata.tags,
-          packet.target.metadata.cssclasses,
-        ]),
-      );
+      const type = packet.entryType?.toLowerCase()==="character";
       if (mode === "expansion" && type)
         packet.headings = [
           ...new Set([...packet.headings, "Personality", "Relationships"]),
@@ -622,7 +677,7 @@ export default class Marginalia extends Plugin {
         signal,
       );
       await this.verify(packet, signal);
-      const sections = cleanDraft(raw, packet);
+      const sections = await this.groundedDraft(packet,raw,mode,signal,librarianSystem+"\n"+(type?characterWriter:canonWriter));
       if (mode === "enhancement") {
         const suggestions = sections.map((s, i) => ({
           ...s,
@@ -649,7 +704,9 @@ export default class Marginalia extends Plugin {
             .join("\n\n"),
         );
         await this.verify(packet, signal);
+        const saveStarted=performance.now();
         await saveExpansion(this.port(), expansion, previous, signal);
+        this.timings.storage+=performance.now()-saveStarted;
         await this.loadLibrary();
         signal.throwIfAborted();
         await this.openExpansion(path);
@@ -676,7 +733,8 @@ export default class Marginalia extends Plugin {
         signal,
       );
       await this.verify(packet, signal);
-      state.messages.push({ role: "assistant", text: raw, packet });
+      const answer=cleanAnswer(raw,packet);
+      state.messages.push({ role: "assistant", text: answer.text, warnings:answer.warnings, packet });
     });
   }
   async refine(s: Suggestion, instruction: string) {
@@ -692,7 +750,7 @@ export default class Marginalia extends Plugin {
         signal,
       );
       await this.verify(s.packet, signal);
-      const sections = cleanDraft(raw, { ...s.packet, headings: [s.section] });
+      const sections = await this.groundedDraft({...s.packet,headings:[s.section]},raw,"enhancement",signal,librarianSystem,`Refine only section ${s.section}. User refinement: ${instruction}.`);
       if (sections.length !== 1)
         throw new Error(
           "Refinement must return one section. Previous suggestion retained.",
@@ -728,7 +786,7 @@ export default class Marginalia extends Plugin {
       // note nor updates the rendered view. Activate native editing first.
       if (view.getMode() !== "source")
         await view.setState({ mode: "source" }, { history: false });
-      await this.verify(s.packet, signal);
+      const verifiedNotes=await this.verify(s.packet, signal);
       const editor = view.editor;
       const current = editor.getValue();
       if (
@@ -739,18 +797,21 @@ export default class Marginalia extends Plugin {
       const change = insertion(current, s.section, s.prose);
       editor.transaction({
         changes: [
-          { from: editor.offsetToPos(change.from), text: change.insert },
+          { from: editor.offsetToPos(change.from), to: editor.offsetToPos(change.to ?? change.from), text: change.insert },
         ],
       });
       editor.focus();
       s.state = "inserted";
       const updated = editor.getValue();
+      const notes=verifiedNotes?.map(note=>note.path===s.entry?{...note,text:updated}:note);
+      const updatedTarget=notes?.find(note=>note.path===s.entry);
       for (const pending of this.current(s.entry).suggestions.filter(
         (x) => x.state === "pending",
       )) {
         pending.packet = {
           ...pending.packet,
           target: { ...pending.packet.target, text: updated },
+          freshness:updatedTarget&&notes?freshness(notes,updatedTarget,this.workspaceSettings,this.settings.context):pending.packet.freshness,
           stamps: pending.packet.stamps.map((st) =>
             st.path === s.entry ? { ...st, hash: hash(updated) } : st,
           ),
@@ -762,27 +823,27 @@ export default class Marginalia extends Plugin {
   async loadLibrary() {
     const adapter = this.app.vault.adapter,
       root = ".marginalia/expanded";
-    if (!(await adapter.exists(root))) {
-      this.expansions = [];
-      this.refresh();
-      return;
-    }
-    const result: { entry: string; generatedAt: string }[] = [];
-    const walk = async (path: string) => {
+    const result: SavedEntry[] = [];
+    const walk = async (path: string,base:string,recovery=false) => {
+      if(!(await adapter.exists(path)))return;
       const listing = await adapter.list(path);
       for (const file of listing.files) {
         if (!file.endsWith(".md")) continue;
-        const entry = file.slice(root.length + 1);
+        const entry = file.slice(base.length + 1);
         try {
-          const e = decode(await adapter.read(file), entry);
-          result.push({ entry: e.entry, generatedAt: e.generatedAt });
+          const inspected=inspectExpansion(await adapter.read(file),entry);
+          if(recovery){
+            if(inspected.owned && inspected.expansion && !result.some(item=>item.entry===entry))
+              result.push({...inspected.item,status:"Saved file missing · recovery available"});
+          }else result.push(inspected.item);
         } catch {
-          /* Preserve unsupported artifacts; opening current entry reports its exact error. */
+          try{safeEntry(entry);if(!recovery)result.push({entry,generatedAt:"",status:"Could not read · preserved"});}catch{/* Unsafe paths are never opened. */}
         }
       }
-      for (const dir of listing.folders) await walk(dir);
+      for (const dir of listing.folders) await walk(dir,base,recovery);
     };
-    await walk(root);
+    await walk(root,root);
+    await walk(".marginalia/recovery",".marginalia/recovery",true);
     this.expansions = result.sort((a, b) =>
       b.generatedAt.localeCompare(a.generatedAt),
     );
@@ -791,8 +852,8 @@ export default class Marginalia extends Plugin {
   async openExpansion(entry: string) {
     safeEntry(entry);
     const raw = await this.port().read(expansionPath(entry));
-    if (!raw) throw new Error("No saved expansion for this entry.");
-    decode(raw, entry);
+    if (!raw && !await this.port().read(recoveryPath(entry)))throw new Error("No saved expansion or recovery copy for this entry.");
+    if(raw)inspectExpansion(raw, entry);
     const existing = this.app.workspace
       .getLeavesOfType(EXPANSION)
       .find((leaf) => (leaf.view as ExpansionView).entry === entry);
@@ -821,7 +882,9 @@ export default class Marginalia extends Plugin {
     }).open();
   }
   source(path: string) {
-    void this.app.workspace.openLinkText(path, this.target ?? "", true);
+    const file=this.app.vault.getAbstractFileByPath(path)??this.app.vault.getAbstractFileByPath(path+".md");
+    if(!(file instanceof TFile)){new Notice("This original source is no longer available. No note was created.");return;}
+    void this.app.workspace.getLeaf("tab").openFile(file).catch(()=>new Notice("Could not open the original source."));
   }
 }
 
@@ -868,6 +931,7 @@ class LibrarianView extends ItemView {
     const p = this.plugin,
       c = p.current();
     const state: SidebarState = {
+      vaultType:p.workspaceSettings.vaultType,
       target: p.target,
       pinned: p.pinned,
       tab: p.tab,
@@ -924,7 +988,11 @@ class LibrarianView extends ItemView {
       },
       source: (path) => p.source(path),
       markdown: (text, element, source) => {
-        void MarkdownRenderer.render(p.app, text, element, source, component);
+        const renderStarted=performance.now();
+        void MarkdownRenderer.render(p.app, text, element, source, component).then(()=>{
+          this.plugin.timings.rendering+=performance.now()-renderStarted;
+      if(this.renderComponent===component)bindOriginalLinks(element,component,path=>p.source(path));
+        });
       },
     });
   }
@@ -934,6 +1002,7 @@ class ExpansionView extends ItemView {
   entry = "";
   renderComponent: Component | null = null;
   revision = 0;
+  lastRenderKey = "";
   constructor(leaf: WorkspaceLeaf, plugin: Marginalia) {
     super(leaf);
     this.plugin = plugin;
@@ -952,8 +1021,14 @@ class ExpansionView extends ItemView {
       },
       true,
     );
-    this.registerEvent(plugin.app.vault.on("modify", () => void this.draw()));
-    this.registerEvent(plugin.app.vault.on("delete", () => void this.draw()));
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    const redraw=()=>{if(timer)clearTimeout(timer);timer=setTimeout(()=>{timer=undefined;void this.draw();},250);};
+    this.registerEvent(plugin.app.vault.on("modify",redraw));
+    this.registerEvent(plugin.app.vault.on("delete",redraw));
+    this.registerEvent(plugin.app.vault.on("create",redraw));
+    this.registerEvent(plugin.app.vault.on("rename",redraw));
+    this.registerEvent(plugin.app.workspace.on("editor-change",redraw));
+    this.register(()=>{if(timer)clearTimeout(timer);});
   }
   getViewType() {
     return EXPANSION;
@@ -976,8 +1051,22 @@ class ExpansionView extends ItemView {
     await this.draw();
   }
   async onClose() {
+    this.lastRenderKey="";
     this.revision++;
     if (this.renderComponent) this.removeChild(this.renderComponent);
+  }
+  recoveryButton(previous:string|null){
+    const b=button("Restore previous saved version",()=>void this.restore(previous),"marginalia-recovery");
+    b.disabled=!!this.plugin.operation;
+    return b;
+  }
+  async restore(previous:string|null){
+    await this.plugin.task(async()=>{
+      await restoreExpansion(this.plugin.port(),this.entry,previous);
+      await this.plugin.loadLibrary();await this.draw();
+      new Notice("Previous expansion restored. The replaced version is now the recovery copy.");
+    });
+    if(this.plugin.error)new Notice(this.plugin.error);
   }
   async draw() {
     const revision = ++this.revision;
@@ -992,8 +1081,33 @@ class ExpansionView extends ItemView {
     try {
       const raw = await this.plugin.port().read(expansionPath(this.entry));
       if (revision !== this.revision) return;
-      if (!raw) throw new Error("Saved expansion is missing.");
-      const e = decode(raw, this.entry);
+      if (!raw){
+        this.lastRenderKey="";
+        const backup=await this.plugin.port().read(recoveryPath(this.entry));
+        if(revision!==this.revision)return;
+        root.replaceChildren(el("p","marginalia-stale","Saved expansion is missing. Original notes are unchanged."));
+        if(backup && pluginOwned(backup) && inspectExpansion(backup,this.entry).expansion)
+          root.append(this.recoveryButton(null));
+        return;
+      }
+      const inspected=inspectExpansion(raw,this.entry);
+      const e=inspected.expansion;
+      if(!e){
+        this.lastRenderKey="";
+        root.replaceChildren(el("h1","",title(this.entry)),el("p","marginalia-stale",inspected.item.status+". Original file has not been changed."));
+        const backup=await this.plugin.port().read(recoveryPath(this.entry));
+        if(revision!==this.revision)return;
+        if(inspected.owned && backup && inspectExpansion(backup,this.entry).expansion)
+          root.append(this.recoveryButton(raw));
+        if(inspected.body){
+          if(this.renderComponent)this.removeChild(this.renderComponent);
+          const component=new Component();this.addChild(component);this.renderComponent=component;
+          const body=el("div","marginalia-markdown");root.append(body);
+          await MarkdownRenderer.render(this.app,inspected.body,body,this.entry,component);
+          bindOriginalLinks(body,component,path=>this.plugin.source(path));
+        }
+        return;
+      }
       const current = new Map<string, string>();
       for (const stamp of e.sources) {
         const file = this.app.vault.getAbstractFileByPath(stamp.path);
@@ -1003,7 +1117,18 @@ class ExpansionView extends ItemView {
             this.plugin.activeText(file) ?? (await this.app.vault.read(file)),
           );
       }
+      let inventoryChanged=false;
+      if(e.freshness){
+        const notes=await this.plugin.snapshot(new AbortController().signal);
+        const target=notes.find(note=>note.path===e.entry);
+        inventoryChanged=!target||!sameFreshness(e.freshness,freshness(notes,target,this.plugin.workspaceSettings,this.plugin.settings.context));
+      }
+      const backup=await this.plugin.port().read(recoveryPath(this.entry));
       if (revision !== this.revision) return;
+      const isStale=stale(e,current)||inventoryChanged;
+      const renderKey=hash(raw)+":"+isStale+":"+hash(backup??"");
+      if(this.lastRenderKey===renderKey)return;
+      this.lastRenderKey=renderKey;
       root.replaceChildren();
       if (this.renderComponent) this.removeChild(this.renderComponent);
       const component = new Component();
@@ -1028,22 +1153,30 @@ class ExpansionView extends ItemView {
         },
         "marginalia-regenerate",
       );
-      regenerate.disabled = !!this.plugin.operation;
+      regenerate.dataset.readOnly=String(!inspected.owned);
+      regenerate.disabled = !!this.plugin.operation || !inspected.owned;
       actions.append(
         button("Open original", () => this.plugin.source(e.entry)),
         regenerate,
       );
+      if(inspected.owned && backup && inspectExpansion(backup,e.entry).expansion){
+        const restore=this.recoveryButton(raw);
+        restore.disabled=!!this.plugin.operation;actions.append(restore);
+      }
       root.append(actions);
-      if (stale(e, current))
+      if(!inspected.owned)root.append(el("p","marginalia-muted","Standalone app output · read only. Replacement requires an explicit migration; this file is preserved."));
+      if(!e.freshness)root.append(el("p","marginalia-muted","Older output: only its original source list can be checked. New evidence was not tracked."));
+      if (isStale)
         root.append(
           el(
             "p",
             "marginalia-stale",
-            "Sources have changed or are missing. Regenerate to update this expansion.",
+            "Sources, available evidence or configuration changed. Regenerate to update this expansion.",
           ),
         );
       const body = el("div", "marginalia-markdown");
       root.append(body);
+      const renderStarted=performance.now();
       await MarkdownRenderer.render(
         this.app,
         e.draft,
@@ -1051,6 +1184,8 @@ class ExpansionView extends ItemView {
         e.entry,
         component,
       );
+      this.plugin.timings.rendering+=performance.now()-renderStarted;
+      if(this.renderComponent===component)bindOriginalLinks(body,component,path=>this.plugin.source(path));
       const d = el("details", "marginalia-sources");
       d.append(
         el("summary", "", `Sources consulted (${e.sources.length})`),
@@ -1082,6 +1217,7 @@ class ExpansionView extends ItemView {
       }
       root.append(d);
     } catch (error) {
+      this.lastRenderKey="";
       if (revision === this.revision)
         root.replaceChildren(
           el(
@@ -1119,6 +1255,8 @@ class LibrarianFeature extends Plugin {
   }
 }
 class ScriptFeature extends Plugin {
+  get refreshWritingFocus() { return this.owner.refreshWritingFocus; }
+  set refreshWritingFocus(value: (() => void) | undefined) { this.owner.refreshWritingFocus = value; }
   constructor(public owner: Marginalia) {
     super(owner.app, owner.manifest);
   }
@@ -1301,6 +1439,8 @@ class MarginaliaSettings extends PluginSettingTab {
   }
   renderLibrarian(root: HTMLElement) {
     const p = this.plugin;
+    new Setting(root).setName("Librarian sidebar").setDesc("Open the Librarian in the right sidebar. Also available through the note-header lantern or the Open Librarian command.")
+      .addButton(button => button.setButtonText("Open Librarian").onClick(() => { void p.openLibrarian(); }));
     root.append(el("h3", "", "Local AI"));
     new Setting(root)
       .setName("Ollama address")

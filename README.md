@@ -73,3 +73,28 @@ Open the native Files drawer for the app menu, or use Marginalia: Open Home from
 Automated loading and phone/tablet browser checks pass; physical iOS/Android acceptance is pending. Before v1, check the actual Files drawer menu, World/Storyboard pages, opening/scoping scripts, all slash shortcuts with the device keyboard, touch character selection, Undo, background/resume and note/settings persistence. Plugin settings/hidden-file sync behavior is not guaranteed by these checks.
 
 Additional developer checks after packaging: `node scripts/verify-mobile-load.mjs`; after preview build, run `node scripts/test-mobile-ui.mjs` with Playwright available through `MARGINALIA_PLAYWRIGHT`.
+
+### Optional writing tools
+
+Under **Settings → Marginalia → Scripts**, enable **Focused writing** to emphasize the active paragraph and keep the typed line centered in native script editors (upper third of the visible editor on mobile, above the keyboard). It is off by default; the **Toggle focused writing** command is also available without an assigned shortcut.
+
+Enable **Record session history** to keep countdown-session minutes and added/deleted/net words. **History & progress** in Script Studio, **View history** in settings, or the **View writing history and progress** command opens session rows, 7/30-day totals, CSV export and confirmed clearing. History is off by default, local to plugin data, capped at 500 finished sessions, and excludes pauses/imported changes/offline time. Reload restores the countdown paused. Project/Group labels reflect the initial selection; word totals include all eligible notes edited during the running timer.
+
+Groups provide draft separation. In Script Studio, choose a project/Group and click **Compile PDF…**. Choose included scripts and use **Content Selections** for **Panel Descriptions**, **Callouts and Notes** and **Title page** (all on by default). A selected title page asks for an author name, prefilled from previous prints in this vault, and includes a dated subtitle and byline. Expand **Advanced** for paper, numbering, metadata and script breaks. **Preview PDF** opens the generated desktop PDF with sheet navigation; **Export PDF…** opens the native save dialog. Source or image edits require rebuilding the preview. Preferences are saved per project/Group.
+
+On mobile, **Preview script** provides the compiled script with the same options; export the PDF on desktop. External/unsupported images and embedded notes are explicitly omitted with warnings. Desktop export depends on the host’s local print capability; unavailable hosts retain readable preview and show an explanation. [PDF compilation notes](docs/PDF-COMPILE-NOTES.md) document behavior and app references. EPUB is excluded.
+
+
+### Automatic script numbering
+
+Script Studio, native **Reading view**, and the continuous project reader calculate numbers from the current page/panel sequence. Named panels show **Panel 1 — Name**, restarting each page. Spreads consume two page numbers; inserting/deleting pages adjusts later labels and group ranges automatically. Stale or missing `Pages` metadata is reported but does not control numbering.
+
+Source/Live Preview keeps authored text unchanged. Use `## Page ? — Name` as a placeholder if preferred, then save/switch to Reading view for authoritative numbering. Numbers in existing headings are ignored for the rendered sequence. No automatic edits or extra Undo steps are introduced.
+
+
+### Opening the Librarian
+
+On desktop, enabling Librarian adds its tab to the right sidebar without taking focus. To reveal it, use **Command Palette → Marginalia: Open Librarian**, click the note-header lantern, or choose **Settings → Marginalia → Librarian → Open Librarian**. If the module is disabled, enable it in settings first. Librarian remains desktop-only.
+
+
+Librarian reliability now uses configured project boundaries, validates original-note citation destinations and discloses apparent incomplete answers, missing citations and omitted context. Custom entry templates supply writing sections; project overviews receive a project brief. Revised prompts avoid inferring ownership, recurring traits or completed actions from indirect scenes. Review the [fictional before/after writing samples](docs/verification/librarian-writing-comparison-2026-10-24.md); wider prose-quality acceptance remains open.

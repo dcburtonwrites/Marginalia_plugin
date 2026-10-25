@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import type { App } from "obsidian";
 import Marginalia from "../src/main.ts";
 import { MarkdownView, TFile, TFolder, Platform } from "./obsidian-mock.ts";
-import { setAnswer } from "./ollama-mock.ts";
+import { setGroundingReview, setAnswer } from "./ollama-mock.ts";
 import { encode, makeExpansion } from "../src/core/storage.ts";
 import { retrieve } from "../src/core/retrieval.ts";
 import type { Note } from "../src/core/types.ts";
@@ -34,7 +34,7 @@ function host() {
       editorText =
         editorText.slice(0, change.from.ch) +
         change.text +
-        editorText.slice(change.from.ch);
+        editorText.slice(change.to?.ch ?? change.from.ch);
       text.set(files[0].path, editorText);
     },
   };
@@ -968,4 +968,180 @@ test("mobile character acceptance requires an explicit choice; repeated Enter ne
    assert.ok(undo({state,dispatch:(tr:any)=>{state=tr.state;}} as any));
    assert.equal(state.doc.toString(),text);
  } finally {Platform.isMobile=false;}
+});
+
+test("Librarian startup creates a right sidebar tab without changing focus or duplicating restored tabs", async () => {
+  const h = host();
+  const calls: any[] = [];
+  const leaf = {view:{}};
+  h.plugin.app.workspace.ensureSideLeaf = async (...args: any[]) => {calls.push(args);return leaf;};
+  assert.equal(await h.plugin.ensureLibrarianTab(),leaf);
+  assert.deepEqual(calls, [["marginalia-librarian","right",{active:false,reveal:false}]]);
+  h.plugin.app.workspace.getLeavesOfType = () => [leaf];
+  assert.equal(await h.plugin.ensureLibrarianTab(),leaf);
+  assert.equal(calls.length,1);
+  h.plugin.workspaceSettings.modules.librarian=false;
+  assert.equal(await h.plugin.ensureLibrarianTab(),undefined);
+  assert.equal(calls.length,1);
+});
+
+
+test("Librarian startup reuses deferred restored leaves and coalesces concurrent creation", async () => {
+  const h = host(); let calls = 0, finish: (leaf:any)=>void = () => {};
+  const restored = {getViewState:()=>({type:"marginalia-librarian"})};
+  h.plugin.app.workspace.iterateAllLeaves = (fn:any) => fn(restored);
+  h.plugin.app.workspace.ensureSideLeaf = async () => {calls++;return restored;};
+  assert.equal(await h.plugin.ensureLibrarianTab(),restored); assert.equal(calls,0);
+  h.plugin.app.workspace.iterateAllLeaves = () => {};
+  h.plugin.app.workspace.ensureSideLeaf = () => {calls++;return new Promise(resolve=>{finish=resolve;});};
+  const first=h.plugin.ensureLibrarianTab(), second=h.plugin.ensureLibrarianTab();
+  finish(restored); assert.equal(await first,restored); assert.equal(await second,restored); assert.equal(calls,1);
+});
+
+test('Librarian uses configured project boundaries and project overview briefs instead of Lore',async()=>{
+ const {readWorkspace}=await import('../src/workspace/model.ts');
+ const h=host();
+ h.plugin.workspaceSettings=readWorkspace({vaultType:'Storyboard'});
+ const own='Conquest/Overview.md',other='Elsewhere/Overview.md';
+ h.files.push(new TFile(own),new TFile(other));
+ h.text.set(own,'## Summary\nConquest concerns a planned journey.');h.text.set(other,'Conquest is a completed war elsewhere.');
+ h.plugin.target=own;h.plugin.current().references.push(other);
+ const p=await h.plugin.packet(own,new AbortController().signal);
+ assert.equal(p.entryType,'Project');assert.ok(p.headings.includes('Premise'));assert.ok(!p.headings.includes('Causes'));
+ assert.match(p.guidance,/project brief/);assert.ok(!p.sources.some(s=>s.notePath===other));
+});
+
+test('Librarian custom canon templates determine sections and are freshness checked without execution',async()=>{
+ const {readWorkspace}=await import('../src/workspace/model.ts');
+ const h=host(),path='Bestiary/Aster.md',template='My Templates/Creature.md';
+ h.plugin.workspaceSettings=readWorkspace({canonTypes:[{name:'Creature',folder:'Bestiary',projectFolder:'Creatures',template}]});
+ h.files.push(new TFile(path),new TFile(template));h.text.set(path,'Aster lives by the gate.');h.text.set(template,'## Habitat\n\n## Behaviour\n');
+ h.plugin.target=path;
+ const p=await h.plugin.packet(path,new AbortController().signal);
+ assert.equal(p.entryType,'Creature');assert.match(p.guidance,/Configured entry type: Creature/);assert.ok(p.headings.includes('Habitat'));assert.ok(!p.headings.includes('Causes'));
+ h.text.set(template,'## Changed\n');await assert.rejects(h.plugin.verify(p,new AbortController().signal),/Source notes changed/);
+ assert.equal(h.transactions.length,0);assert.equal(h.generated.size,0);
+});
+
+test('Ask attaches repaired citations and incomplete-answer disclosure to its original session',async()=>{
+ const h=host();setAnswer(async()=> 'Mira guards it [[01 Lore/Archive, S1]]. [[Unknown note]] This response now ends in an unfinished clause because');
+ await h.plugin.ask('What does Mira do?');
+ const answer=h.plugin.current().messages.at(-1)!;
+ assert.equal(answer.role,'assistant');assert.ok(!answer.text.includes('[[Unknown note]]'));
+ assert.ok(answer.warnings?.some(w=>/incomplete/.test(w)));assert.ok(answer.warnings?.some(w=>/unverified/.test(w)));
+ assert.equal(h.transactions.length,0);assert.equal(h.generated.size,0);
+});
+
+test('unfinished enhancement preserves earlier review suggestions and expansion output',async()=>{
+ const h=host();setAnswer(async()=> '## Summary\n\nMira guards the archive.');await h.plugin.run('enhancement');
+ const earlier=h.plugin.current().suggestions[0];
+ setAnswer(async()=> '## Summary\n\nMira guards the archive and goes back to explain how she');await h.plugin.run('enhancement');
+ assert.match(h.plugin.error,/incomplete/);assert.equal(h.plugin.current().suggestions.length,1);assert.equal(h.plugin.current().suggestions[0],earlier);
+ assert.equal(h.transactions.length,0);assert.equal(h.generated.size,0);
+});
+
+
+test('source navigation opens an existing original file and never creates a missing note',async()=>{
+ const h=host(),opened:any[]=[];
+ h.plugin.app.workspace.getLeaf=()=>({openFile:async(file:any)=>{opened.push(file.path);}});
+ h.plugin.source('01 Lore/Archive');assert.deepEqual(opened,['01 Lore/Archive.md']);
+ h.plugin.source('01 Lore/Missing');assert.equal(opened.length,1);assert.equal(h.files.length,2);
+});
+
+
+test('source-grounding review withholds unsupported drafts and checks for edits during review',async()=>{
+ const h=host();setAnswer(async()=> '## Summary\n\nMira guards the archive.');await h.plugin.run('enhancement');const previous=h.plugin.current().suggestions[0];
+ setAnswer(async()=> '## Summary\n\nMira owns the laboratory.');
+ setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Summary',reason:'The original does not establish ownership.'}]}));
+ await h.plugin.run('enhancement');assert.match(h.plugin.error,/Draft withheld/);assert.equal(h.plugin.current().suggestions.length,1);assert.equal(h.plugin.current().suggestions[0],previous);assert.equal(h.generated.size,0);assert.equal(h.transactions.length,0);
+ setAnswer(async()=> '## Summary\n\nMira guards the archive.');setGroundingReview(async()=>{h.text.set('01 Lore/Archive.md','Changed while checking.');return '{"unsupported":[]}';});
+ await h.plugin.run('enhancement');assert.match(h.plugin.error,/Source notes changed/);assert.equal(h.plugin.current().suggestions.length,1);
+});
+
+
+test('a failed grounding review cannot replace a saved expansion',async()=>{
+ const h=host(),p=await h.plugin.packet(h.plugin.target!,new AbortController().signal);
+ const file='.marginalia/expanded/'+h.plugin.target,earlier=encode(makeExpansion(p,'## Summary\n\nEarlier supported result.'));
+ h.generated.set(file,earlier);
+ setAnswer(async()=> '## Summary\n\nMira owns the laboratory.');setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Summary',reason:'Ownership is not established.'}]}));
+ await h.plugin.run('expansion');assert.match(h.plugin.error,/Draft withheld/);assert.equal(h.generated.get(file),earlier);assert.equal(h.transactions.length,0);
+});
+
+
+test('a flagged draft gets one correction and a fresh review before publication',async()=>{
+ const h=host();let drafts=0,reviews=0;
+ setAnswer(async()=>++drafts===1?'## Summary\n\nMira owns the laboratory.':'## Summary\n\nMira guards the archive.');
+ setGroundingReview(async()=>++reviews===1?JSON.stringify({unsupported:[{section:'Summary',reason:'Ownership is not established.'}]}):'{"unsupported":[]}');
+ await h.plugin.run('enhancement');assert.equal(h.plugin.error,'');assert.equal(drafts,2);assert.equal(reviews,2);
+ assert.equal(h.plugin.current().suggestions.length,1);assert.equal(h.plugin.current().suggestions[0].prose,'Mira guards the archive.');assert.equal(h.transactions.length,0);
+});
+
+test('new and previously unselected changed evidence invalidate pending writing',async()=>{
+ for(const kind of ['new','changed','configuration']){
+  const h=host(),extra='01 Lore/New Evidence.md';
+  if(kind==='changed'){h.files.push(new TFile(extra));h.text.set(extra,'No named subjects yet.');}
+  setAnswer(async()=> '## Summary\n\nMira guards the archive.');await h.plugin.run('enhancement');
+  assert.ok(h.plugin.current().suggestions.length);
+  if(kind==='new')h.files.push(new TFile(extra));
+  if(kind==='configuration')h.plugin.settings.context+=1000;else h.text.set(extra,'Mira leaves the archive.');
+  await h.plugin.insert(h.plugin.current().suggestions[0]);
+  assert.match(h.plugin.error,/new evidence|configuration changed/);assert.equal(h.transactions.length,0);
+ }
+});
+
+test('scope freshness ignores other projects and retains dirty-buffer protection',async()=>{
+ const h=host(),path='08 Projects/Harbor/Character/Nara.md',foreign='08 Projects/Other/Scenes/Scene.md';
+ h.files.push(new TFile(path),new TFile(foreign));h.text.set(path,'Nara waits.');h.text.set(foreign,'Other work.');
+ const packet=await h.plugin.packet(path,new AbortController().signal);
+ h.text.set(foreign,'Other work changed.');await h.plugin.verify(packet,new AbortController().signal);
+ h.text.set('01 Lore/Archive.md','Shared work changed.');await assert.rejects(h.plugin.verify(packet,new AbortController().signal),/Source notes changed/);
+ h.text.set('01 Lore/Archive.md','Mira guards the eastern archive.');
+ const targetPacket=await h.plugin.packet(h.plugin.target!,new AbortController().signal);
+ h.setEditor('## Summary\n\nUnsaved revision.');await assert.rejects(h.plugin.verify(targetPacket,new AbortController().signal),/Source notes changed/);
+});
+
+test('section insertion normalizes placeholders in one transaction and keeps remaining suggestions usable',async()=>{
+ const h=host();h.setEditor('## Summary\n\n\n\n## Backstory\n\n\n');
+ setAnswer(async()=> '## Summary\n\nMira guards the archive.\n\n## Backstory\n\nMira guards the eastern archive.');await h.plugin.run('enhancement');
+ await h.plugin.insert(h.plugin.current().suggestions[0]);assert.equal(h.plugin.error,'');
+ assert.match(h.editorText(),/^## Summary\n\nMira guards the archive\.\n\n## Backstory/);
+ await h.plugin.insert(h.plugin.current().suggestions[1]);assert.equal(h.plugin.error,'');assert.equal(h.transactions.length,2);
+ assert.match(h.editorText(),/## Backstory\n\nMira guards the eastern archive\./);
+});
+
+test('Library lists legacy, damaged and missing files with recovery without modifying them',async()=>{
+ const h=host(),entry=h.plugin.target!,path='.marginalia/expanded/'+entry;
+ const p=await h.plugin.packet(entry,new AbortController().signal),e=makeExpansion(p,'## Summary\n\nMira guards the archive.');
+ h.generated.set(path,encode(e).replace('marginalia-plugin: 1\n',''));
+ h.generated.set('.marginalia/expanded/02 Character/Broken.md','---\nmarginalia-plugin: 1\nexpansion: damaged\n---\n');
+ h.generated.set('.marginalia/recovery/02 Character/Missing.md',encode({...e,entry:'02 Character/Missing.md'}));
+ // Adapter listings represent the flat test implementation, including root directories.
+ const adapter=h.plugin.app.vault.adapter;const exists=adapter.exists.bind(adapter);
+ adapter.exists=async(p:string)=>await exists(p)||[...h.generated.keys()].some(path=>path.startsWith(p+'/'));
+ const before=[...h.generated];await h.plugin.loadLibrary();
+ assert.equal(h.plugin.expansions.length,3);assert.ok(h.plugin.expansions.some(item=>/recovery available/.test(item.status??'')));
+ assert.ok(h.plugin.expansions.some(item=>/Damaged/.test(item.status??'')));assert.deepEqual([...h.generated],before);
+});
+
+test('Librarian snapshots use the native read cache while direct source checks stay fresh',async()=>{
+ const h=host();let cached=0,reads=0;
+ h.plugin.app.vault.cachedRead=async(file:TFile)=>{cached++;return h.text.get(file.path)!;};
+ h.plugin.app.vault.read=async(file:TFile)=>{reads++;return h.text.get(file.path)!;};
+ const packet=await h.plugin.packet(h.plugin.target!,new AbortController().signal);
+ assert.ok(cached>0);assert.ok(h.plugin.timings.retrieval>=0);
+ await h.plugin.verify(packet,new AbortController().signal);assert.ok(reads>0);
+});
+
+test('busy-state refresh preserves standalone ownership and releases recovery controls',()=>{
+ const h=host();const buttons=[{disabled:false,dataset:{readOnly:'true'}},{disabled:true,dataset:{readOnly:'false'}},{disabled:true,dataset:{}}];
+ h.plugin.app.workspace.getLeavesOfType=(type:string)=>type==='marginalia-expansion'?[{view:{containerEl:{querySelectorAll:()=>buttons}}}]:[];
+ h.plugin.operation=new AbortController();h.plugin.refresh();assert.ok(buttons.every(button=>button.disabled));
+ h.plugin.operation=null;h.plugin.refresh();assert.deepEqual(buttons.map(button=>button.disabled),[true,false,false]);
+});
+
+test('streaming progress updates the status without rebuilding sidebar Markdown',async()=>{
+ const h=host();let redraws=0;h.plugin.refresh=()=>{redraws++;};
+ setAnswer(async(...args:any[])=>{args[5]({phase:'output',characters:120});return 'Completed supported text.';});
+ const result=await h.plugin.generateText('system','prompt',new AbortController().signal);
+ assert.equal(result,'Completed supported text.');assert.equal(redraws,0);assert.match(h.plugin.progress,/120 characters/);assert.ok(h.plugin.timings.generation>0);
 });

@@ -4,6 +4,8 @@ import {
   type SidebarState,
   type SidebarActions,
 } from "../src/ui/sidebar.ts";
+import {bindOriginalLinks} from "../src/ui/original-links.ts";
+import {cleanAnswer} from "../src/core/answers.ts";
 import { retrieve } from "../src/core/retrieval.ts";
 import type { Note } from "../src/core/types.ts";
 const root = document.querySelector<HTMLElement>("#sidebar")!;
@@ -25,6 +27,7 @@ const source: Note = {
 };
 const packet = retrieve([target, source], target);
 const state: SidebarState = {
+  vaultType:location.search.includes("reliability")?"Storyboard":"World",
   target: target.path,
   pinned: false,
   tab: "Ask",
@@ -81,7 +84,7 @@ const actions: SidebarActions = {
       { role: "user", text },
       {
         role: "assistant",
-        text: "Mira Vale keeps the eastern archive beneath the observatory. Her morning routine is established; her earlier history is still unresolved.",
+        ...(location.search.includes("reliability")?cleanAnswer(`Mira keeps the archive [[01 Lore/Eastern Archive, ${packet.sources.find(s=>s.notePath===source.path)!.id}]]. [[Unknown note]] This answer now ends with an unfinished explanation because`,{...packet,omitted:2}):{text:"Mira Vale keeps the eastern archive beneath the observatory. Her morning routine is established; her earlier history is still unresolved."}),
         packet,
       },
     );
@@ -118,11 +121,18 @@ const actions: SidebarActions = {
     state.references = state.references.filter((p) => p !== path);
     draw();
   },
-  source: () => {},
+  source: (path) => {if(location.search.includes("reliability"))document.querySelector("main")!.textContent="Opened original: "+path;},
   markdown: (text, element) => {
     const p = document.createElement("p");
-    p.textContent = text;
-    element.append(p);
+    if(location.search.includes("reliability")){
+      let start=0;
+      for(const match of text.matchAll(/\[\[([^\]|]+)\|([^\]]+)\]\]/g)){
+        p.append(document.createTextNode(text.slice(start,match.index)));
+        const link=document.createElement("a");link.className="internal-link";link.setAttribute("href",match[1]);link.setAttribute("data-href",match[1]);link.textContent=match[2];p.append(link);start=match.index!+match[0].length;
+      }
+      p.append(document.createTextNode(text.slice(start)));element.append(p);
+      bindOriginalLinks(element,{registerDomEvent:(link:HTMLElement,event:string,handler:EventListener)=>link.addEventListener(event,handler)} as any,path=>actions.source(path));
+    }else{p.textContent = text;element.append(p);}
   },
 };
 const params = new URLSearchParams(location.search);

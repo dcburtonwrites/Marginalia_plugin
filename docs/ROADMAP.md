@@ -51,7 +51,7 @@
 - [x] Automated command/history regressions and native typing, focus, Undo and modified-Enter checks.
 
 ## Following script increments
-- [ ] Move compile/export workflows into Script Studio when the owner starts that increment.
+- [x] Add Script Studio compilation button and pop-up (D-0039).
 - [x] Local /d dropdown from frontmatter characters, prior speakers and known mentions, preserving existing plain/wiki form (D-0025).
 - [x] Configurable script template, folder context action and New Script button below the active sidebar list (D-0028).
 - [ ] Page reordering, further navigation commands and export with user-bindable shortcuts; preserve Templater ownership.
@@ -67,14 +67,14 @@ The owner explicitly started Phase 4 while Librarian prose quality and hidden-st
 - [x] Three collapsible settings sections with immediate Theme/Scripts/Librarian lifecycle switches.
 - [x] Core/host/browser regressions and native pages/palette/module checks; all existing fixture notes preserved.
 
-This increment provides browsing and navigation pages, not complete standalone-app feature parity. Script creation copies a configured template (D-0028); executing template code, inline register editing and compile/export remain separate work.
+This increment provides browsing and navigation pages, not complete standalone-app feature parity. Script creation copies a configured template (D-0028); executing template code and inline register editing remain separate work.
 
 
 ## Phase 7 acceptance follow-up — real-content baseline (D-0022)
 - [x] Test World content from Reanimator/Shadowverse and Storyboard content from Storyboards in isolated native copies; record timings and preserve originals.
 - [x] Verify all eight script identities/order, pages/spreads, app pages and local Librarian workflow controls.
 - [x] Record efficiency proposals without implementing or trialing them, as requested.
-- [ ] Resolve/evaluate RV-01–RV-06 prose, citation, Storyboard profile, legacy compatibility and project-classification findings in a later authorized increment.
+- [ ] Complete author acceptance of RV-01/RV-04 prose after D-0041 safeguards; RV-02 citations and RV-03 writing profile have reliability coverage. RV-05 legacy compatibility and RV-06 project classification remain separate work.
 
 See verification/real-vault-review-2026-10-22.md. Successful runtime checks do not close prose-quality or live-vault interoperability acceptance.
 
@@ -112,3 +112,69 @@ See verification/real-vault-review-2026-10-22.md. Successful runtime checks do n
 - [x] Reuse native transaction/Undo, preserve desktop inline picker, reject stale source/file and close on editor destruction.
 - [x] Core/host regressions, package/typecheck, mobile bundle smoke, three touch profiles and real-CodeMirror desktop dropdown checks.
 - [ ] Confirm on the owner’s actual mobile device; the original missing-tooltip failure was not reproduced in Chromium emulation.
+
+
+## Optional writing features — D-0036
+- [x] Treat existing Groups as draft separation; no separate draft-version implementation.
+- [x] Independent, default-off script-focused writing preference and command; native document/Undo preserved.
+- [x] Independent, default-off session history, pause/reload restoration, running word deltas and bounded local persistence.
+- [x] Session list, rolling 7/30-day reports, CSV export and confirmed clear controls.
+- [ ] Physical desktop/mobile acceptance: cursor centering with software keyboard, focus readability, module disable cleanup, timer background/resume and history persistence.
+
+## Compilation and PDF export — D-0039
+- [x] Script Studio button and pop-up with progressively disclosed inclusion and Advanced options.
+- [x] Group isolation, predecessor order, blocking order errors and explicit content selections (D-0040).
+- [x] Independent print document, description/notes/metadata controls, cover, script breaks and calculated numbering.
+- [x] Native desktop Letter/A4 PDF generation, actual PDF preview, sheet navigation and guarded save/cancel.
+- [x] Mobile compilation options/script preview and explicit desktop-only PDF export.
+- [x] Native macOS test-vault PDF/layout/image/long-dialogue/source-integrity and stale-preview checks; model/browser regressions.
+- [ ] Physical iOS/Android preview acceptance and Windows/Linux desktop PDF acceptance. EPUB is excluded.
+
+Implementation behavior, limitations and app references: PDF-COMPILE-NOTES.md.
+
+
+## Automatic script numbering — D-0037
+- [x] Number named/unnamed panels per page in outline, Reading view and project reader.
+- [x] Derive displayed page numbers from structural order; preserve names and two-slot spreads.
+- [x] Use actual slots for downstream group ranges, retaining declared Pages diagnostics.
+- [x] Refresh reused native rendered sections after middle insertion/deletion; preserve source/Undo and inline title elements.
+- [x] Automated/model/DOM/full browser regressions and native acceptance in Marginalia Test Vault.
+- [ ] Confirm physical mobile Reading view numbering/scrolling after edits; source/Live Preview labels remain authored literal text by design.
+
+
+## Focus scrolling and Librarian access — D-0038
+- [x] Measure desktop center/mobile upper-third positions against the visible editor; support first/last lines, typing, resizing and focus cleanup.
+- [x] Browser position assertions within 5 px, including a smaller mobile viewport; native desktop typing/Undo in Marginalia Test Vault.
+- [x] Restore/add the enabled desktop Librarian tab without focus stealing; reuse deferred views and coalesce creation.
+- [x] Add Open Librarian to settings; confirm existing command/header route and open Reanimator sidebar without note edits.
+- [ ] Physical iOS/Android software-keyboard and rotation acceptance for the mobile focus target.
+
+
+## Compilation refinement — D-0040
+- [x] Replace presets with Content Selections; all three choices default on for fresh settings.
+- [x] Callouts and Notes label; hide empty warning border without hiding real errors.
+- [x] Conditional author field, shared editable vault preference and dated title-page subtitle/byline.
+- [x] Core/host and phone/tablet browser tests; native menu/PDF inspection in Marginalia Test Vault with unchanged source hashes.
+
+
+## First Librarian bucket — D-0041
+- [x] Project isolation through configured World/Storyboard/custom roots; foreign references cannot bypass it.
+- [x] Original-note citation normalization, unresolved-source/incomplete/no-citation/limited-coverage notices and native existing-source navigation.
+- [x] Direct-evidence writing briefs without word-count pressure; reject incomplete drafts and add a separate pre-publication source review while preserving earlier results.
+- [x] Configured custom types/templates, project overview brief, template freshness and Storyboard labels.
+- [x] Core/host/browser regressions and synthetic local-model before/after examples; native Ask/isolation/citation checks in Marginalia Test Vault.
+- [ ] Author acceptance of the before/after writing samples and broader real-vault semantic/prose quality. Structural checks are not proof of grounding.
+
+Optional continuity reporting remains outside this reliability increment. Saved-output portability/freshness expansion work remains in the second Librarian bucket.
+
+## Second Librarian bucket — D-0042
+
+- [x] Normalize insertion placeholder spacing and preserve native Undo/CRLF.
+- [x] Make legacy/damaged/missing-recoverable outputs visible; retain standalone ownership and read-only fallback.
+- [x] Verify a prior plugin recovery copy before replacement and provide guarded explicit restore.
+- [x] Test vault-relative saved/recovery bytes after copying to a second local root.
+- [x] Detect new/changed possible evidence outside the original source inventory, respecting configured project scope and dirty buffers.
+- [x] Reduce repeated native reads and progress/Markdown redraws; measure retrieval/model/render/storage separately in memory.
+- [ ] Physical sync delivery of hidden saved/recovery files and reopening on a second desktop. No cloud/account or device test is implied by local copying.
+
+Standalone ownership migration remains explicitly deferred; unsupported original artifacts are preserved and viewable, not rewritten.

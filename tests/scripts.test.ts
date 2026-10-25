@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   parseScript,
+  pageLabel, panelLabel,
   organize,
   movePanel,
   insertBlock,
@@ -101,7 +102,7 @@ test("CRLF offsets navigate to exact source ranges and Side can override spread 
   );
   assert.equal(s.pages[0].panels[0].line, 4);
 });
-test("legacy and predecessor claims agree; global starts follow declared counts", () => {
+test("legacy and predecessor claims agree; global starts follow actual slots despite stale declared counts", () => {
   const a = parse("## Page 1", {
     Group: "Draft",
     Pages: 4,
@@ -118,7 +119,7 @@ test("legacy and predecessor claims agree; global starts follow declared counts"
     g.sequences[0].map((s) => s.path),
     [a.path, b.path],
   );
-  assert.equal(g.starts.get(b.path), 5);
+  assert.equal(g.starts.get(b.path), 2);
 });
 test("conflicts, dangling links and cycles cannot acquire trusted global ranges", () => {
   const make = (name: string, metadata: Record<string, unknown>) =>
@@ -148,7 +149,7 @@ test("conflicts, dangling links and cycles cannot acquire trusted global ranges"
     assert.equal(g.starts.size, 0);
   }
 });
-test("separate projects/groups have independent order and unknown declared counts stop range propagation", () => {
+test("separate projects/groups have independent order and missing declared counts do not stop actual range propagation", () => {
   const a = parse("## Page 1", { "Followed By": "[[Next]]" });
   const b = parse(
     "## Page 1",
@@ -163,7 +164,7 @@ test("separate projects/groups have independent order and unknown declared count
   const groups = organize([a, b, c], resolve);
   const g = groups.find((g) => g.group === "Top-level")!;
   assert.equal(g.starts.get(a.path), 1);
-  assert.equal(g.starts.has(b.path), false);
+  assert.equal(g.starts.get(b.path), 2);
   assert.ok(groups.find((g) => g.group === "Other")!.issues.length);
 });
 const apply = (s: Script, e: { from: number; to: number; text: string }) =>
@@ -230,10 +231,10 @@ test("saved order seeds groups without predecessor fields and accumulates page r
     g.sequences[0].map((s) => s.path),
     [a.path, b.path],
   );
-  assert.equal(g.starts.get(b.path), 5);
+  assert.equal(g.starts.get(b.path), 2);
   assert.deepEqual(reorderScript(g, a.path, b.path), [b.path, a.path]);
   const [moved] = arrangedGroups([a, b], resolve, { [key]: [b.path, a.path] });
-  assert.equal(moved.starts.get(a.path), 3);
+  assert.equal(moved.starts.get(a.path), 2);
   assert.equal(a.metadata["Preceded By"], undefined);
   assert.equal(a.text, "## Page 1");
 });
@@ -259,7 +260,7 @@ test("existing predecessor fields override saved order and unresolved links stay
     ordered.sequences[0].map((s) => s.path),
     [b.path, a.path],
   );
-  assert.equal(ordered.starts.get(a.path), 3);
+  assert.equal(ordered.starts.get(a.path), 2);
 });
 test("new groups form one initial sequence without requiring link fields", async () => {
   const { arrangedGroups } = await import("../src/scripts/model.ts");
@@ -267,7 +268,7 @@ test("new groups form one initial sequence without requiring link fields", async
     b = parse("## Page 1", { Pages: 2 }, "Projects/Example/Scripts/Z.md");
   const [g] = arrangedGroups([b, a], resolve, {});
   assert.equal(g.sequences.length, 1);
-  assert.equal(g.starts.get(b.path), 5);
+  assert.equal(g.starts.get(b.path), 2);
 });
 test("stored order validation and file/folder renames preserve order without metadata writes", async () => {
   const { readOrders, renameOrders, orderKey } =
@@ -398,4 +399,92 @@ test("explicit side overrides after spreads remain authored choices", () => {
     s.pages.map((p) => p.side),
     ["Double Spread", "Right", "Left"],
   );
+});
+
+
+test("display numbering ignores stale headings, counts spreads and preserves names through middle edits", () => {
+  const source = "## Page 91 — Arrival\n> [!panel] Named panel\n> Text\n> [!panel] Panel 8 — Other\n> Text\n## Page 91 Double Spread — Panorama\n> [!panel] Wide\n> Text\n## Page 91 — Departure\n> [!panel] Last\n> Text\n";
+  const script = parse(source, {Pages:99});
+  assert.deepEqual(script.pages.map(pageLabel), ["Page 1 — Arrival", "Page 2–3 — Panorama", "Page 4 — Departure"]);
+  assert.deepEqual(script.pages[0].panels.map((p,i) => panelLabel(p.title,i)), ["Panel 1 — Named panel", "Panel 2 — Other"]);
+  assert.equal(panelLabel(script.pages[1].panels[0].title,0), "Panel 1 — Wide");
+  const inserted = parse(source.replace("## Page 91 Double", "## Page ? — Inserted\n> [!panel] New\n> Text\n## Page 91 Double"));
+  assert.deepEqual(inserted.pages.map(pageLabel), ["Page 1 — Arrival", "Page 2 — Inserted", "Page 3–4 — Panorama", "Page 5 — Departure"]);
+  const removed = parse(source.slice(source.indexOf("## Page 91 Double")));
+  assert.deepEqual(removed.pages.map(pageLabel), ["Page 1–2 — Panorama", "Page 3 — Departure"]);
+  assert.equal(script.text, source);
+  assert.equal(script.metadata.Pages,99);
+});
+
+test("compilation preserves sources, structural numbers and dialogue while filtering production notes", async () => {
+  const {compileMarkdown,readCompileOptions}=await import("../src/scripts/compile-model.ts");
+  const source='---\nPages: 99\nGroup: Draft\n---\n## Page 88 — Named page\n\n> [!panel]- Named panel\n> Hidden description.\n\n**MIRA:** Visible dialogue.\n\n> [!tip] Editorial\n> Hidden production note.\n\n## Page 99 Double Spread\n> [!panel] Wide\n> Wide description.\n\n<!-- Secret -->\n%% Private comment %%\n';
+  const script=parse(source,{Pages:99,Group:"Draft"});
+  const result=compileMarkdown(script,{...readCompileOptions(undefined),panels:false,notes:false});
+  assert.match(result.markdown,/## Page 1 — Named page/);
+  assert.match(result.markdown,/## Page 2–3/);
+  assert.match(result.markdown,/> \[!panel\] Panel 1 — Named panel/);
+  assert.match(result.markdown,/Visible dialogue/);
+  for(const omitted of ['Pages: 99','Hidden description','Hidden production note','Private comment','Secret','Wide description'])assert.ok(!result.markdown.includes(omitted),omitted);
+  assert.equal(script.text,source);
+  const notes=compileMarkdown(script,{...readCompileOptions(undefined),notes:true});
+  assert.match(notes.markdown,/Hidden production note/);assert.match(notes.markdown,/Hidden description/);
+});
+
+test("compilation never mixes Groups, rejects uncertain order/empty selections and detects changed content", async () => {
+  const {makeCompileJob,readCompileOptions,groupFingerprint}=await import("../src/scripts/compile-model.ts");
+  const {arrangedGroups}=await import("../src/scripts/model.ts");
+  const first=parse('## Page 99',{Group:'Draft','Preceded By':''}),second=parse('## Page 99',{Group:'Revision','Preceded By':''},'Projects/Example/Scripts/Revision.md');
+  const groups=arrangedGroups([first,second],resolve,{}),draft=groups.find(g=>g.group==='Draft')!;
+  const job=makeCompileJob(draft,readCompileOptions({cover:false}));assert.deepEqual(job.scripts.map(s=>s.path),[first.path]);
+  assert.throws(()=>makeCompileJob(draft,{...job.options,excluded:[first.path]}),/at least one/);
+  assert.throws(()=>makeCompileJob({...draft,issues:[{path:first.path,message:'Cycle'}]},job.options),/reading-order/);
+  const changed=arrangedGroups([{...first,text:first.text+'\nChanged'}],resolve,{})[0];
+  assert.notEqual(groupFingerprint(changed),job.fingerprint);
+});
+
+test("compile preferences validate, image resources are inert and story offsets count spreads", async () => {
+  const {compileMarkdown,readCompileOptions,compileFilename}=await import("../src/scripts/compile-model.ts");
+  const options=readCompileOptions({paper:'bad',preset:'bad',excluded:['A','A',42]});
+  assert.equal(options.paper,'Letter');assert.equal("preset" in options,false);assert.deepEqual(options.excluded,['A']);
+  const script=parse('## Page ? Double Spread\n> [!panel] A\n> Text\n\n![[Assets/Test.png]]\n![Remote](https://example.com/image.png)\n<img src="https://example.com/raw.png" onerror="bad()">\n<https://example.com>\n');
+  const compiled=compileMarkdown(script,options,5);
+  assert.match(compiled.markdown,/## Page 5–6/);assert.equal(compiled.images.length,3);
+  assert.ok(!compiled.markdown.includes('<img'));assert.ok(!compiled.markdown.includes('onerror'));
+  assert.match(compiled.markdown,/<https:\/\/example.com>/);
+  assert.ok(compileFilename({scope:'Projects/A',group:'Bad/Name'}).endsWith('.pdf'));
+  assert.ok(!compileFilename({scope:'Projects/A',group:'Bad/Name'}).includes('/'));
+});
+
+
+test("compile preserves adjacent panel headings and literal fenced resources; comments never earn page slots", async () => {
+  const {compileMarkdown,readCompileOptions}=await import("../src/scripts/compile-model.ts");
+  const source='%%\n## Page 99 Double Spread\n> [!panel] Hidden\n%%\n## Page ?\n> [!panel] First\n> Secret first\n> [!panel] Second\n> Secret second\n\n```md\n<!-- literal -->\n![Literal](https://example.com/literal.png)\n## Page 88\n```\n\n`![Inline](literal.png)`\n';
+  const script=parse(source);
+  assert.equal(script.slots,1);assert.equal(script.pages[0].panels.length,2);
+  const compiled=compileMarkdown(script,{...readCompileOptions(undefined),panels:false});
+  assert.match(compiled.markdown,/Panel 1 — First/);assert.match(compiled.markdown,/Panel 2 — Second/);
+  assert.ok(!compiled.markdown.includes('Secret'));assert.ok(!compiled.markdown.includes('Page 99'));
+  assert.match(compiled.markdown,/!\[Literal\]\(https:\/\/example.com\/literal.png\)/);
+  assert.match(compiled.markdown,/`!\[Inline\]\(literal.png\)`/);assert.equal(compiled.images.length,0);
+});
+
+
+test("compilation defaults include all content, remembers a vault author and snapshots the local cover date", async () => {
+  const {compileCover,makeCompileJob,readCompileOptions}=await import("../src/scripts/compile-model.ts");
+  const {arrangedGroups}=await import("../src/scripts/model.ts");
+  const {readWriting}=await import("../src/scripts/writing.ts");
+  const options=readCompileOptions(undefined);
+  assert.deepEqual([options.panels,options.notes,options.cover],[true,true,true]);
+  assert.equal(readCompileOptions({notes:false,cover:false,panels:false,preset:"editorial"}).notes,false);
+  const script=parse('## Page ?',{Group:'Draft','Preceded By':''});
+  const group=arrangedGroups([script],resolve,{})[0];
+  assert.throws(()=>makeCompileJob(group,options),/author name/);
+  const createdAt=new Date(2026,9,24,12).getTime();
+  const job=makeCompileJob(group,options,'  Alex Writer  ',createdAt),cover=compileCover(job);
+  assert.equal(cover.byline,'By Alex Writer');assert.equal(job.createdAt,createdAt);
+  assert.equal(cover.subtitle,`${group.group} · ${new Intl.DateTimeFormat(undefined,{year:'numeric',month:'long',day:'numeric'}).format(new Date(createdAt))}`);
+  const stored=readWriting(JSON.parse(JSON.stringify({...readWriting(null),compilationAuthor:job.author})));
+  assert.equal(stored.compilationAuthor,'Alex Writer');assert.equal(readWriting(null).compilationAuthor,'');
+  assert.equal(readWriting({compilationAuthor:42}).compilationAuthor,'');
 });

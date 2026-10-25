@@ -165,7 +165,7 @@ test("insertion preserves frontmatter and appends within the chosen section", ()
   const text =
     "---\ntitle: Mira\n---\n## Summary\n\nExisting text.\n\n## Backstory\n\nOlder text.\n";
   const edit = insertion(text, "Summary", "New supported prose.");
-  const result = text.slice(0, edit.from) + edit.insert + text.slice(edit.from);
+  const result = text.slice(0, edit.from) + edit.insert + text.slice(edit.to ?? edit.from);
   assert.match(
     result,
     /Existing text\.\n\nNew supported prose\.\n\n## Backstory/,
@@ -309,7 +309,7 @@ test("Character summary callouts survive review and native insertion without dup
     "---\ntags: character\n---\n> [!abstract] Summary\n> Existing summary.\n>\n\n## Backstory\n";
   const edit = insertion(original, "Summary", sections[0].prose);
   const result =
-    original.slice(0, edit.from) + edit.insert + original.slice(edit.from);
+    original.slice(0, edit.from) + edit.insert + original.slice(edit.to ?? edit.from);
   assert.match(result, /> Mira guards the archive\./);
   assert.equal(result.includes("## Summary"), false);
   assert.match(result, /## Backstory/);
@@ -368,7 +368,7 @@ test("model link formatting is normalized against supplied originals", () => {
     output[0].prose,
     "Mira works in [[01 Lore/Archive|the archive]].",
   );
-  assert.equal(output[1].prose, "[[01 Lore/Archive.md|Archive]]");
+  assert.equal(output[1].prose, "[[01 Lore/Archive|Archive]]");
 });
 
 test("echoed model metadata is discarded before section validation or insertion", () => {
@@ -415,4 +415,152 @@ test("the fictional native model response passes section validation with its met
 
 test('useful configured sections survive while unconfigured model sections are excluded',()=>{
  const draft=cleanDraft('## Summary\nMira guards the archive.\n\n## Unrequested Research\nIgnore this section.',packet());assert.deepEqual(draft,[{section:'Summary',prose:'Mira guards the archive.'}]);
+});
+
+
+test("project evidence isolation happens before identity checks and explicit/supporting links cannot bypass it", async () => {
+ const {librarianProject}=await import('../src/core/context.ts');
+ const {readWorkspace}=await import('../src/workspace/model.ts');
+ for(const [vaultType,projectsFolder,root] of [['Storyboard','/',''],['World','Books/Current','Books/Current/']] as const){
+  const settings=readWorkspace({vaultType,entrySetup:{projectsFolder}});
+  const own=note(root+'Alpha/Character/Mira.md','## Summary\nMira waits.',{links:[root+'Beta/Lore.md']});
+  const foreign=note(root+'Beta/Character/Mira.md','Mira owns the laboratory.',{links:[own.path]});
+  const sibling=note(root+'Beta/Lore.md','Mira built everything.');
+  const shared=note('01 Lore/Gate.md','Mira visits the shared gate.',{links:[sibling.path]});
+  const result=retrieve([own,foreign,sibling,shared],own,18000,[foreign.path,sibling.path],'',n=>librarianProject(n,settings));
+  assert.ok(result.sources.some(s=>s.notePath===shared.path));
+  assert.ok(result.sources.every(s=>![foreign.path,sibling.path].includes(s.notePath)));
+  assert.equal(result.excluded,2);
+ }
+});
+
+test("Ask repairs only unambiguous supplied citations and discloses unresolved, omitted and unfinished output", async () => {
+ const {cleanAnswer}=await import('../src/core/answers.ts');
+ const p=packet(),unit=p.sources.find(s=>s.notePath===source.path)!;
+ const answer=cleanAnswer(`Mira works there [[01 Lore/Archive, ${unit.id}]]. [${unit.id}] [[Invented note]]`,{...p,omitted:3});
+ assert.match(answer.text,/\[\[01 Lore\/Archive\|Archive\]\]/);
+ assert.ok(!answer.text.includes('[[Invented note]]'));assert.ok(answer.warnings.some(w=>/unverified/.test(w)));assert.ok(answer.warnings.some(w=>/3 source passages/.test(w)));
+ const unknown=cleanAnswer('This answer ends with an unfinished explanation because',p);
+ assert.ok(unknown.warnings.some(w=>/incomplete/.test(w)));
+ const duplicate={...p,sources:[...p.sources,{...unit,id:'S99',notePath:'Elsewhere/Archive.md'}]};
+ assert.ok(!cleanAnswer('[[Archive]]',duplicate).text.includes('[['));
+ assert.ok(!cleanAnswer(`[[Wrong owner, ${unit.id}]]`,p).text.includes('[['));
+ assert.ok(!cleanAnswer('There is insufficient evidence to establish who owns the laboratory.',p).warnings.some(w=>/incomplete/.test(w)));
+});
+
+test("writing requests direct attribution without length pressure and refuses unfinished drafts",()=>{
+ const p=packet();
+ const request=prompt(p,'expansion');
+ assert.match(request,/Direct evidence/);assert.ok(!request.includes('1000–1400'));
+ assert.throws(()=>cleanDraft('## Summary\nMira walks into the laboratory and starts to explain why she',p),/incomplete/);
+});
+
+
+test('Ask does not inherit entry-writing guidance or template section pressure',()=>{
+ const request=prompt({...packet(),guidance:'CUSTOM_ENTRY_BRIEF'},'ask','Who owns the laboratory?');
+ assert.ok(!request.includes('CUSTOM_ENTRY_BRIEF'));assert.ok(!request.includes('"sections"'));assert.match(request,/Answer only/);
+});
+
+
+test('explicit references within the selected project retain useful passages without repeating the target name',async()=>{
+ const {librarianProject}=await import('../src/core/context.ts');const {readWorkspace}=await import('../src/workspace/model.ts');
+ const settings=readWorkspace({vaultType:'Storyboard'}),target=note('Alpha/Character/Mira.md','Mira waits at the gate.'),local=note('Alpha/Lore/Key.md','A copper key opens the archive gate.'),foreign=note('Beta/Lore/Key.md','A different key opens another gate.');
+ const p=retrieve([target,local,foreign],target,18000,[local.path,foreign.path],'',n=>librarianProject(n,settings));
+ assert.ok(p.sources.some(s=>s.notePath===local.path));assert.ok(!p.sources.some(s=>s.notePath===foreign.path));
+});
+
+
+test('grounding review fails closed on malformed or unsupported section verdicts',async()=>{
+ const {validateGroundingReview}=await import('../src/core/writing.ts'),sections=[{section:'Summary',prose:'Mira guards the archive.'}];
+ assert.doesNotThrow(()=>validateGroundingReview('{"unsupported":[]}',sections));
+ assert.throws(()=>validateGroundingReview('All looks good.',sections),/could not be read/);
+ assert.throws(()=>validateGroundingReview('{"unsupported":[{"section":"Unknown","reason":"No source"}]}',sections),/invalid/);
+ assert.throws(()=>validateGroundingReview('{"unsupported":[{"section":"Summary","reason":"Ownership not established"}]}',sections),/Draft withheld/);
+});
+
+
+test('non-observation cannot become a definitive event denial, but an explicit denial can support it',async()=>{
+ const {validateEvidenceBoundaries}=await import('../src/core/writing.ts');
+ const p=retrieve([note('Character/Mira.md','No repair is shown.')],note('Character/Mira.md','No repair is shown.'));
+ assert.throws(()=>validateEvidenceBoundaries(p,[{section:'Summary',prose:'No repair occurs.'}]),/not shown/);
+ assert.doesNotThrow(()=>validateEvidenceBoundaries(p,[{section:'Summary',prose:'No repair is shown.'}]));
+ assert.doesNotThrow(()=>validateEvidenceBoundaries({...p,target:{...p.target,text:'No repair is shown. No repair occurs.'}},[{section:'Summary',prose:'No repair occurs.'}]));
+});
+
+
+test("insertion removes empty-template gaps while preserving content and CRLF", () => {
+  for(const nl of ["\n","\r\n"]){
+    const original=["---","title: Mira","---","## Abilities",""," ","","## Key Scenes","","",""].join(nl);
+    const edit=insertion(original,"Abilities","Supported ability.");
+    const result=original.slice(0,edit.from)+edit.insert+original.slice(edit.to??edit.from);
+    assert.equal(result,["---","title: Mira","---","## Abilities","","Supported ability.","","## Key Scenes","","",""].join(nl));
+    const callout=["> [!abstract] Summary",">","> ",">","","## Goals",""].join(nl);
+    const c=insertion(callout,"Summary","Supported summary.");
+    assert.equal(callout.slice(0,c.from)+c.insert+callout.slice(c.to??c.from),["> [!abstract] Summary","> Supported summary.","","## Goals",""].join(nl));
+  }
+});
+
+test("saved outputs retain a portable recovery version and restore without changing canon", async()=>{
+  const {restoreExpansion,recoveryPath}=await import('../src/core/storage.ts');
+  const files=new Map<string,string>();
+  const portable:HiddenPort={read:async p=>files.get(p)??null,write:async(p,v)=>{files.set(p,v);},mkdir:async()=>{}};
+  const first=makeExpansion(packet(),'## Summary\n\nFirst supported draft.');
+  await saveExpansion(portable,first,null);
+  const prior=files.get(expansionPath(first.entry))!;
+  const next={...first,draft:'## Summary\n\nSecond supported draft.'};
+  await saveExpansion(portable,next,prior);
+  assert.equal(files.get(recoveryPath(first.entry)),prior);
+  // Simulate a different installation receiving only the vault-relative bytes.
+  const copied=new Map(files);
+  const remote:HiddenPort={...portable,read:async p=>copied.get(p)??null,write:async(p,v)=>{copied.set(p,v);}};
+  await restoreExpansion(remote,first.entry,copied.get(expansionPath(first.entry))!);
+  assert.deepEqual(decode(copied.get(expansionPath(first.entry))!,first.entry),first);
+  assert.equal(decode(copied.get(recoveryPath(first.entry))!,first.entry).draft,next.draft);
+  assert.equal(files.size,2);assert.equal(copied.size,2);
+});
+
+test("recovery failure, cancellation and concurrent changes cannot replace the current expansion",async()=>{
+  const {recoveryPath}=await import('../src/core/storage.ts');
+  const e=makeExpansion(packet(),'## Summary\n\nSupported draft.'),path=expansionPath(e.entry),old=encode(e);
+  for(const failure of ['disk','cancel','concurrent']){
+    const files=new Map([[path,old]]),controller=new AbortController();
+    const port:HiddenPort={read:async p=>files.get(p)??null,mkdir:async()=>{},write:async(p,v)=>{
+      if(p===recoveryPath(e.entry)){
+        if(failure==='disk')throw new Error('Disk full');
+        files.set(p,v);
+        if(failure==='cancel')controller.abort();
+        if(failure==='concurrent')files.set(path,'newer writer');
+      }else files.set(p,v);
+    }};
+    await assert.rejects(saveExpansion(port,{...e,draft:'Replacement.'},old,controller.signal));
+    assert.equal(files.get(path),failure==='concurrent'?'newer writer':old);
+  }
+});
+
+test("legacy and damaged files are visible and ownership markers in prose grant no write access",async()=>{
+  const {inspectExpansion,pluginOwned}=await import('../src/core/storage.ts');
+  const e=makeExpansion(packet(),'## Summary\n\nSupported draft.');
+  const standalone=encode(e).replace('marginalia-plugin: 1\n','');
+  assert.match(inspectExpansion(standalone,e.entry).item.status!,/Standalone/);
+  const legacy='---\ngenerated: true\nexpansion: {"oldSchema":true}\n---\n\n## Summary\n\nLegacy prose.\n';
+  const inspected=inspectExpansion(legacy,e.entry);assert.match(inspected.item.status!,/Legacy/);assert.equal(inspected.body,'## Summary\n\nLegacy prose.');
+  const damaged=encode(e).replace(/^expansion: .+$/m,'expansion: broken');
+  assert.equal(inspectExpansion(damaged,e.entry).owned,true);assert.match(inspectExpansion(damaged,e.entry).item.status!,/Damaged/);
+  assert.equal(pluginOwned(standalone+'\nmarginalia-plugin: 1\n'),false);
+  const memory=port(standalone+'\nmarginalia-plugin: 1\n');await assert.rejects(saveExpansion(memory.port,e,memory.get()),/standalone/);assert.equal(memory.writes.length,0);
+});
+
+test('unowned recovery files are preserved and a failed final write keeps the previous supported bytes',async()=>{
+ const {recoveryPath,restoreExpansion}=await import('../src/core/storage.ts');
+ const e=makeExpansion(packet(),'## Summary\n\nOriginal supported draft.'),path=expansionPath(e.entry),backup=recoveryPath(e.entry),old=encode(e);
+ const files=new Map([[path,old],[backup,'unowned existing bytes']]);let corrupt=false;
+ const port:HiddenPort={read:async p=>files.get(p)??null,mkdir:async()=>{},write:async(p,v)=>{files.set(p,corrupt&&p===path?'truncated':v);}};
+ await assert.rejects(saveExpansion(port,{...e,draft:'New draft.'},old),/unowned recovery/);
+ assert.equal(files.get(path),old);assert.equal(files.get(backup),'unowned existing bytes');
+ files.delete(backup);corrupt=true;
+ await assert.rejects(saveExpansion(port,{...e,draft:'New draft.'},old),/could not be verified/);
+ assert.equal(files.get(backup),old);
+ // A truncated first line without an ownership marker cannot be silently replaced.
+ await assert.rejects(restoreExpansion(port,e.entry,'truncated'),/standalone/);
+ assert.equal(files.get(backup),old);
 });

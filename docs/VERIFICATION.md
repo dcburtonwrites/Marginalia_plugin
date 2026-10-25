@@ -371,3 +371,113 @@ Evidence: verification/mobile-load.json, mobile-ui.json and mobile-preservation.
 | Physical-device fix confirmed | Original reported mobile tooltip failure was not reproduced here; native iOS/Android keyboard/dialog check remains necessary | Pending |
 
 Structured evidence: verification/mobile-ui.json and mobile-load.json. Visuals: design/verification/mobile-{phone,android,tablet}-character-dialog.png and desktop-character-dropdown.png. Browser native-modal mocks do not establish device keyboard/WebKit/Capacitor compatibility. Development package/ZIP updated and copied only to the disposable vault; no model generation, preference edits or creative-vault writes.
+
+## Optional writing features — 2026-10-24 (D-0036)
+
+| Requirement / rule | Evidence | Result |
+| --- | --- | --- |
+| Focus/history opt in; existing defaults preserved | Writing preference regression; typecheck | Pass |
+| Focus scoped to native script editor, presentation only; live toggle | Production CodeMirror extension in light/dark browser harness; document unchanged on toggle; paragraph decorations visible and removed when disabled | Pass at browser boundary |
+| History counts only running local changes; excludes pauses/imports; Undo reflected | Added writing tests: pause/reload restoration, additions/deletions, deadline cap, completion/reset deduplication | Pass |
+| History can be disabled while timer continues; bounded validated storage | Disable/retention/corrupt-record tests, 500-record limit | Pass |
+| Report, CSV and clear confirmation | Light/dark production Modal browser checks: 3-word session, reload persistence, CSV, Cancel preserves history, confirm clears | Pass at browser boundary |
+| Existing core/host behavior | npm test: 101 core/pure tests + 49 host tests, all passing | Pass |
+| Build/package | npm run package: typecheck, esbuild, dist/marginalia | Pass |
+| Existing mobile behavior | test-mobile-ui.mjs: phone, Android, tablet Chromium touch profiles; verify-mobile-load.mjs: startup without Node | Pass at synthetic boundary |
+| Native/physical acceptance | Actual desktop Obsidian and iOS/Android focus centering/keyboard, report layout, background/resume, disable cleanup and persisted history | Pending |
+
+New repeatable browser check: scripts/test-writing-features.mjs (uses the existing MARGINALIA_PLAYWRIGHT environment override). Screenshots: design/verification/writing-focus-{light,dark}.png and writing-features-{light,dark}.png. Screenshots were visually inspected for focus contrast and report readability. Browser checks use synthetic scripts, not original creative notes. No live vault installation or standalone app change was made.
+
+PDF compilation is documented for the next increment in PDF-COMPILE-NOTES.md; it is not implemented or accepted by these checks.
+
+
+## Automatic page/panel numbering — 2026-10-24 (D-0037)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Named/unnamed panels numbered per page; duplicate names safe | Pure label/parser tests; DOM source-line matching; native named doorway renumbers Panel 2 → Panel 1 after prior panel deletion | Pass |
+| Page numbers follow actual structure, preserve names and spreads | Pure middle insertion/deletion test with stale Page 91 labels; native Page 88 source displays 1, 2–3, 4 | Pass |
+| Reused rendered sections update without reopening | Native Reading view kept open: middle insertion produces 1, 2, 3–4, 5; deletion restores 1, 2–3, 4. Initially discovered stale unchanged chunks; fixed by per-file live-section invalidation | Pass |
+| Group ranges ignore stale declared counts | Native test uses Pages 99 and 81; first actual four slots → next pp. 5–5; adding middle page → next pp. 6–6 | Pass |
+| Project reader and outline match native Reading | Native Numbering Verification group shows correct page/panel disclosures and outline labels/ranges | Pass |
+| Source unchanged by numbering; inline controls retained | No automatic file writer; pure original-byte assertions; DOM test preserves link identity/click handler and emphasis; idempotent updates and cleanup restoration | Pass |
+| Automated baseline | 102 core/pure + 49 host tests; typecheck/package; numbering DOM checks; full test-ui browser interactions; phone/Android/tablet browser regressions; Node-unavailable mobile bundle smoke | Pass |
+| Physical mobile acceptance | Actual iOS/Android native Reading layout/refresh after edits | Pending |
+
+Native host: Obsidian 1.14.4, only `.preview/Marginalia Test Vault`. Added synthetic `08 Projects/Numbering Verification/Scripts/{Numbering Check,Following Check}.md`. Test edits deliberately retain stale source labels and metadata to prove display numbering is independent. Source/Live Preview remains literal authoring text; save/Reading view is authoritative under the owner's accepted placeholder option.
+
+Native checks used accessibility observations of rendered headings/panels and group ranges. An attempt to invoke “Reload app without saving” was blocked by automatic approval review due to possible unsaved state loss; it was not executed. Plugin reload instead used disable/enable through community-plugin settings, preserving editor state.
+
+Repeatable DOM regression: `scripts/test-numbering.mjs`. New source/build installed only in the named test vault. Creative vaults and standalone app were not modified.
+
+
+## Typewriter scroll and Librarian access — 2026-10-24 (D-0038)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Desktop center/mobile upper third | test-focus-scroll.mjs measures caret error <5 px at first/middle/last lines, typing and resized visible editor in desktop/mobile browser fixtures | Pass at browser boundary |
+| Native desktop geometry and Undo | Obsidian 1.14.4, Marginalia Test Vault, new synthetic Focus Scroll Check script: typed near beginning and end stays at midpoint; each test insertion undone; source marker absence checked | Pass |
+| Optional mode cleanup/history preserved | test-writing-features.mjs: light/dark focus toggles, source preservation, history/CSV/clear/reload | Pass |
+| Sidebar registration without duplication/focus changes | Host tests: startup ensureSideLeaf right/active:false/reveal:false; reuse current and deferred views; concurrent creation coalesces; disabled module skips | Pass |
+| Live-vault diagnosis | Reanimator's note-header lantern opened Librarian right sidebar, Local Ready. No note edits/model calls. Existing user navigation remained intact | Pass |
+| Baseline/package/mobile load | 102 core/pure + 51 host tests; typecheck/package; mobile bundle Node-unavailable smoke | Pass |
+| Actual mobile keyboard/rotation | Native iOS/Android visual viewport positioning above the keyboard | Pending |
+
+The original focus check verified classes and unchanged text, not actual caret coordinates; D-0038 adds those missing measurements. Native core styling needed a scoped padding override. Browser screenshots: design/verification/focus-scroll-{desktop,mobile}.png. Test-only source typing was undone; existing user edits to other test-vault fixtures were preserved. Updated package is in dist/marginalia and installed only in Marginalia Test Vault; Reanimator's plugin files were not replaced.
+
+
+## Compilation button/pop-up — October 24, 2026 (D-0039)
+
+| Requirement or rule | Evidence | Result |
+| --- | --- | --- |
+| Single Group, existing order, explicit inclusion, reject order errors/empty selection | Pure model tests; phone/tablet checklist tests; native modal Group selection | Pass |
+| Presets, content/Advanced options and per-Group persistence | Pure preference validation; browser preset/custom/checklist/A4/reopen/reload; native A4/cover/description controls | Pass |
+| Structural numbers, spreads, named panels, comments and literal examples | Pure compile/model regressions including adjacent panels; native generated PDFs | Pass |
+| Desktop actual PDF preview/export, Letter/A4, per-script breaks and sheet numbers | Obsidian 1.14.4/macOS: two-sheet Letter and five-sheet A4 exported via native save; all seven sheets rendered with Poppler and visually inspected | Pass |
+| Images, long dialogue and content omission | Native A4 includes a local raster, cover and 32 long dialogue paragraphs; description/note/comment omission and explicit remote-image warning checked | Pass |
+| Stale export and source integrity | Native synthetic source edit disabled Export PDF; exact restoration re-enabled it. SHA-256 of all 19 pre-existing Markdown files unchanged. Test note restored. | Pass |
+| Cancel and view/module cleanup | Native save Cancel; plugin off/on safely restores an unbuilt preview tab. Abort guards, temporary-file save and sandbox boundaries inspected | Pass for exercised paths; disk-full/permission-failure injection not exercised |
+| Mobile preview and unsupported desktop | Phone/tablet browser compilation tests; desktop browser without Electron exposes readable preview and disabled export; mobile bundle has no startup Node imports | Pass in harness |
+| Earlier functionality | 106 core/pure + 51 host tests; full browser UI, workspace, numbering DOM, focus/history and phone/Android/tablet navigation/editing regressions | Pass |
+| Physical mobile; Windows/Linux PDF | No physical-device/other-OS test performed | Pending acceptance |
+
+Test PDFs were saved under the system temporary directory, not a creative vault. Latest package is installed only in `.preview/Marginalia Test Vault/.obsidian/plugins/marginalia/`. Standalone app and Reanimator were not changed. Native Electron PDF export is an explicitly capability-checked host bridge; it is not a public Obsidian cross-platform PDF API. PDF pagination does not equate to comic-story pages.
+
+
+## Content selections and title-page credit — October 24, 2026 (D-0040)
+
+| Requirement | Evidence | Result |
+| --- | --- | --- |
+| Remove presets; heading and renamed controls; all three fresh defaults | Core option test, phone/tablet browser assertions, native modal inspection | Pass |
+| Remove orange line without masking real errors | Empty error element hidden until a failure; phone/tablet visibility assertion and native screenshot inspection | Pass |
+| Conditional editable author, required for title page, remembered within vault | Core persistence/validation tests; phone/tablet hide/show, changed author across Groups and reload checks; native remembered field | Pass |
+| Current local date appended to subtitle and By author | Deterministic core date test; mobile preview assertions; native PDF export and Poppler cover rendering inspected | Pass |
+| Preserve source files and previous saved content selections | All 20 pre-existing test-vault Markdown SHA-256 hashes unchanged; explicit saved flags retained; no source writer added | Pass |
+
+Core/host: 107 + 51 passing tests. Compilation browser tests passed for phone/tablet and unavailable desktop print engine. Updated package installed only in Marginalia Test Vault. Physical mobile acceptance remains open.
+
+
+## First Librarian reliability set — October 24, 2026 (D-0041)
+
+| Requirement / rule | Evidence | Result |
+| --- | --- | --- |
+| Project isolation before identity/graph expansion; no explicit-reference bypass | Core root Storyboard and nested custom-root scenarios; host project overview packet; native Nara scenario with a same-name conflicting character in another project | Pass |
+| Retain useful explicit references inside the selected project | Core reference without repeated target name, with foreign reference excluded | Pass |
+| Original-note citation normalization and no missing-note creation | Core full path/title/ID/comma-suffix/ambiguity tests; host exact existing-file navigation; production click-handler browser test; native repaired citation activated with Enter opens the original Gate scene | Pass |
+| Incomplete/no-citation/omission disclosure; previous results retained | Core validation, per-answer browser notices/New chat cleanup, host unfinished suggestion and saved-expansion preservation tests | Pass |
+| Configured entry types, custom templates and project brief | Host Creature template/sections/freshness and root Storyboard project-overview tests; configured templates excluded from evidence and never executed | Pass |
+| Grounding challenge: changed object, unsupported certainty, invented ownership, supported prose | Existing local gemma4:12b-mlx, fictional evidence, separate source review plus deterministic non-observation check: first three withheld, supported control accepted; librarian-grounding-check.json | Pass for these four scenarios |
+| Native writing failure containment | Initial native Enhancement exposed object substitution and unsupported certainty; review initially over-rejected a supported pronoun and later missed an ambiguity. These are recorded failures that drove revised review inputs/object checks, a deterministic absence rule and the exact ambiguous-source challenge. A withheld native draft left original notes untouched. | Safeguards verified; not a general proof of semantic accuracy |
+| Regression/build/mobile startup | 114 core/pure + 59 host tests, typecheck/package, desktop UI, mobile UI, compilation UI and Librarian reliability browser checks; mobile startup without Node | Pass |
+| Original content intact | SHA-256 of all 20 pre-existing test-vault Markdown notes unchanged; three new fictional acceptance notes only; no Insert action executed | Pass |
+| Wider prose-quality and real-vault author acceptance | Fictional before/after writing comparison supplied; original private-vault prose not regenerated or published in this increment | Pending author review |
+
+The final reliability flow has an extra local-model review for Enhancement, Expansion and refinement, with at most one corrected draft and another review when flagged. This adds latency and potentially conservative refusals. A model reviewer can miss errors or over-reject supported wording; deterministic coverage is limited to tested syntax. No accuracy guarantee or benchmark is claimed. Before/after samples show the writing step; the final guard challenge is recorded separately. To reproduce fictional comparisons, run scripts/check-librarian-quality.mjs (uses the fixed local baseline revision and installed model); the separate grounding challenge is scripts/check-librarian-grounding.ts, bundled as CommonJS like the desktop transport. No cloud, model download, standalone app change or creative-vault installation.
+
+Bounded correction regression: a flagged ownership claim is corrected once, independently reviewed again, and only the supported replacement becomes a suggestion. Repeated failure retains the earlier suggestion/saved expansion. Source edits during review invalidate the attempt. Final total: 173 automated tests passing.
+
+Final native bounded-correction run: the initial Key Scenes allegation was flagged; the model made one correction from gate to laboratory, but the follow-up review still considered the original “it” insufficiently explicit. The result was withheld, with no insertable suggestion published and no source modification. This confirms the conservative refusal path; it does not establish author acceptance of the reviewer’s strictness. Supported-prose acceptance is covered by the separate actual-model control and the complete bounded-correction host test.
+
+## October 24 — second Librarian bucket (D-0042)
+
+185 tests (119 pure/core + 66 host), package/typecheck, desktop and Librarian browser regressions, and Node-unavailable mobile loading pass. Native Marginalia Test Vault checks verify insertion whitespace, second insertion, one-step Undo, saved previous-version restoration, legacy/damaged visibility and a new original note triggering stale status. All 20 pre-existing Markdown hashes unchanged. Local two-root saved/recovery portability passes; physical Sync delivery and second-device reopening remain pending. See [the requirement/evidence report](verification/librarian-storage-2026-10-24.md). Standalone ownership migration remains deferred; only plugin files were built/installed in the test vault.

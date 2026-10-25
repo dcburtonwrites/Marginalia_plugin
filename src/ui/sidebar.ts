@@ -6,8 +6,10 @@ export interface Message {
   role: "user" | "assistant";
   text: string;
   packet?: Packet;
+  warnings?:string[];
 }
 export interface SidebarState {
+  vaultType?: "World"|"Storyboard";
   target: string | null;
   pinned: boolean;
   tab: Tab;
@@ -17,7 +19,7 @@ export interface SidebarState {
   error: string;
   suggestions: Suggestion[];
   messages: Message[];
-  expansions: { entry: string; generatedAt: string }[];
+  expansions: { entry: string; generatedAt: string; status?:string }[];
   references: string[];
   referenceChoices?: {path: string; type: string}[];
 }
@@ -181,7 +183,7 @@ export function renderSidebar(
   const scope = el("div", "marginalia-scope");
   scope.append(
     el("span", "marginalia-muted", "Search in"),
-    el("span", "marginalia-scope-label", "This world"),
+    el("span", "marginalia-scope-label", s.vaultType==="Storyboard"?"This project":"This world"),
   );
   const ref = button("Pin a reference", () => {
     if (!s.referenceChoices) { a.addReference(); return; }
@@ -244,7 +246,7 @@ export function renderSidebar(
         el(
           "h3",
           "",
-          s.target ? "Explore " + title(s.target) : "Your world, connected",
+          s.target ? "Explore " + title(s.target) : s.vaultType==="Storyboard"?"Your project, connected":"Your world, connected",
         ),
         el(
           "p",
@@ -275,6 +277,7 @@ export function renderSidebar(
       const content = el("div", "marginalia-markdown");
       a.markdown(m.text, content, s.target ?? "");
       item.append(content);
+      for(const warning of m.warnings??[]){const notice=el("p","marginalia-answer-warning",warning);notice.setAttribute("role","status");item.append(notice);}
       if (m.packet) item.append(sources(m.packet, a));
       body.append(item);
     }
@@ -349,7 +352,7 @@ export function renderSidebar(
         el(
           "span",
           "marginalia-muted",
-          new Date(expansion.generatedAt).toLocaleString(),
+          expansion.status ?? new Date(expansion.generatedAt).toLocaleString(),
         ),
       );
       body.append(b);

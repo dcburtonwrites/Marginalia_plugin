@@ -1,3 +1,4 @@
+import { readCompileAuthor, readCompileOptions, type CompileOptions } from "./compile-model.ts";
 import { frontmatter } from "./properties.ts";
 import type { ScriptGroup } from "./model.ts";
 
@@ -7,6 +8,8 @@ export interface WritingSelection {
   group?: string;
 }
 export interface WritingPreferences {
+  focusMode: boolean;
+  sessionHistory: boolean;
   scriptTemplate: string;
   showTimer: boolean;
   showWordCount: boolean;
@@ -14,7 +17,18 @@ export interface WritingPreferences {
   goalMode: GoalMode;
   dailyGoal: number;
 }
+export interface SessionRecord {
+  started: number; ended: number; elapsedMs: number;
+  selection: WritingSelection | null;
+  added: number; deleted: number;
+  projects: Record<string, { added: number; deleted: number }>;
+  outcome: "completed" | "stopped" | "in-progress";
+}
 export interface WritingData {
+  compilationAuthor: string;
+  compilation: Record<string, CompileOptions>;
+  history: SessionRecord[];
+  activeSession: SessionRecord | null;
   selection: WritingSelection | null;
   preferences: WritingPreferences;
   projectGoals: Record<string, number>;
@@ -35,6 +49,8 @@ export function readWriting(value: unknown, now = Date.now()): WritingData {
     value && typeof value === "object" ? (value as Partial<WritingData>) : {};
   const p = raw.preferences;
   const preferences: WritingPreferences = {
+    focusMode: p?.focusMode === true,
+    sessionHistory: p?.sessionHistory === true,
     scriptTemplate: typeof p?.scriptTemplate === "string" ? p.scriptTemplate.trim() : "",
     showTimer: p?.showTimer !== false,
     showWordCount: p?.showWordCount !== false,
@@ -77,6 +93,12 @@ export function readWriting(value: unknown, now = Date.now()): WritingData {
       ),
     );
   return {
+    compilationAuthor: readCompileAuthor(raw.compilationAuthor),
+    compilation: Object.assign(Object.create(null), Object.fromEntries(
+      raw.compilation && typeof raw.compilation === "object" && !Array.isArray(raw.compilation)
+        ? Object.entries(raw.compilation).map(([key,value])=>[key,readCompileOptions(value)]) : [])),
+    history: Array.isArray(raw.history) ? raw.history.filter(validRecord).slice(-500) : [],
+    activeSession: preferences.sessionHistory && validRecord(raw.activeSession) ? raw.activeSession : null,
     selection,
     preferences,
     projectGoals: numbers(raw.projectGoals),
@@ -101,6 +123,23 @@ export function readWriting(value: unknown, now = Date.now()): WritingData {
           }
         : { date: dayKey(now), vault: 0, projects: Object.create(null) },
   };
+}
+function validRecord(value: unknown): value is SessionRecord {
+  if (!value || typeof value !== "object") return false;
+  const r = value as SessionRecord;
+  const number = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 0;
+  return number(r.started) && number(r.ended) && r.ended <= 8640000000000000 && r.ended >= r.started && number(r.elapsedMs) &&
+    number(r.added) && number(r.deleted) && ["completed", "stopped", "in-progress"].includes(r.outcome) &&
+    (r.selection === null || !!r.selection && typeof r.selection.scope === "string" &&
+      (r.selection.group === undefined || typeof r.selection.group === "string")) &&
+    !!r.projects && typeof r.projects === "object" && !Array.isArray(r.projects) &&
+    Object.values(r.projects).every(p => !!p && number(p.added) && number(p.deleted));
+}
+export function sessionCSV(records: SessionRecord[]) {
+  const cell = (value: string | number) => '"' + (typeof value === "string" ? value.replace(/^\s*[=+@-]/, "'$&") : String(value)).replace(/"/g, '""') + '"';
+  return ["Started,Project,Group,Minutes,Added,Deleted,Net,Status", ...records.map(r =>
+    [new Date(r.started).toISOString(), r.selection?.scope ?? "", r.selection?.group ?? "",
+      (r.elapsedMs / 60000).toFixed(2), r.added, r.deleted, r.added-r.deleted, r.outcome].map(cell).join(","))].join("\r\n");
 }
 export function selectedGroups(
   groups: ScriptGroup[],
@@ -148,6 +187,7 @@ export class WritingSession {
   baseline = new Map<string, { words: number; scope: string | null }>();
   ready = false;
   deadline: number | null = null;
+  private accountedAt: number | null = null;
   data: WritingData;
   clock: () => number;
   constructor(data: WritingData, clock: () => number = Date.now) {
@@ -168,6 +208,16 @@ export class WritingSession {
     if (!this.ready || !credit) return false;
     const delta = words - (prior?.words ?? 0);
     if (!delta) return false;
+    this.updateHistoryClock();
+    const record = this.data.activeSession;
+    if (this.data.preferences.sessionHistory && this.running && this.remaining() > 0 && record) {
+      const key = delta > 0 ? "added" : "deleted";
+      record[key] += Math.abs(delta);
+      if (scope) {
+        if (!Object.hasOwn(record.projects, scope)) Object.defineProperty(record.projects, scope, {value: { added: 0, deleted: 0 }, enumerable: true, writable: true, configurable: true});
+        record.projects[scope][key] += Math.abs(delta);
+      }
+    }
     this.data.daily.vault += delta;
     if (scope)
       this.data.daily.projects[scope] =
@@ -238,14 +288,23 @@ export class WritingSession {
   start() {
     if (this.running) return;
     if (this.data.timerRemainingMs <= 0) this.reset();
+    if (this.data.preferences.sessionHistory && !this.data.activeSession) {
+      this.data.activeSession = { started: this.clock(), ended: this.clock(), elapsedMs: 0,
+        selection: this.data.selection ? { ...this.data.selection } : null,
+        added: 0, deleted: 0, projects: Object.create(null), outcome: "in-progress" };
+    }
+    this.accountedAt = this.clock();
     this.deadline = this.clock() + this.data.timerRemainingMs;
     this.data.timerStarted = true;
   }
   pause() {
+    this.updateHistoryClock();
+    this.accountedAt = null;
     this.data.timerRemainingMs = this.remaining();
     this.deadline = null;
   }
   reset() {
+    this.finishHistory("stopped");
     this.deadline = null;
     this.data.timerStarted = false;
     this.data.timerRemainingMs = this.data.preferences.countdownMinutes * 60000;
@@ -255,9 +314,35 @@ export class WritingSession {
     if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) throw new Error("Choose a whole number of minutes from 1 to 1440.");
     this.data.timerRemainingMs = minutes * 60000;
   }
+  updateHistoryClock() {
+    const r = this.data.activeSession;
+    if (r && this.deadline !== null && this.accountedAt !== null) {
+      const end = Math.min(this.clock(), this.deadline);
+      r.elapsedMs += Math.max(0, end - this.accountedAt);
+      r.ended = Math.max(r.started, end);
+      this.accountedAt = end;
+    }
+  }
+  finishHistory(outcome: "completed" | "stopped") {
+    this.updateHistoryClock();
+    const r = this.data.activeSession;
+    if (r) {
+      r.outcome = outcome;
+      r.ended = Math.max(r.ended, this.clock());
+      this.data.history.push(r);
+      this.data.history = this.data.history.slice(-500);
+      this.data.activeSession = null;
+    }
+    this.accountedAt = null;
+  }
+  setHistoryEnabled(enabled: boolean) {
+    if (!enabled) this.finishHistory("stopped");
+    this.data.preferences.sessionHistory = enabled;
+  }
   tick() {
     this.rollDay();
     if (this.deadline !== null && this.remaining() === 0) {
+      this.finishHistory("completed");
       this.data.timerRemainingMs = 0;
       this.deadline = null;
       this.data.timerStarted = false;
@@ -266,6 +351,7 @@ export class WritingSession {
     return false;
   }
   snapshot() {
+    this.updateHistoryClock();
     this.data.timerRemainingMs = this.remaining();
   }
 }
