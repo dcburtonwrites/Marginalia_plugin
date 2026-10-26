@@ -9,6 +9,11 @@ import {
   type WorkspaceLeaf,
   type Editor,
 } from "obsidian";
+import {hash} from "../core/types.ts";
+import {OutlineDragging,type OutlineDrag} from "./drag.ts";
+import {movePage,navigationOffset} from "./structure.ts";
+import {commitShortcut} from "./shortcut-extension.ts";
+import {editorViews} from "./folding.ts";
 import { ScriptController, scriptMetadata } from "./controller.ts";
 import { StudioView, STUDIO } from "./studio.ts";
 import { createScriptShortcutExtension } from "./shortcut-extension.ts";
@@ -39,6 +44,7 @@ export interface ScriptHost extends Plugin {
   refreshWritingFocus?: () => void;
   scriptOrders: ScriptOrders;
   writing: WritingData;
+  workspaceSettings?: import("../workspace/model.ts").WorkspaceSettings;
   savePluginData(): Promise<void>;
   scriptController?: ScriptController;
 }
@@ -115,6 +121,12 @@ export function registerScripts(plugin: ScriptHost) {
     ],
     ["move-panel-up", "Script: move panel up", -1],
     ["move-panel-down", "Script: move panel down", 1],
+    ["move-page-up","Script: move page up","page-up"],
+    ["move-page-down","Script: move page down","page-down"],
+    ["previous-page","Script: previous page","previous-page"],
+    ["next-page","Script: next page","next-page"],
+    ["previous-panel","Script: previous panel","previous-panel"],
+    ["next-panel","Script: next panel","next-panel"],
   ] as const)
     plugin.addCommand({
       id,
@@ -140,11 +152,19 @@ export function registerScripts(plugin: ScriptHost) {
         if (!script) return false;
         if (!checking) {
           try {
-            if (editor.somethingSelected())
+            if (editor.somethingSelected() && !["previous-page","next-page","previous-panel","next-panel"].includes(String(operation)))
               throw new Error(
                 "Clear the selection before changing script structure.",
               );
             const offset = editor.posToOffset(editor.getCursor());
+            if(operation==='previous-page'||operation==='next-page'||operation==='previous-panel'||operation==='next-panel'){
+              const at=navigationOffset(script,offset,operation.endsWith('page')?'page':'panel',operation.startsWith('previous')?-1:1);
+              if(at!==null){const pos=editor.offsetToPos(at);editor.setCursor(pos);editor.scrollIntoView({from:pos,to:pos},true);editor.focus();}
+              return;
+            }
+            if(operation==='page-up'||operation==='page-down'){
+              const edit=movePage(script,offset,operation==='page-up'?-1:1);if(edit)applyScriptEdit(editor,edit);return;
+            }
             applyScriptEdit(
               editor,
               typeof operation === "number"
@@ -159,19 +179,21 @@ export function registerScripts(plugin: ScriptHost) {
       },
     });
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const refresh = () => {
-    clearTimeout(timer);
-    timer = setTimeout(async () => {
-      try {
-        await controller.fillMissing(await controller.groups());
-      } catch (error) {
-        console.warn("Marginalia script properties:", error);
-      }
+  let running=false,again=false,stopped=false;
+  const flush=async()=>{
+    if(stopped)return;
+    if(running){again=true;return;}
+    running=true;
+    try{do{
+      again=false;
+      try{await controller.fillMissing(await controller.groups());}
+      catch(error){if(!stopped)console.warn("Marginalia script properties:",error);}
+      if(stopped)return;
       redraw();
-      for (const leaf of plugin.app.workspace.getLeavesOfType(PROJECT))
-        if (leaf.view instanceof ProjectView) void leaf.view.draw();
-    }, 250);
+      await Promise.all(plugin.app.workspace.getLeavesOfType(PROJECT).map(leaf=>leaf.view instanceof ProjectView?leaf.view.draw():undefined));
+    }while(again&&!stopped);}finally{running=false;}
   };
+  const refresh = () => {if(stopped)return;clearTimeout(timer);timer=setTimeout(()=>void flush(),250);};
   plugin.app.workspace.onLayoutReady(
     () =>
       void controller
@@ -182,10 +204,11 @@ export function registerScripts(plugin: ScriptHost) {
         })
         .catch((error) => console.warn("Marginalia writing baseline:", error)),
   );
-  plugin.register(() => clearTimeout(timer));
-  plugin.registerEvent(plugin.app.metadataCache.on("changed", refresh));
+  plugin.register(() => {stopped=true;clearTimeout(timer);});
+  plugin.registerEvent(plugin.app.metadataCache.on("changed", file=>{controller.invalidate(file.path);refresh();}));
   plugin.registerEvent(
     plugin.app.vault.on("create", (file) => {
+      controller.invalidate(file.path);
       if (file instanceof TFile)
         void controller.observeFile(file).catch(() => {});
       refresh();
@@ -193,6 +216,7 @@ export function registerScripts(plugin: ScriptHost) {
   );
   plugin.registerEvent(
     plugin.app.vault.on("modify", (file) => {
+      controller.invalidate(file.path);
       if (file instanceof TFile)
         void controller.observeFile(file).catch(() => {});
       refresh();
@@ -200,12 +224,14 @@ export function registerScripts(plugin: ScriptHost) {
   );
   plugin.registerEvent(
     plugin.app.vault.on("delete", (file) => {
+      controller.invalidate(file.path);
       controller.session.baseline.delete(file.path);
       refresh();
     }),
   );
   plugin.registerEvent(
     plugin.app.vault.on("rename", (file, old) => {
+      controller.invalidate();
       controller.session.rename(old, file.path);
       plugin.scriptOrders = renameOrders(plugin.scriptOrders, old, file.path);
       const preferences = controller.session.data.preferences;
@@ -227,6 +253,8 @@ export function registerScripts(plugin: ScriptHost) {
   );
 }
 export function applyScriptEdit(editor: Editor, edit: ScriptEdit) {
+  const cm=editorViews.get(editor);
+  if(cm){commitShortcut(cm,{...edit,anchor:edit.cursor,head:edit.cursor});cm.focus();return;}
   editor.transaction({
     changes: [
       {
@@ -284,6 +312,9 @@ export class ScriptsView extends ItemView {
   closed = false;
   saving = false;
   viewOptionsOpen = false;
+  dragging=new OutlineDragging(()=>{if(!this.closed)void this.draw();});
+  currentScripts=new Map<string,Script>();
+  lastOutline="";
   constructor(leaf: WorkspaceLeaf, plugin: ScriptHost) {
     super(leaf);
     this.plugin = plugin;
@@ -304,6 +335,8 @@ export class ScriptsView extends ItemView {
   }
   async onClose() {
     this.closed = true;
+    this.dragging.cancel();
+    this.lastOutline="";
     this.revision++;
   }
   async draw() {
@@ -318,7 +351,12 @@ export class ScriptsView extends ItemView {
         syncError = error instanceof Error ? error.message : String(error);
       }
       if (this.closed || revision !== this.revision) return;
+      this.currentScripts=new Map(groups.flatMap(group=>group.scripts).map(script=>[script.path,script]));
+      const signature=JSON.stringify([syncError,this.controller.session.data.selection,groups.map(group=>[group.scope,group.group]),selectedGroups(groups,this.controller.session.data.selection).map(group=>[group.scope,group.group,group.issues,[...group.starts],group.sequences.map(sequence=>sequence.map(script=>[script.path,script.metadata.Title,script.declared,script.slots,script.pages.map(page=>[page.title,page.side,page.slots,page.panels.map(panel=>panel.title)])]))])]);
+      if(this.dragging.active||this.lastOutline===signature){this.drawFooter();return;}
+      this.lastOutline=signature;
       const shell = this.contentEl;
+      const priorScroll=shell.querySelector<HTMLElement>(".marginalia-scripts-outline")?.scrollTop??0;
       const focused = shell.contains(document.activeElement)
         ? (document.activeElement as HTMLElement).dataset.key
         : undefined;
@@ -377,7 +415,7 @@ export class ScriptsView extends ItemView {
         root.append(actions);
       }
       root.append(el("p", "marginalia-script-caption", selection
-        ? "Drag scripts to arrange reading order."
+        ? "Drag scripts, pages or panels to arrange reading order."
         : "Choose a project or grouping to begin."));
       if (syncError)
         root.append(el("p", "marginalia-script-warning", syncError));
@@ -458,6 +496,8 @@ export class ScriptsView extends ItemView {
               script.metadata.Title.trim()
                 ? script.metadata.Title
                 : script.path.split("/").at(-1)!.replace(/\.md$/, "");
+            const live=()=>this.currentScripts.get(script.path)??script;
+            const fingerprint=()=>hash(live().text);
             const open = this.expanded.has(script.path);
             const file = outlineRow(
               container,
@@ -474,48 +514,11 @@ export class ScriptsView extends ItemView {
               "marginalia-script-file",
             );
             file.name.classList.add("marginalia-script-name");
-            file.row.draggable = !this.saving && !this.controller.busy;
-            file.name.draggable = file.row.draggable;
-            file.row.addEventListener("dragstart", (e) => {
-              e.dataTransfer?.setData(
-                "application/x-marginalia-script",
-                JSON.stringify({ key, path: script.path }),
-              );
-              if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-            });
-            file.row.addEventListener("dragover", (e) => {
-              if (
-                !this.saving &&
-                !this.controller.busy &&
-                e.dataTransfer?.types.includes(
-                  "application/x-marginalia-script",
-                )
-              ) {
-                e.preventDefault();
-                if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-              }
-            });
-            file.row.addEventListener("drop", (e) => {
-              e.preventDefault();
-              if (this.saving || this.controller.busy) return;
-              try {
-                const source = JSON.parse(
-                  e.dataTransfer?.getData("application/x-marginalia-script") ||
-                    "{}",
-                );
-                if (
-                  source.key === key &&
-                  typeof source.path === "string" &&
-                  source.path !== script.path
-                )
-                  void this.saveOrder(
-                    group,
-                    reorderScript(group, source.path, script.path),
-                  );
-              } catch {
-                new Notice("Could not move that script.");
-              }
-            });
+            file.name.draggable=false;
+            this.dragging.bind(file.row,{kind:'script',key,path:script.path},{
+              accept:source=>source.kind==='script'&&source.key===key&&source.path!==script.path,
+              drop:source=>void this.saveOrder(group,reorderScript(group,source.path,script.path)),
+            },()=>!this.saving&&!this.controller.busy);
             const start = group.starts.get(script.path);
             const range =
               start !== undefined &&
@@ -539,17 +542,25 @@ export class ScriptsView extends ItemView {
                     : "Page count differs from Pages. Numbering follows the actual pages.",
                 ),
               );
-            for (const page of script.pages) {
-              const pageKey = script.path + ":" + page.from;
+            const pageOccurrences=new Map<string,number>();
+            for (const [pageIndex,page] of script.pages.entries()) {
+              const occurrence=pageOccurrences.get(page.title)??0;pageOccurrences.set(page.title,occurrence+1);
+              const pageKey = script.path + ":page:" + page.title+":"+occurrence;
               const pageRow = outlineRow(
                 file.children,
                 pageLabel(page),
                 pageKey,
                 this.expandedPages.has(pageKey),
-                () => visit(script.path, page.line),
+                () => visit(script.path, live().pages[pageIndex]?.line??page.line),
                 (value) => { value ? this.expandedPages.add(pageKey) : this.expandedPages.delete(pageKey); },
                 "marginalia-script-page",
               );
+              const valid=(source:OutlineDrag)=>source.path===script.path&&source.fingerprint===fingerprint()&&typeof source.from==='number';
+              pageRow.name.draggable=false;
+              this.dragging.bind(pageRow.row,()=>({kind:'page',path:script.path,from:live().pages[pageIndex]?.from,fingerprint:fingerprint()}),{
+                accept:source=>valid(source)&&(source.kind==='page'||source.kind==='panel'),
+                drop:(source,edge)=>void this.moveBlock(live(),source,live().pages[pageIndex]?.from??page.from,source.kind==='panel'?'inside':edge),
+              },()=>!this.saving&&!this.controller.busy);
               pageRow.name.title = `Page ${page.local}${page.slots === 2 ? "–" + (page.local + 1) : ""}`;
               pageRow.row.append(
                 el("span", "marginalia-script-side", page.side),
@@ -557,11 +568,15 @@ export class ScriptsView extends ItemView {
               page.panels.forEach((panel, i) => {
                 const row = button(
                   panelLabel(panel.title, i),
-                  () => visit(script.path, panel.line),
+                  () => visit(script.path, live().pages[pageIndex]?.panels[i]?.line??panel.line),
                   "marginalia-script-row",
                 );
                 row.dataset.key = pageKey + ":panel:" + i;
                 row.title = `Go to panel ${i + 1}: ${panel.title}`;
+                this.dragging.bind(row,()=>({kind:'panel',path:script.path,from:live().pages[pageIndex]?.panels[i]?.from,fingerprint:fingerprint()}),{
+                  accept:source=>valid(source)&&source.kind==='panel',
+                  drop:(source,edge)=>void this.moveBlock(live(),source,live().pages[pageIndex]?.panels[i]?.from??panel.from,edge),
+                },()=>!this.saving&&!this.controller.busy);
                 pageRow.children.append(row);
               });
               if (!page.panels.length)
@@ -581,12 +596,14 @@ export class ScriptsView extends ItemView {
         add.dataset.key = "new-script";
         root.append(add);
       }
+      root.scrollTop=priorScroll;
       this.drawFooter();
       if (focused)
         [...shell.querySelectorAll<HTMLElement>("[data-key]")]
           .find((e) => e.dataset.key === focused)
           ?.focus({ preventScroll: true });
     } catch (error) {
+      this.lastOutline="";
       if (!this.closed && revision === this.revision)
         this.contentEl.replaceChildren(
           el(
@@ -596,6 +613,13 @@ export class ScriptsView extends ItemView {
           ),
         );
     }
+  }
+  async moveBlock(script:Script,source:OutlineDrag,target:number,edge:'before'|'after'|'inside'){
+    if(this.saving||source.kind==='script')return;
+    this.saving=true;
+    try{await this.controller.moveStructure(script,source.kind,source.from!,target,edge);}
+    catch(error){new Notice(error instanceof Error?error.message:String(error));}
+    finally{this.saving=false;if(!this.closed)await this.draw();}
   }
   async saveOrder(group: ScriptGroup, paths: string[]) {
     if (this.saving) return;

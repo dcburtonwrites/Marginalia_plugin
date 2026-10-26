@@ -1,12 +1,13 @@
 import {hash, type Note, type Freshness} from "./types.ts";
-import {librarianProject} from "./context.ts";
+import {projectResolver} from "../workspace/model.ts";
 import type {WorkspaceSettings} from "../workspace/model.ts";
 
 /** Conservative inventory: shared originals plus this project, including potential new evidence. */
 export function freshness(notes:Note[],target:Note,settings:WorkspaceSettings,context:number):Freshness {
-  const scope=librarianProject(target,settings);
+  const resolve=projectResolver(settings,notes);
+  const scope=resolve(target.path,target.metadata);
   const inventory=notes.filter(note=>{
-    const project=librarianProject(note,settings);
+    const project=resolve(note.path,note.metadata);
     return !scope || !project || project===scope;
   }).map(note=>[note.path,hash(note.text),note.aliases,note.links,note.metadata])
     .sort((a,b)=>String(a[0]).localeCompare(String(b[0])));

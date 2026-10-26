@@ -1,21 +1,18 @@
-import {entryType, projectPath, values, type WorkspaceSettings} from "../workspace/model.ts";
+import {entryType, projectResolver, values, type WorkspaceSettings} from "../workspace/model.ts";
 import type {Note} from "./types.ts";
 
 /** Same configured boundaries as workspace navigation; shared areas are not projects. */
-export function librarianProject(note:Note,settings:WorkspaceSettings):string|undefined {
-  const path=note.path;
-  const globalFolders=[...settings.canonTypes.map(type=>type.folder),settings.entrySetup.brainstorm.folder].filter(Boolean);
-  if(globalFolders.some(folder=>path.startsWith(folder+"/")))return undefined;
-  return projectPath(path,settings.vaultType,settings.entrySetup.projectsFolder);
+export function librarianProject(note:Note,settings:WorkspaceSettings,notes:Note[]=[note]):string|undefined {
+  return projectResolver(settings,notes)(note.path,note.metadata);
 }
-export function librarianType(note:Note,settings:WorkspaceSettings) {
-  const tags=[...values(note.metadata.tags),...values(note.metadata.cssclasses)].flatMap(v=>v.split(/[\s,]+/)).map(v=>v.replace(/^#/,"").toLowerCase());
+export function librarianType(note:Note,settings:WorkspaceSettings,notes:Note[]=[note]) {
+  const tags=[...values(note.tags),...values(note.metadata.tags),...values(note.metadata.cssclasses)].flatMap(v=>v.split(/[\s,]+/)).map(v=>v.replace(/^#/,"").toLowerCase());
   const declared=values(note.metadata["canon-type"])[0];
   const configured=settings.canonTypes.find(type=>type.name.toLowerCase()===declared?.toLowerCase());
   if(configured)return configured.name;
   const type=entryType(note.path,tags,settings.canonTypes);
   if(type)return type;
-  const project=librarianProject(note,settings);
+  const project=librarianProject(note,settings,notes);
   if(project&&(note.metadata.role==="project"||tags.some(tag=>/^(project|project-parent|project\/overview)$/.test(tag))||/(?:^|\/)(?:[^/]*overview|index)\.md$/i.test(note.path)))return "Project";
   return "Lore";
 }

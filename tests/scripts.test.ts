@@ -488,3 +488,43 @@ test("compilation defaults include all content, remembers a vault author and sna
   assert.equal(stored.compilationAuthor,'Alex Writer');assert.equal(readWriting(null).compilationAuthor,'');
   assert.equal(readWriting({compilationAuthor:42}).compilationAuthor,'');
 });
+
+test('page drags move complete original ranges and preserve metadata, names, spreads and CRLF',async()=>{
+ const {movePageTo}=await import('../src/scripts/structure.ts');
+ for(const eol of ['\n','\r\n']){
+  const text=['---','Pages: 4','---','Preamble unchanged.','','## Page 12 — Arrival','','Side: Right','','> [!panel] Named panel','> Description.','','**MIRA:** Dialogue.','','> [!note] Editorial','> Keep this.','','## Page 99 — Panorama','','Side: Double Spread','','> [!panel] Wide','> Wide view.','','## Page 42 — Empty'].join(eol);
+  const script=parse(text),edit=movePageTo(script,script.pages[2].from,script.pages[0].from,'before')!;
+  const result=text.slice(0,edit.from)+edit.text+text.slice(edit.to),moved=parse(result);
+  assert.deepEqual(moved.pages.map(page=>page.title),['Page 42 — Empty','Page 12 — Arrival','Page 99 — Panorama']);
+  assert.ok(result.startsWith(text.slice(0,script.pages[0].from)));assert.match(result,/Dialogue/);assert.match(result,/Editorial/);
+  assert.equal(moved.pages[2].side,'Double Spread');assert.equal(moved.slots,4);
+  assert.ok(result.includes(text.slice(script.pages[0].from,script.pages[2].from)));
+  assert.equal(movePageTo(script,script.pages[0].from,script.pages[0].from,'after'),null);
+  if(eol==='\r\n')assert.ok(!result.replaceAll('\r\n','').includes('\n'));
+ }
+});
+
+test('panel drags reorder siblings or move between pages, including an empty destination',async()=>{
+ const {movePanelTo}=await import('../src/scripts/structure.ts');
+ const text='---\nTitle: Keep\n---\n## Page 1\n\nSide: Left\n\n> [!panel] A\n> A view.\n\n**MIRA:** Keep A dialogue.\n\n> [!panel] B\n> B view.\n\n> [!tip] Note\n> Keep B note.\n\n## Page 2\n\nSide: Right\n\nLocation: Keep location.\n';
+ const script=parse(text),[a,b]=script.pages[0].panels;
+ const sibling=movePanelTo(script,b.from,a.from,'before')!;
+ assert.deepEqual(parse(text.slice(0,sibling.from)+sibling.text+text.slice(sibling.to)).pages[0].panels.map(p=>p.title),['B','A']);
+ const edit=movePanelTo(script,a.from,script.pages[1].from,'inside')!;
+ const result=text.slice(0,edit.from)+edit.text+text.slice(edit.to),moved=parse(result);
+ assert.deepEqual(moved.pages.map(page=>page.panels.map(panel=>panel.title)),[['B'],['A']]);
+ assert.match(result,/Location: Keep location\.[\s\S]*\[!panel\] A/);
+ assert.ok(result.includes(text.slice(a.from,a.to)));assert.match(result,/Keep B note/);assert.ok(result.startsWith('---\nTitle: Keep\n---'));
+ assert.throws(()=>movePanelTo(script,999,script.pages[1].from,'inside'),/outline changed/);
+});
+
+test('page movement commands and previous/next navigation use real structural ranges',async()=>{
+ const {movePage,navigationOffset}=await import('../src/scripts/structure.ts');
+ const script=parse('## Page 1\n\n> [!panel] A\n> First.\n\n## Page 8\n\n> [!panel] B\n> Last.');
+ assert.equal(navigationOffset(script,script.pages[0].from,'page',1),script.pages[1].from);
+ assert.equal(navigationOffset(script,script.text.length,'page',-1),script.pages[0].from);
+ assert.equal(navigationOffset(script,script.text.length,'panel',-1),script.pages[0].panels[0].from);
+ assert.equal(navigationOffset(script,0,'page',-1),null);
+ assert.throws(()=>movePage(script,0,-1),/edge/);
+ const edit=movePage(script,script.text.length,-1)!;assert.equal(parse(script.text.slice(0,edit.from)+edit.text+script.text.slice(edit.to)).pages[0].title,'Page 8');
+});

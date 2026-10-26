@@ -481,3 +481,7 @@ Final native bounded-correction run: the initial Key Scenes allegation was flagg
 ## October 24 — second Librarian bucket (D-0042)
 
 185 tests (119 pure/core + 66 host), package/typecheck, desktop and Librarian browser regressions, and Node-unavailable mobile loading pass. Native Marginalia Test Vault checks verify insertion whitespace, second insertion, one-step Undo, saved previous-version restoration, legacy/damaged visibility and a new original note triggering stale status. All 20 pre-existing Markdown hashes unchanged. Local two-root saved/recovery portability passes; physical Sync delivery and second-device reopening remain pending. See [the requirement/evidence report](verification/librarian-storage-2026-10-24.md). Standalone ownership migration remains deferred; only plugin files were built/installed in the test vault.
+
+## October 25 — Step 3 project organization and script navigation (D-0043)
+
+196 automated tests (125 pure/core + 71 host), package/typecheck, workspace/desktop/mobile/Compile/Librarian browser suites, structural drag/Undo/touch harness and Node-unavailable mobile loading pass. Native 1.14.4 verifies organizational-folder exclusion, page/panel dragging with one-step Undo, full dialogue/note ownership, next-page navigation, script ordering and actual test-vault close/reopen persistence. All 23 pre-existing test Markdown hashes unchanged. The large synthetic inventory proves warm-read/parse reuse, not physical disk or mobile performance. [Requirement/evidence report](verification/project-navigation-2026-10-25.md).

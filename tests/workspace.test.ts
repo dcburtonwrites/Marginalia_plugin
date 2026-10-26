@@ -263,3 +263,38 @@ test("hidden folders are a persisted user menu rule, including optional Assets",
   assert.ok(sharedFolders(["__Assets"],hidden).includes("__Assets"));
   assert.equal(eligible("_Assets/Index.md"),false); // Browsing does not make assets retrieval evidence.
 });
+
+test('organizational overview folders do not become projects, including falsely tagged summaries',async()=>{
+ const {projectResolver}=await import('../src/workspace/model.ts');
+ for(const vaultType of ['World','Storyboard'] as const){
+  const settings=readWorkspace({vaultType});
+  const prefix=vaultType==='World'?'08 Projects/':'';
+  const entries=[note(prefix+'00 Overview/Overview.md',['project-parent']),note(prefix+'Harbor/Overview.md',['project-parent']),note(prefix+'Harbor/Scripts/Opening.md')];
+  const folders=[prefix+'00 Overview',prefix+'Harbor'];
+  assert.deepEqual(projects(entries,vaultType,folders,settings).map(project=>project.path),[prefix+'Harbor']);
+  const resolve=projectResolver(settings,entries);
+  assert.equal(resolve(prefix+'00 Overview/Overview.md'),undefined);assert.equal(resolve(prefix+'Harbor/Scripts/Opening.md'),prefix+'Harbor');
+ }
+});
+
+test('configured and explicit project boundaries agree across discovery, canon and source scoping',async()=>{
+ const {projectResolver}=await import('../src/workspace/model.ts');
+ const {librarianProject}=await import('../src/core/context.ts');
+ const settings=readWorkspace({vaultType:'World',entrySetup:{projectsFolder:'Books'}});
+ const entries=[note('Elsewhere/Harbor/Overview.md',['project-parent']),note('Elsewhere/Harbor/Characters/Mira.md',['character'])];
+ const resolve=projectResolver(settings,entries);
+ assert.equal(resolve(entries[1].path),'Elsewhere/Harbor');
+ const notes=entries.map(entry=>({path:entry.path,text:entry.body,mtime:1,links:[],aliases:[],metadata:{...entry.fields,tags:entry.tags}}));
+ assert.equal(librarianProject(notes[1],settings,notes),'Elsewhere/Harbor');
+ assert.equal(canon(entries,false,settings).length,0);
+ assert.equal(resolve('Books/Harbor/Manuscripts/One.md'),'Books/Harbor');
+ assert.equal(resolve('02 Character/Mira.md'),undefined);
+});
+
+test('custom overview and inline project markers select the same Librarian project brief',async()=>{
+ const {librarianType,librarianProject}=await import('../src/core/context.ts');
+ const settings=readWorkspace(undefined);
+ const overview={path:'Elsewhere/Book/Overview.md',text:'#project-parent\nProject premise.',mtime:1,aliases:[],links:[],metadata:{},tags:['project-parent']};
+ const source={...overview,path:'Elsewhere/Book/Characters/Mira.md',tags:[],text:'A fictional character.'};
+ assert.equal(librarianType(overview,settings),'Project');assert.equal(librarianProject(source,settings,[overview,source]),'Elsewhere/Book');
+});

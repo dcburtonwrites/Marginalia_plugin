@@ -6,8 +6,9 @@ import { parseScript } from "../src/scripts/model.ts";
 (window as any).numberingTestApi = {numberRenderedScript, restoreNumbering, parseScript};
 import { writingFocus } from "../src/scripts/focus.ts";
 import { ScriptsView } from "../src/scripts/view.ts";
-import { TFile, TFolder, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
+import { MarkdownView, TFile, TFolder, parseYaml, stringifyYaml } from "./obsidian-preview.ts";
 import { EditorState } from "@codemirror/state";
+import {scriptFoldingExtension} from "../src/scripts/folding.ts";
 import { EditorView } from "@codemirror/view";
 import { history, undo } from "@codemirror/commands";
 import { createScriptShortcutExtension } from "../src/scripts/shortcut-extension.ts";
@@ -61,7 +62,7 @@ for(const [path,text] of Object.entries(savedTexts)) {
   if(!files.some(f=>f.path===path)) files.push(Object.assign(new TFile(path),{text:text as string}));
 }
 const folders = [...new Set(files.flatMap(f=>f.path.split('/').slice(0,-1).map((_,i)=>f.path.split('/').slice(0,i+1).join('/'))))].map(path=>new TFolder(path));
-let mainView: ProjectView | CompilationView | undefined;
+let mainView: any;
 const outlineRoot = document.querySelector<HTMLElement>("#sidebar")!;
 let view: ScriptsView;
 const plugin: any = {
@@ -110,7 +111,7 @@ const app: any = {
   workspace: {
     on: () => ({}),
     getActiveFile: () => files[0],
-    iterateAllLeaves: () => {},
+    iterateAllLeaves: (fn:any) => {if(mainView)fn(mainLeaf);},
     leftSplit: {collapse:()=>{document.body.dataset.drawer="closed";}},
     revealLeaf: async () => {},
     openLinkText: async (path: string) => {
@@ -131,16 +132,26 @@ const mainLeaf: any = {
     if (mainView) await mainView.onClose();
     mainView = undefined;
     const main = document.querySelector("main")!;
-    main.textContent = `Editing ${file.path} at line ${options.eState?.line ?? 0}`;
-    if (Platform.isMobile || location.search.includes("editor")) {
-      const cm = new EditorView({parent:main, state:EditorState.create({
+    main.textContent = `Editing ${file.path} at line ${options?.eState?.line ?? 0}`;
+    if (Platform.isMobile || location.search.includes("editor") || location.search.includes("structure")) {
+      let cm:EditorView;
+      const nativeEditor:any={getValue:()=>cm.state.doc.toString(),offsetToPos:(offset:number)=>{const line=cm.state.doc.lineAt(offset);return {line:line.number-1,ch:offset-line.from};},
+        posToOffset:(pos:any)=>cm.state.doc.line(pos.line+1).from+pos.ch,
+        getCursor:()=>nativeEditor.offsetToPos(cm.state.selection.main.head),
+        somethingSelected:()=>!cm.state.selection.main.empty,
+        setCursor:(pos:any)=>cm.dispatch({selection:{anchor:nativeEditor.posToOffset(pos)}}),focus:()=>cm.focus(),
+      };
+      mainView=Object.assign(new MarkdownView(),{file,editor:nativeEditor,getMode:()=>"source",getViewType:()=>"markdown",onClose:async()=>cm.destroy()});
+      cm = new EditorView({parent:main, state:EditorState.create({
         doc:file.text,
-        extensions:[focus.extension, history(),editorInfoField.init(()=>({file,editor:{}})),
+        extensions:[focus.extension, history(),editorInfoField.init(()=>({file,editor:nativeEditor})),scriptFoldingExtension,
           createScriptShortcutExtension(app),
           EditorView.contentAttributes.of({"aria-label":"Script editor"}),
           EditorView.updateListener.of(update=>{if(update.docChanged){
             file.text=update.state.doc.toString();
             plugin.scriptController.observeText(file.path,file.text,true);
+            localStorage.setItem("script-texts",JSON.stringify(Object.fromEntries(files.map(f=>[f.path,f.text]))));
+            void view.draw();
           }})],
       })});
       (window as any).mobileEditor={
@@ -187,6 +198,7 @@ const sidebarLeaf: any = {
   setViewState: async () => {},
 };
 plugin.app = app;
+(window as any).outlineTest={app,plugin,files,get mainView(){return mainView;},get view(){return view;}};
 const focus = writingFocus(plugin);
 plugin.refreshWritingFocus = focus.refresh;
 view = new ScriptsView({ app, contentEl: outlineRoot } as any, plugin);

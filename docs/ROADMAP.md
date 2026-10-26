@@ -54,7 +54,7 @@
 - [x] Add Script Studio compilation button and pop-up (D-0039).
 - [x] Local /d dropdown from frontmatter characters, prior speakers and known mentions, preserving existing plain/wiki form (D-0025).
 - [x] Configurable script template, folder context action and New Script button below the active sidebar list (D-0028).
-- [ ] Page reordering, further navigation commands and export with user-bindable shortcuts; preserve Templater ownership.
+- [x] Sidebar page/panel reordering and previous/next navigation commands without default shortcuts (D-0043); compilation/PDF is covered by D-0039/D-0040. Preserve Templater ownership.
 
 The owner explicitly started Phase 4 while Librarian prose quality and hidden-storage portability remain open (D-0007). Predecessor properties are now maintained automatically and determine order (D-0009 supersedes D-0008). Script checks do not imply Librarian quality acceptance. See VERIFICATION.md.
 
@@ -178,3 +178,13 @@ Optional continuity reporting remains outside this reliability increment. Saved-
 - [ ] Physical sync delivery of hidden saved/recovery files and reopening on a second desktop. No cloud/account or device test is implied by local copying.
 
 Standalone ownership migration remains explicitly deferred; unsupported original artifacts are preserved and viewable, not rewritten.
+
+
+## Step 3 — Project organization and script navigation (D-0043)
+
+- [x] Share classification across workspace, creation, Script Studio, writing credit and Librarian; exclude organizational `00 Overview` and honor custom layouts.
+- [x] Verify native script drag ordering, reader agreement and persistence after closing/reopening Marginalia Test Vault.
+- [x] Add sidebar page/panel drag-and-drop, complete-block ownership, isolated native Undo, dynamic numbering and optional unbound movement/navigation commands. No movement buttons.
+- [x] Cache unchanged reads/parsing, coalesce scans, preserve outline DOM for prose edits and reuse unchanged reader articles. Verify with a large synthetic project inventory and browser identity checks.
+
+Physical iOS/Android long-press dragging and native large-project profiling remain part of device/release acceptance, not a claim established by browser emulation.

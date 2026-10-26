@@ -238,23 +238,54 @@ export function projectStatusTabs(
     "Unassigned",
   ];
 }
+/** Organizational folders are containers, unless an explicit project declaration identifies a real project. */
+export function organizationalFolder(name:string){
+  return /^(?:overviews?|dashboards?|project register|index|indexes)$/i.test(name.replace(/^\d+[ \-_]+/, "").trim());
+}
+export function projectResolver(settings:WorkspaceSettings, declarations:{path:string;tags?:string[];metadata?:Record<string,unknown>;fields?:Record<string,unknown>}[]=[]){
+  const excluded=[settings.entrySetup.brainstorm.folder,...settings.canonTypes.map(type=>type.folder)].filter(Boolean);
+  const safe=(path:string)=>!path.split("/").some(part=>part.startsWith(".")||part.startsWith("_")||/^archives?$/i.test(part));
+  const valid=(path:string)=>path&&safe(path)&&!organizationalFolder(path.split("/").at(-1)!);
+  const declared:string[]=[],legacy:string[]=[];
+  for(const note of declarations){
+    const metadata=note.metadata??note.fields??{},parent=note.path.slice(0,note.path.lastIndexOf("/"));
+    if(note.tags?.includes("project-parent")||values(metadata.tags).includes("project-parent")||metadata.role==="project"){
+      if(valid(parent))declared.push(parent);
+    }else{
+      const scripts=note.path.indexOf("/Scripts/");
+      const inferred=scripts>=0 && metadata.role===undefined ? note.path.slice(0,scripts)
+        : metadata.role==="manuscript"&&["script","comic-script"].includes(String(metadata.format)) ? (scripts>=0?note.path.slice(0,scripts):parent) : "";
+      if(valid(inferred))legacy.push(inferred);
+    }
+  }
+  declared.sort((a,b)=>b.length-a.length);legacy.sort((a,b)=>b.length-a.length);
+  return (path:string,metadata:Record<string,unknown>={}):string|undefined=>{
+    if(!safe(path)||excluded.some(folder=>path.startsWith(folder+"/")))return undefined;
+    const marker=declared.find(parent=>path.startsWith(parent+"/"));
+    if(marker)return marker;
+    const explicit=typeof metadata.Project==="string"?metadata.Project.replace(/^\[\[|\]\]$/g,"").split("|")[0].replace(/\.md$/i,""):"";
+    if(explicit && path.startsWith(explicit+"/") && safe(explicit) && !organizationalFolder(explicit.split("/").at(-1)!))return explicit;
+    return projectPath(path,settings.vaultType,settings.entrySetup.projectsFolder)??legacy.find(parent=>path.startsWith(parent+"/"));
+  };
+}
 export function projectPath(path: string, type: VaultType, root?: string) {
   const parts = path.split("/");
   if (root && root !== "/") {
     if (type === "World" && root === "08 Projects" && path.startsWith("08 Project/")) return projectPath(path,type);
     const prefix = root.replace(/\/+$/, "") + "/";
     const relative = path.startsWith(prefix) ? path.slice(prefix.length).split("/") : [];
-    return relative.length > 1 ? prefix + relative[0] : undefined;
+    return relative.length > 1 && !organizationalFolder(relative[0]) ? prefix + relative[0] : undefined;
   }
   if (root === "/") type = "Storyboard";
   if (type === "World")
-    return /^08 Projects?$/.test(parts[0]) && parts.length > 2
+    return /^08 Projects?$/.test(parts[0]) && parts.length > 2 && !organizationalFolder(parts[1])
       ? parts.slice(0, 2).join("/")
       : undefined;
   return parts.length > 1 &&
     !parts[0].startsWith("_") &&
     !parts[0].startsWith(".") &&
-    parts[0].toLowerCase() !== "archive"
+    !/^archives?$/i.test(parts[0]) &&
+    !organizationalFolder(parts[0])
     ? parts[0]
     : undefined;
 }
@@ -265,25 +296,13 @@ export function projects(
   settings?: WorkspaceSettings,
 ): Project[] {
   const groups = new Map<string, Entry[]>();
-  const root = settings?.entrySetup.projectsFolder;
-  const declared = settings ? entries.filter(entry=>entry.tags.includes("project-parent"))
-    .map(entry=>entry.path.slice(0,entry.path.lastIndexOf("/")))
-    .filter(path=>path && !path.split("/").some(part=>part.startsWith("_") || part.startsWith(".")))
-    .sort((a,b)=>b.length-a.length) : [];
-  const resolve = (path: string) => {
-    if (settings && (path.startsWith(settings.entrySetup.brainstorm.folder + "/") ||
-      settings.canonTypes.some(type=>type.folder && path.startsWith(type.folder + "/")))) return undefined;
-    return declared.find(project=>path.startsWith(project+"/")) ?? projectPath(path, type, root);
-  };
+  const configured=settings??readWorkspace({vaultType:type});
+  const resolve=projectResolver(configured,entries);
   for (const path of folders)
-    if (settings ? resolve(path + "/_") === path : (
-      type === "World"
-        ? /^08 Projects?\/[^/]+$/.test(path)
-        : !path.includes("/") && !!projectPath(path + "/_", type)
-    ))
+    if (resolve(path + "/placeholder.md") === path)
       groups.set(path, []);
   for (const entry of entries) {
-    const path = resolve(entry.path);
+    const path = resolve(entry.path,entry.fields);
     if (path) {
       if (!groups.has(path)) groups.set(path, []);
       groups.get(path)!.push(entry);
@@ -305,11 +324,12 @@ export function projects(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 export function canon(entries: Entry[], includeProjects: boolean, settings?: WorkspaceSettings) {
+  const resolve=projectResolver(settings??readWorkspace(undefined),entries);
   return entries.filter(
     (n) =>
       !!n.type &&
       !n.path.startsWith((settings?.entrySetup.brainstorm.folder ?? "00 Brainstorms") + "/") &&
-      (projectPath(n.path, settings?.vaultType ?? "World", settings?.entrySetup.projectsFolder)
+      (resolve(n.path,n.fields)
         ? includeProjects && !/\/(Scripts|Outline|Plot|Outputs)\//i.test(n.path)
         : settings ? true
           : /^(\d+\s|Canon\/)/.test(n.path)),

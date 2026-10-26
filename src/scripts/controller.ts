@@ -13,6 +13,9 @@ import {
   readWriting,
   type WritingSelection,
 } from "./writing.ts";
+import {projectResolver} from "../workspace/model.ts";
+import {movePageTo,movePanelTo,type BlockKind,type Edge} from "./structure.ts";
+import {applyScriptEdit} from "./view.ts";
 import { frontmatter, patchProperties } from "./properties.ts";
 import { foldPanels, expandPanels, foldPages, editorFoldStatus, unfoldPanels } from "./folding.ts";
 import type { ProjectView } from "./project.ts";
@@ -51,10 +54,35 @@ export function propertySource(
 }
 export class ScriptController {
   busy = false;
+  closed=false;
   session: WritingSession;
   onChange: () => void = () => {};
   saveTimer: ReturnType<typeof setTimeout> | undefined;
   needsWritingSave = false;
+  private parsed=new Map<string,{text:string;scope:string;script:Script|null;stat?:string;version:number}>();
+  private versions=new Map<string,number>();
+  private scopeResolver?:ReturnType<typeof projectResolver>;
+  private scopeConfiguration="";
+  private resolver(){
+    const settings=this.plugin.workspaceSettings;
+    if(!settings)return undefined;
+    const key=JSON.stringify([settings.vaultType,settings.entrySetup,settings.canonTypes]);
+    if(!this.scopeResolver||key!==this.scopeConfiguration){
+      const {app}=this.plugin;
+      this.scopeResolver=projectResolver(settings,app.vault.getMarkdownFiles().map(file=>{const cache=app.metadataCache.getFileCache(file);return {path:file.path,metadata:cache?.frontmatter??{},tags:(cache?.tags??[]).map(tag=>tag.tag.replace(/^#/,""))};}));
+      this.scopeConfiguration=key;
+    }
+    return this.scopeResolver;
+  }
+  scopeFor(path:string,metadata:Record<string,unknown>){
+    const raw=scriptScope(path,metadata);if(raw===null)return null;
+    const resolve=this.resolver();return resolve?(resolve(path,metadata)??(raw==='Vault'?'Vault':null)):raw;
+  }
+  metrics={reads:0,parses:0,groupsMs:0};
+  invalidate(path?:string){
+    this.scopeResolver=undefined;
+    if(path){this.parsed.delete(path);this.versions.set(path,(this.versions.get(path)??0)+1);}else{this.parsed.clear();this.versions.clear();}
+  }
   constructor(public plugin: ScriptHost) {
     this.session = new WritingSession(
       (plugin.writing ??= readWriting(undefined)),
@@ -92,7 +120,7 @@ export class ScriptController {
         metadata =
           this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
     }
-    if (this.session.observe(path, text, scriptScope(path, metadata), credit))
+    if (this.session.observe(path, text, this.scopeFor(path, metadata), credit))
       this.saveSoon();
   }
   async observeFile(file: TFile) {
@@ -118,7 +146,10 @@ export class ScriptController {
     }
   }
   close() {
+    this.closed=true;
     clearTimeout(this.saveTimer);
+    this.parsed.clear();
+    this.scopeResolver=undefined;
     this.session.pause();
     this.needsWritingSave = true;
     void this.flushWriting();
@@ -278,31 +309,57 @@ export class ScriptController {
   }
 
   async groups(): Promise<ScriptGroup[]> {
-    const { app } = this.plugin,
-      editors = this.editors();
-    const scripts = (
-      await Promise.all(
-        app.vault.getMarkdownFiles().map(async (file) => {
-          const cached =
-            app.metadataCache.getFileCache(file)?.frontmatter ?? {};
-          if (scriptScope(file.path, cached) === null) return null;
-          const text =
-            editors.get(file.path)?.getValue() ?? (await app.vault.read(file));
-          return parseScript({
-            path: file.path,
-            text,
-            metadata: scriptMetadata(text),
-          });
-        }),
-      )
-    ).filter((s): s is Script => !!s);
-    return arrangedGroups(
-      scripts,
-      (link, source) =>
-        app.metadataCache.getFirstLinkpathDest(link, source)?.path,
-      this.plugin.scriptOrders,
-    );
+    const started=performance.now();
+    const {app}=this.plugin,editors=this.editors(),files=app.vault.getMarkdownFiles();
+    const resolveScope=this.resolver();
+    const scripts:Script[]=[];
+    const paths=new Set(files.map(file=>file.path));
+    for(const path of this.parsed.keys())if(!paths.has(path))this.parsed.delete(path);
+    for(const file of files){
+      const dirty=editors.get(file.path)?.getValue();
+      const cached=app.metadataCache.getFileCache(file)?.frontmatter??{};
+      if(dirty===undefined && scriptScope(file.path,cached)===null)continue;
+      const prior=this.parsed.get(file.path),version=this.versions.get(file.path)??0;
+      const stat=Number.isFinite(file.stat?.size)?`${file.stat.mtime}:${file.stat.size}`:undefined;
+      let text=dirty;
+      if(text===undefined&&stat&&prior?.stat===stat&&prior.version===version)text=prior.text;
+      if(text===undefined){this.metrics.reads++;text=await (app.vault.cachedRead?.(file)??app.vault.read(file));}
+      const metadata=prior?.text===text&&prior.script?prior.script.metadata:scriptMetadata(text);
+      const recognized=scriptScope(file.path,metadata);
+      if(recognized===null)continue;
+      const scope=resolveScope?(resolveScope(file.path,metadata)??(recognized==='Vault'?'Vault':undefined)):recognized;
+      if(!scope)continue;
+      let script:Script|null;
+      if(prior?.text===text&&prior.scope===scope)script=prior.script;
+      else{this.metrics.parses++;script=parseScript({path:file.path,text,metadata});if(script)script.scope=scope;this.parsed.set(file.path,{text,scope,script,stat,version});}
+      if(script){if(prior?.text===text&&prior.scope===scope&&stat){prior.stat=stat;prior.version=version;}scripts.push(script);}
+    }
+    const groups=arrangedGroups(scripts,(link,source)=>app.metadataCache.getFirstLinkpathDest(link,source)?.path,this.plugin.scriptOrders);
+    this.metrics.groupsMs=performance.now()-started;
+    return groups;
   }
+  async moveStructure(script:Script,kind:BlockKind,from:number,target:number,edge:Edge|'inside'){
+    if(this.closed||this.busy)throw new Error('Script tools are disabled or another update is in progress.');
+    const file=this.plugin.app.vault.getAbstractFileByPath(script.path);
+    if(!(file instanceof TFile))throw new Error('The script moved or was deleted.');
+    let view:MarkdownView|undefined;
+    this.plugin.app.workspace.iterateAllLeaves(leaf=>{if(leaf.view instanceof MarkdownView&&leaf.view.file?.path===script.path)view=leaf.view;});
+    if(!view){
+      const leaf=this.plugin.app.workspace.getLeaf(false);
+      await leaf.openFile(file,{state:{mode:'source'}});
+      if(leaf.view instanceof MarkdownView)view=leaf.view;
+    }
+    if(!view)throw new Error('Open this script in the native editor first.');
+    if(view.getMode()!=='source')await view.setState({mode:'source'},{history:false});
+    if(this.closed)throw new Error('Script tools were disabled. Nothing was moved.');
+    if(view.editor.getValue()!==script.text)throw new Error('The script changed after the drag began. Try the move again.');
+    const edit=kind==='page'?movePageTo(script,from,target,edge==='inside'?'after':edge):movePanelTo(script,from,target,edge);
+    if(!edit)return;
+    applyScriptEdit(view.editor,edit);
+    this.invalidate(script.path);
+    this.onChange();
+  }
+
   editors() {
     const open = new Map<string, MarkdownView["editor"]>();
     this.plugin.app.workspace.iterateAllLeaves((leaf) => {
@@ -316,7 +373,7 @@ export class ScriptController {
     return open;
   }
   async fillMissing(groups: ScriptGroup[]) {
-    if (this.busy) return false;
+    if (this.closed||this.busy) return false;
     const writes = groups.flatMap((g) =>
       orderWrites(
         g,

@@ -1,4 +1,5 @@
 export interface Note {
+  tags?:string[];
   path: string;
   text: string;
   mtime: number;

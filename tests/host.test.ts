@@ -1145,3 +1145,67 @@ test('streaming progress updates the status without rebuilding sidebar Markdown'
  const result=await h.plugin.generateText('system','prompt',new AbortController().signal);
  assert.equal(result,'Completed supported text.');assert.equal(redraws,0);assert.match(h.plugin.progress,/120 characters/);assert.ok(h.plugin.timings.generation>0);
 });
+
+test('Script Studio uses shared classification for custom roots, overview containers and declared projects',async()=>{
+ const h=await orderHost();const {readWorkspace}=await import('../src/workspace/model.ts');
+ h.controller.plugin.workspaceSettings=readWorkspace({vaultType:'World',entrySetup:{projectsFolder:'Books'}});
+ for(const [path,source] of [
+  ['Books/00 Overview/Scripts/Guide.md','---\nrole: manuscript\nformat: comic-script\n---\n## Page 1\n'],
+  ['Elsewhere/Book/Overview.md','---\ntags: ["project-parent"]\n---\nProject overview.'],
+  ['Elsewhere/Book/Manuscripts/Opening.md','---\nrole: manuscript\nformat: comic-script\n---\n## Page 1\n'],
+  ['Books/Book/Manuscripts/Two.md','---\nrole: manuscript\nformat: comic-script\n---\n## Page 1\n'],
+ ] as const){h.files.push(new TFile(path));h.sources.set(path,source);}
+ const groups=await h.controller.groups();
+ assert.ok(!groups.some(group=>group.scope.includes('00 Overview')));
+ assert.ok(groups.some(group=>group.scope==='Elsewhere/Book'));
+ assert.ok(groups.some(group=>group.scope==='Books/Book'));
+});
+
+test('script cache reuses unchanged reads/parsing and notices invalidations, dirty editors and deleted files',async()=>{
+ const h=await orderHost();h.files.forEach(file=>{(file.stat as any).size=h.sources.get(file.path)!.length;});
+ await h.controller.groups();const first={...h.controller.metrics};await h.controller.groups();
+ assert.equal(h.controller.metrics.reads,first.reads);assert.equal(h.controller.metrics.parses,first.parses);
+ const file=h.files[0];h.sources.set(file.path,h.sources.get(file.path)!+'\n## Page 8\n');h.controller.invalidate(file.path);
+ const changed=await h.controller.groups();assert.equal(changed[0].scripts.find(script=>script.path===file.path)!.pages.length,2);
+ h.app.workspace.iterateAllLeaves=(fn:any)=>fn({view:new MarkdownView(file,{getValue:()=>h.sources.get(file.path)!+'\n## Page 9\n'})});
+ assert.equal((await h.controller.groups())[0].scripts.find(script=>script.path===file.path)!.pages.length,3);
+ h.files.splice(h.files.indexOf(file),1);assert.ok(!(await h.controller.groups()).flatMap(group=>group.scripts).some(script=>script.path===file.path));
+});
+
+test('sidebar structure moves reject stale editors and apply a guarded native transaction',async()=>{
+ const h=host();h.files[0].path='Project/Scripts/Move.md';h.plugin.target=h.files[0].path;
+ h.setEditor('## Page 1\n\n> [!panel] A\n> A text.\n\n## Page 2\n\n> [!panel] B\n> B text.');
+ h.view.editor.setCursor=()=>{};
+ const {ScriptController}=await import('../src/scripts/controller.ts');const {parseScript}=await import('../src/scripts/model.ts');
+ const controller=new ScriptController(h.plugin as any),script=parseScript({path:h.files[0].path,text:h.editorText(),metadata:{}})!;
+ await controller.moveStructure(script,'page',script.pages[1].from,script.pages[0].from,'before');
+ assert.equal(h.transactions.length,1);assert.ok(h.editorText().startsWith('## Page 2'));
+ await assert.rejects(controller.moveStructure(script,'page',script.pages[1].from,script.pages[0].from,'before'),/changed after/);
+ assert.equal(h.transactions.length,1);
+ controller.closed=true;await assert.rejects(controller.moveStructure(script,'page',script.pages[1].from,script.pages[0].from,'before'),/disabled/);
+});
+
+test('script movement/navigation commands have no default hotkeys and navigation does not alter a selection',async()=>{
+ const h=host(),commands:any[]=[],{registerScripts}=await import('../src/scripts/view.ts');
+ h.files[0].path='Project/Scripts/Navigation.md';h.setEditor('## Page 1\n\n> [!panel] A\n> First.\n\n## Page 2\n\n> [!panel] B\n> Last.');
+ let cursor=0;Object.assign(h.view.editor,{somethingSelected:()=>true,getCursor:()=>({line:0,ch:0}),posToOffset:(pos:any)=>pos.ch,setCursor:(pos:any)=>{cursor=pos.ch;},scrollIntoView:()=>{}});
+ Object.assign(h.plugin,{register:()=>{},registerEvent:()=>{},registerInterval:()=>{},registerView:()=>{},registerEditorExtension:()=>{},registerMarkdownPostProcessor:()=>{},addRibbonIcon:()=>{},addCommand:(command:any)=>commands.push(command)});
+ Object.assign(h.plugin.app.workspace,{on:()=>({}),onLayoutReady:()=>{}});Object.assign(h.plugin.app.vault,{on:()=>({})});Object.assign(h.plugin.app.metadataCache,{on:()=>({})});
+ const beforeWindow=(globalThis as any).window;(globalThis as any).window={setInterval:()=>1};
+ try{registerScripts(h.plugin as any);}finally{(globalThis as any).window=beforeWindow;}
+ for(const id of ['move-page-up','move-page-down','move-panel-up','move-panel-down','previous-page','next-page','previous-panel','next-panel']){
+  const command=commands.find(command=>command.id===id);assert.ok(command,id);assert.equal(command.hotkeys,undefined);
+ }
+ const before=h.editorText();commands.find(command=>command.id==='next-page').editorCheckCallback(false,h.view.editor,h.view);
+ assert.equal(cursor,before.indexOf('## Page 2'));assert.equal(h.editorText(),before);assert.equal(h.transactions.length,0);
+});
+
+test('current-project writing credit uses the same configured project as Script Studio',async()=>{
+ const h=await orderHost();const {readWorkspace}=await import('../src/workspace/model.ts');
+ h.controller.plugin.workspaceSettings=readWorkspace({entrySetup:{projectsFolder:'Books'}});
+ const path='Books/Harbor/Manuscripts/One.md',text='---\nrole: manuscript\nformat: comic-script\n---\n## Page 1\n\nOriginal words.';
+ h.files.push(new TFile(path));h.sources.set(path,text);h.controller.invalidate();
+ h.controller.observeText(path,text,false);
+ assert.equal(h.controller.session.baseline.get(path)?.scope,'Books/Harbor');
+ assert.equal((await h.controller.groups()).find(group=>group.scripts.some(script=>script.path===path))?.scope,'Books/Harbor');
+});

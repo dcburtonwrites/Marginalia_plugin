@@ -31,7 +31,8 @@ export class ProjectView extends ItemView {
       panels: !!this.contentEl.querySelector(".marginalia-fold-panel:not([open])"),
     };
   }
-  component: Component | null = null;
+  articles=new Map<string,{text:string;name:string;node:HTMLElement;component:Component}>();
+  lastRender="";
   closed = false;
   constructor(
     leaf: WorkspaceLeaf,
@@ -69,11 +70,13 @@ export class ProjectView extends ItemView {
   async onClose() {
     this.closed = true;
     this.revision++;
-    if (this.component) this.removeChild(this.component);
-    this.component = null;
+    for(const article of this.articles.values())this.removeChild(article.component);
+    this.articles.clear();
+    this.lastRender="";
   }
   async draw() {
     const revision = ++this.revision;
+    let staged:Component[]=[];
     try {
       const groups = (await this.controller.groups()).filter(
         (g) =>
@@ -81,13 +84,12 @@ export class ProjectView extends ItemView {
           (this.group === undefined || g.group === this.group),
       );
       if (this.closed || revision !== this.revision) return;
-      if (this.component) this.removeChild(this.component);
-      const component = new Component();
-      this.addChild(component);
-      this.component = component;
-      const root = this.contentEl;
-      root.replaceChildren();
-      root.className = "view-content marginalia-project-reading";
+      const signature=JSON.stringify([this.projectScope,this.group,groups.map(group=>[group.group,group.issues,group.sequences.map(sequence=>sequence.map(script=>[script.path,script.text,script.metadata.Title]))])]);
+      if(signature===this.lastRender)return;
+      const prepared=new Map<string,{text:string;name:string;node:HTMLElement;component:Component}>();
+      const root=document.createDocumentFragment();
+      const reused=new Map<HTMLElement,HTMLElement>();
+      const scroll=this.contentEl.scrollTop;
       root.append(
         el("h1", "", this.projectScope.split("/").at(-1) || "Project"),
         el(
@@ -109,12 +111,16 @@ export class ProjectView extends ItemView {
             ),
           );
         for (const script of group.sequences.flat()) {
-          const article = el("article", "marginalia-project-script");
-          article.dataset.path = script.path;
+
           const name =
             typeof script.metadata.Title === "string"
               ? script.metadata.Title
               : script.path.split("/").at(-1)!.replace(/\.md$/, "");
+          const existing=this.articles.get(script.path);
+          if(existing?.text===script.text&&existing.name===name){prepared.set(script.path,existing);const placeholder=el("span");reused.set(placeholder,existing.node);root.append(placeholder);continue;}
+          const article=el("article","marginalia-project-script");article.dataset.path=script.path;
+          const component=new Component();this.addChild(component);staged.push(component);
+          prepared.set(script.path,{text:script.text,name,node:article,component});
           const heading = el("h2");
           heading.append(
             button(
@@ -135,13 +141,23 @@ export class ProjectView extends ItemView {
             script.path,
             component,
           );
-          if (this.closed || revision !== this.revision) return;
+          if (this.closed || revision !== this.revision){
+            for(const [path,record] of prepared)if(this.articles.get(path)!==record)this.removeChild(record.component);
+            return;
+          }
           numberRenderedScript(body, script);
           prepareReadingFolds(body);
+          for(const detail of body.querySelectorAll<HTMLDetailsElement>('.marginalia-reading-fold'))detail.open=!(detail.classList.contains('marginalia-fold-panel')?this.panelsCollapsed:this.pagesCollapsed);
         }
       }
-      this.applyFolds();
+      for(const [path,record] of this.articles)if(prepared.get(path)!==record)this.removeChild(record.component);
+      for(const [placeholder,node] of reused)placeholder.replaceWith(node);
+      this.articles=prepared;this.lastRender=signature;staged=[];
+      this.contentEl.className="view-content marginalia-project-reading";
+      this.contentEl.replaceChildren(root);this.contentEl.scrollTop=scroll;
     } catch (error) {
+      for(const component of staged)this.removeChild(component);
+      this.lastRender="";
       if (!this.closed && revision === this.revision)
         this.contentEl.replaceChildren(
           el(

@@ -1000,3 +1000,9 @@ body.is-mobile .marginalia-compile-document { padding:20px; }
 .marginalia-compile-modal .marginalia-script-warning[hidden] { display:none; }
 
 .marginalia-answer-warning { color:var(--text-warning); font-size:var(--font-ui-smaller); margin:8px 0; }
+
+/* Script outline drop positions; movement remains in the sidebar. */
+.marginalia-scripts .marginalia-drop-target.is-dragging { opacity: .45; }
+.marginalia-scripts .marginalia-drop-target.drop-before { box-shadow: 0 -2px 0 var(--interactive-accent); }
+.marginalia-scripts .marginalia-drop-target.drop-after { box-shadow: 0 2px 0 var(--interactive-accent); }
+.marginalia-scripts .marginalia-drop-target { -webkit-touch-callout: none; }

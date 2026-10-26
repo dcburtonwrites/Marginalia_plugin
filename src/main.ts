@@ -26,6 +26,7 @@ import {
   type Suggestion,
   type Expansion,
 } from "./core/types.ts";
+import {projectResolver} from "./workspace/model.ts";
 import {freshness,sameFreshness} from "./core/freshness.ts";
 import { retrieve } from "./core/retrieval.ts";
 import {librarianProject,librarianType,projectBrief} from "./core/context.ts";
@@ -471,6 +472,7 @@ export default class Marginalia extends Plugin {
       const aliases = allStrings(metadata.aliases ?? metadata.alias ?? []);
       notes.push({
         path: file.path,
+        tags:(cache?.tags??[]).map(tag=>tag.tag.replace(/^#/,"")),
         text: this.activeText(file) ?? (await (!fresh && this.app.vault.cachedRead ? this.app.vault.cachedRead(file) : this.app.vault.read(file))),
         mtime: file.stat.mtime,
         aliases,
@@ -485,11 +487,12 @@ export default class Marginalia extends Plugin {
     const notes = await this.snapshot(signal),
       target = notes.find((n) => n.path === path);
     if (!target) throw new Error("The selected entry is no longer available.");
-    const type=librarianType(target,this.workspaceSettings);
+    const type=librarianType(target,this.workspaceSettings,notes);
     const subtype = String(
       target.metadata["sub-type"] ?? target.metadata.type ?? "Other",
     );
     const profile: {guidance:string;headings?:string[];variants?:Record<string,string[]>}|undefined = type==="Project"?projectBrief:profiles[Object.keys(profiles).find(name=>name.toLowerCase()===type.toLowerCase())??type];
+    const resolveProject=projectResolver(this.workspaceSettings,notes);
     const packet = retrieve(
       notes,
       target,
@@ -497,7 +500,7 @@ export default class Marginalia extends Plugin {
       this.current(path).references,
       `Configured entry type: ${type}. `+(profile?.guidance ??
         "Describe this subject using only direct evidence. Do not infer category-wide traits, history or relationships. Follow the configured template sections."),
-      note=>librarianProject(note,this.workspaceSettings),
+      note=>resolveProject(note.path,note.metadata),
     );
     packet.entryType=type;
     packet.freshness=freshness(notes,target,this.workspaceSettings,this.settings.context);
@@ -1255,6 +1258,7 @@ class LibrarianFeature extends Plugin {
   }
 }
 class ScriptFeature extends Plugin {
+  get workspaceSettings(){return this.owner.workspaceSettings;}
   get refreshWritingFocus() { return this.owner.refreshWritingFocus; }
   set refreshWritingFocus(value: (() => void) | undefined) { this.owner.refreshWritingFocus = value; }
   constructor(public owner: Marginalia) {

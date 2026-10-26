@@ -1,0 +1,22 @@
+{
+  "scripts": 1200,
+  "pages": 7200,
+  "projects": 12,
+  "cold": {
+    "reads": 1200,
+    "parses": 1200,
+    "groupsMs": 25.522750000000002
+  },
+  "warm": {
+    "reads": 1200,
+    "parses": 1200,
+    "groupsMs": 2.15325
+  },
+  "oneChanged": {
+    "reads": 1201,
+    "parses": 1201,
+    "groupsMs": 2.624666000000005
+  },
+  "checks": "Warm pass performs no extra original reads or parsing; a one-script edit reads/parses one script.",
+  "limitation": "Synthetic in-memory desktop host; excludes disk latency and DOM rendering."
+}

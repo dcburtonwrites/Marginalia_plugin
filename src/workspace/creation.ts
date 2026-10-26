@@ -3,7 +3,7 @@ import type Marginalia from "../main.ts";
 import { el } from "../ui/sidebar.ts";
 import { suggest, vaultFiles, vaultFolders } from "../ui/suggest.ts";
 import { propertySource, scriptMetadata } from "../scripts/controller.ts";
-import { projects, type WorkspaceSettings } from "./model.ts";
+import { projectResolver, type WorkspaceSettings } from "./model.ts";
 import { entryName, folderPath, typeSlug, typeTags } from "./setup-model.ts";
 
 export interface EntryRequest {
@@ -123,7 +123,8 @@ export class NewEntryModal extends Modal {
     const subtype = kind === "Project" ? project ? "Note" : "New Project" : kind === "Canon" ? settings.canonTypes[0]?.name ?? "" : "Brainstorm";
     this.request = {kind,subtype,title:"",folder:"",template:"",createFolders:true,project};
     const folders = vaultFolders(owner.app);
-    this.projectPaths = projects([],settings.vaultType,folders,settings).map(project=>project.path);
+    const resolve=projectResolver(settings,owner.app.vault.getMarkdownFiles().map(file=>{const cache=owner.app.metadataCache.getFileCache(file);return {path:file.path,metadata:cache?.frontmatter??{},tags:(cache?.tags??[]).map(tag=>tag.tag.replace(/^#/,""))};}));
+    this.projectPaths = folders.filter(folder=>resolve(folder+"/placeholder.md")===folder);
     this.defaults();
   }
   defaults() {
