@@ -101,7 +101,7 @@ Script slash commands keep native CodeMirror editing and Undo. Hardware Enter us
 
 Librarian does not start, connect, register AI commands or add note actions on mobile. Its settings section explains desktop-only availability instead of exposing model/connection controls. A restored desktop Librarian or expansion tab shows the same explanation. This runtime restriction never overwrites the saved desktop module/model preferences. Connecting to a computer on the LAN is technically possible with Ollama but is outside this version’s loopback-only transport boundary. No inference runtime, cloud service or networking permission is added.
 
-Mobile verification currently covers bundle loading without Node APIs and browser phone/tablet interaction profiles. Physical iOS/Android sidebar placement, keyboard/IME behavior, storage and sync acceptance are still required before declaring mobile release readiness.
+Mobile verification covers bundle loading without Node APIs, browser phone/tablet interaction profiles and a native iPhone Mirroring pass in Reanimator (D-0044). The iPhone pass covers drawer/navigation, character choice/Cancel/Undo, hardware-keyboard focus, compilation preview, timer/report/CSV and module cleanup. Direct software-keyboard/IME/rotation/long-press checks, physical Android and hidden-output sync acceptance remain required before declaring mobile release readiness. See verification/device-release-2026-10-25.md.
 
 Hidden folders controls only Marginalia menu sections; it does not hide notes in the native file viewer or change the general entry/model evidence rules. When a currently open shared section becomes hidden, its page returns to Home. Unhiding _Assets permits browsing its Markdown notes within its shared section.
 

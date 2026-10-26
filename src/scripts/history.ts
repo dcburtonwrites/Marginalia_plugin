@@ -16,7 +16,7 @@ export class WritingHistoryModal extends Modal {
       const cutoff = Date.now() - days * 86400000;
       const recent = records.filter(r => r.started >= cutoff);
       const sum = (key: "added" | "deleted" | "elapsedMs") => recent.reduce((n, r) => n + r[key], 0);
-      return `${days} days · ${recent.length} sessions · ${Math.round(sum("elapsedMs") / 60000)} min · +${sum("added")} / −${sum("deleted")} words · ${sum("added") - sum("deleted")} net`;
+      return `${days} days · ${recent.length} ${recent.length === 1 ? "session" : "sessions"} · ${Math.round(sum("elapsedMs") / 60000)} min · +${sum("added")} / −${sum("deleted")} words · ${sum("added") - sum("deleted")} net`;
     };
     root.append(el("p", "", totals(7)), el("p", "", totals(30)));
     if (!records.length) root.append(el("p", "", "No recorded sessions yet. Enable session history and start the countdown to begin."));

@@ -188,3 +188,24 @@ Standalone ownership migration remains explicitly deferred; unsupported original
 - [x] Cache unchanged reads/parsing, coalesce scans, preserve outline DOM for prose edits and reuse unchanged reader articles. Verify with a large synthetic project inventory and browser identity checks.
 
 Physical iOS/Android long-press dragging and native large-project profiling remain part of device/release acceptance, not a claim established by browser emulation.
+
+
+## Step 4 — Optional writing diagnostics
+
+Skipped by owner (D-0044). No writing-check interface, finding persistence or diagnostics highlighting is planned in this increment.
+
+## Step 5 — Device and release acceptance (D-0044)
+
+- [x] Build/typecheck and 196 automated tests; desktop/workspace/structural/numbering/Librarian/focus/history/Compile/mobile browser regressions and Node-unavailable startup.
+- [x] Install verified production files in the authorized Reanimator iCloud vault; back up installed plugin/settings and hash-check original Markdown.
+- [x] Native iPhone Mirroring: app/project drawer navigation, Script Studio placement, named page/panel labels, character picker explicit choice/repeated Enter/Cancel/native Undo, hardware-keyboard focus positioning, Compile Group/options/date/byline/script preview and disabled mobile PDF.
+- [x] Native iPhone: short timer background/resume, Pause/Reset, session report and CSV export; verify phone-saved settings/history/CSV arrive at the Mac through iCloud.
+- [x] Native iPhone Scripts-module shutdown/restoration and desktop 1.14.5 project-reader popout/disclosures.
+- [x] Final-build phone reload and persisted-history acceptance; unbound history command opens the retained session.
+- [ ] Direct iPhone software keyboard/IME, keyboard resize/rotation, sustained background/lock/termination, long-press structural dragging with Undo, middle-page insertion/deletion and horizontal access to all session-report columns.
+- [ ] Physical Android phone/tablet acceptance.
+- [ ] Windows/Linux native PDF generation/save/cancel and preview acceptance.
+- [ ] Hidden `.marginalia` saved/recovery delivery and opening on a second desktop; ordinary iCloud files/settings arriving is not proof.
+- [ ] Wider themes/plugin combinations, user-assigned shortcut conflicts, sustained large-project native profiling and remaining editor/sidebar popout cases.
+
+[Device/release evidence and remaining checklist](verification/device-release-2026-10-25.md). Step 5 is partial until these device/platform checks are completed.
