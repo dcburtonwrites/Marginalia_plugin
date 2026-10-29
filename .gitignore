@@ -4,3 +4,4 @@ main.js
 test-results/
 *.tsbuildinfo
 dist/
+.rollback/

@@ -267,3 +267,11 @@
 - Question: Proceed with optional writing diagnostics or move directly to device/release checks.
 - Decision: Owner said “Let's skip step 4: Optional writing diagnostics. You can do step 5” and explicitly authorized the newest plugin installation in the iCloud Reanimator vault for iPhone Mirroring tests.
 - Impact: No writing-diagnostics feature is implemented. Device checks use a separate fictional project and a backed-up plugin/settings baseline; original notes are hash-checked. Report native iPhone/Mac evidence separately from browser emulation and unavailable Android/Windows/Linux/direct-keyboard/rotation/Sync checks. Preserve the desktop-only Librarian and PDF-export boundaries. A singular session-count label found during acceptance is corrected.
+
+
+## D-0045 · Reversible mobile bottom character picker trial · 2026-10-25 · Mobile writing
+- Question: Streamline mobile dialogue-name insertion while handling the software keyboard.
+- Options: Compact bottom picker that temporarily blurs the editor / persistent chips above the keyboard / typed-name shortcut.
+- Recommendation: Reuse the native guarded Modal and editor transaction; blur the editor for quick character taps, explicitly open search, then restore editor focus and Dialogue selection.
+- Decision: Owner said “Let's try this, but keep what's needed to revert if it doesn't work smoothly.” Reanimator installation and Mirroring checks remain authorized.
+- Impact: Up to six session-recent script characters appear as touch buttons in a bottom sheet; search exposes the complete existing cast and explicit custom-name action. No new setting, saved-name history, note migration or dependency. Existing source/file guards, explicit selection, Cancel, native Undo and desktop dropdown remain. Prior source and installable build retained in the ignored .rollback/dialogue-picker-2026-10-25 folder. Native Mirroring evidence is distinguished from direct software-keyboard smoothness acceptance.

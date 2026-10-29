@@ -945,6 +945,23 @@ body.is-mobile .marginalia-project-card {overflow-wrap:anywhere;}
 .marginalia-mobile-speaker-choice small {color:var(--text-muted);}
 .marginalia-mobile-speaker-actions {display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;}
 .marginalia-mobile-speaker-actions button {min-height:44px;}
+body.is-mobile .marginalia-speaker-sheet-container {
+  position:fixed;top:var(--marginalia-speaker-viewport-top,0px);bottom:auto;
+  height:var(--marginalia-speaker-viewport-height,100dvh);left:0;right:0;
+  display:flex;align-items:flex-end;justify-content:center;padding:12px 12px max(12px,env(safe-area-inset-bottom));
+}
+body.is-mobile .marginalia-mobile-speaker-picker {
+  position:relative !important;inset:auto !important;margin:0 !important;transform:none !important;
+  width:min(100%,560px);min-width:0;max-width:100%;max-height:calc(100% - 24px);
+  padding:20px;border-radius:18px;overflow:auto;
+}
+.marginalia-mobile-speaker-picker h2 {font-size:var(--font-ui-medium);margin:0 30px 14px 0;}
+.marginalia-mobile-speaker-picker .marginalia-mobile-speaker-list {flex-direction:row;flex-wrap:wrap;gap:8px;margin:0 0 12px;max-height:28vh;}
+.marginalia-mobile-speaker-picker .marginalia-mobile-speaker-choice {flex:1 0 calc(50% - 8px);min-width:0;max-width:100%;}
+.marginalia-mobile-speaker-search {width:100%;min-height:44px;white-space:normal;text-align:left;margin-bottom:8px;}
+.marginalia-mobile-speaker-picker .marginalia-mobile-speaker-label {margin-bottom:10px;}
+.marginalia-mobile-speaker-picker [hidden] {display:none !important;}
+.marginalia-mobile-speaker-picker .marginalia-mobile-speaker-actions {gap:8px;}
 
 /* Focus is local to recognized native script editors. */
 .marginalia-writing-focus .cm-line { opacity: .45; }

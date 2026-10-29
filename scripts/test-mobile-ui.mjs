@@ -67,11 +67,16 @@ try {
   let picker=page.getByRole('dialog');
   await picker.getByRole('heading',{name:'Choose a character',exact:true}).waitFor();
   assert.equal(await page.locator('.cm-tooltip.marginalia-speaker-picker').count(),0);
+  assert.equal(await picker.getByLabel('Character name').isVisible(),false);
+  assert.equal(await page.locator('.cm-content').evaluate(el=>el===document.activeElement),false);
+  const sheet=await page.locator('.marginalia-mobile-speaker-picker').boundingBox();
+  assert.ok(sheet.y+sheet.height>device.viewport.height-60,'picker must sit at the bottom');
+  await page.screenshot({path:resolve('design/verification/mobile-'+name+'-character-dialog.png')});
   await enter(); // A duplicate soft Enter must not accept anything.
+  await picker.getByRole('button',{name:'Search or add a name…',exact:true}).tap();
   await picker.getByLabel('Character name').press('Enter');
   assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*SPEAKER:\*\* Dialogue/);
   assert.equal(await picker.isVisible(),true);
-  await page.screenshot({path:resolve('design/verification/mobile-'+name+'-character-dialog.png')});
   await picker.getByRole('button',{name:'Orin',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'Dialogue');
   assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Orin:\*\* Dialogue/);
@@ -83,10 +88,17 @@ try {
   assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'SPEAKER');
   await set(dialogue);await enter();
   picker=page.getByRole('dialog');
+  await picker.getByRole('button',{name:'Search or add a name…',exact:true}).tap();
   await picker.getByLabel('Character name').fill('Nova');
+  await page.setViewportSize({width:device.viewport.width,height:Math.round(device.viewport.height*.6)});
+  await page.waitForFunction(()=>{
+    const rect=document.querySelector('.marginalia-mobile-speaker-picker').getBoundingClientRect();
+    return rect.top>=0 && rect.bottom<=window.innerHeight;
+  });
+  await page.setViewportSize(device.viewport);
   await picker.getByLabel('Character name').press('Enter');
   assert.match(await page.evaluate(()=>window.mobileEditor.text()),/SPEAKER/);
-  await picker.getByRole('button',{name:'Use this name',exact:true}).tap();
+  await picker.getByRole('button',{name:'Use “Nova”',exact:true}).tap();
   assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Nova:\*\* Dialogue/);
   assert.equal(await page.evaluate(()=>window.mobileEditor.selected()),'Dialogue');
   await page.screenshot({path:resolve('design/verification/mobile-'+name+'-editor.png')});
@@ -96,6 +108,16 @@ try {
   await picker.getByRole('button',{name:'Mira',exact:true}).tap();
   assert.equal(await page.evaluate(()=>window.mobileEditor.text()),'Changed while the picker was open');
   assert.equal(await page.getByRole('dialog').count(),0);
+  const many='---\nCharacters: ["Mira", "Orin", "Ada", "Bo", "Cy", "Dee", "Eli", "Vale"]\n---\n## Page 1\n\n/d';
+  await set(many);await enter();
+  picker=page.getByRole('dialog');
+  assert.equal(await picker.locator('.marginalia-mobile-speaker-choice').count(),6);
+  assert.equal(await picker.locator('.marginalia-mobile-speaker-choice').first().textContent(),'Orin','recent choice comes first in this script');
+  await picker.getByRole('button',{name:'Search 8 characters or add a name…',exact:true}).tap();
+  await picker.getByLabel('Character name').fill('Vale');
+  await picker.getByRole('button',{name:'Vale',exact:true}).tap();
+  assert.match(await page.evaluate(()=>window.mobileEditor.text()),/\*\*Vale:\*\* Dialogue/);
+  assert.equal(await page.getByLabel('Script editor').evaluate(el=>el.contains(document.activeElement)),true,'editor regains focus after choice');
   for(const [cmd,match] of [['/P',/## Page 2/],['/t',/> \[!quote\]/],['/c',/> \[!note\]/],['/cn',/> \[!note\]/],['/ct',/> \[!tip\]/],['/cw',/> \[!warning\]/],['/cd',/> \[!danger\]/],['/cs',/> \[!success\]/],['/ce',/> \[!example\]/]]) {
     await set('## Page 1\n\n'+cmd);await enter();assert.match(await page.evaluate(()=>window.mobileEditor.text()),match);
   }
@@ -117,7 +139,7 @@ try {
   await page.evaluate(()=>window.mobileEditor.destroy());
   assert.equal(await page.getByRole('dialog').count(),0);
   assert.deepEqual(errors,[]);
-  results.push({profile:name,engine:'Chromium',touch:true,navigation:'pass',pageFit:'pass',worldAndStoryboard:'pass',touchReferencePicker:'pass',scriptDisclosureAndNavigation:'pass',softKeyboardShortcutEvents:'pass',dialogueTouchAndFocus:'pass: explicit dialog selection, repeated Enter, second candidate, cancel, new name, stale source and view destruction',undoAndComposition:'pass',physicalDevice:false});
+  results.push({profile:name,engine:'Chromium',touch:true,navigation:'pass',pageFit:'pass',worldAndStoryboard:'pass',touchReferencePicker:'pass',scriptDisclosureAndNavigation:'pass',softKeyboardShortcutEvents:'pass',dialogueTouchAndFocus:'pass: bottom sheet, no initial text focus, six recent choices, full-cast search, repeated Enter, explicit selection, focus restoration, cancel, new name, stale source and view destruction',undoAndComposition:'pass',physicalDevice:false});
   await context.close();
  }
  const desktop=await browser.newContext({viewport:{width:1440,height:1000}});

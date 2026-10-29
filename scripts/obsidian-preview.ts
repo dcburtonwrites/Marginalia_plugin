@@ -33,11 +33,12 @@ export class MarkdownRenderChild { constructor(public containerEl: any) {} }
 export class FuzzySuggestModal {}
 export const normalizePath = (path: string) => path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\/(?!$)|\/$/g, "") || "/";
 export class Modal {
+  containerEl = document.createElement("div");
   modalEl = document.createElement("div");
   contentEl = document.createElement("div");
   constructor(public app: any) {}
-  open() { this.contentEl.setAttribute("role", "dialog");this.modalEl.style.cssText="position:fixed;z-index:1000;inset:5vh 15vw;background:var(--background-primary);padding:20px;overflow:auto;";this.modalEl.append(this.contentEl); document.body.append(this.modalEl); (this as any).onOpen?.(); }
-  close() { (this as any).onClose?.(); this.modalEl.remove(); }
+  open() { this.contentEl.setAttribute("role", "dialog");this.modalEl.style.cssText="position:fixed;z-index:1000;inset:5vh 15vw;background:var(--background-primary);padding:20px;overflow:auto;";this.modalEl.append(this.contentEl);this.containerEl.append(this.modalEl); document.body.append(this.containerEl); (this as any).onOpen?.(); }
+  close() { (this as any).onClose?.(); this.containerEl.remove(); }
 }
 export const MarkdownRenderer = {
   render: async (_app: any, text: string, el: HTMLElement) => {

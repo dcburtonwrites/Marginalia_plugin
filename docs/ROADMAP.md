@@ -209,3 +209,15 @@ Skipped by owner (D-0044). No writing-check interface, finding persistence or di
 - [ ] Wider themes/plugin combinations, user-assigned shortcut conflicts, sustained large-project native profiling and remaining editor/sidebar popout cases.
 
 [Device/release evidence and remaining checklist](verification/device-release-2026-10-25.md). Step 5 is partial until these device/platform checks are completed.
+
+
+## Compact mobile dialogue picker — reversible trial (D-0045)
+
+- [x] Native bottom sheet with six quick choices, session-only recency and optional full-cast search/custom name.
+- [x] Preserve explicit choice, repeated-Enter guard, original source/file checks, Cancel, Dialogue selection, native Undo and desktop dropdown.
+- [x] Retain previous source plus installable three-file ZIP; preserve data.json and avoid setting/schema migration.
+- [x] 196 tests, package/typecheck; phone/Android/tablet browser behavior and modal-dependent Compile/workspace regressions.
+- [x] Native iPhone Mirroring: bottom position, collapsed search, repeated Enter, explicit choice, Dialogue selection, Undo and recent ordering.
+- [ ] Direct software-keyboard dismissal/reopening smoothness, search placement above keyboard, IME and physical Android acceptance. Mirroring uses hardware keyboard input.
+
+See verification/dialogue-picker-2026-10-25.md for evidence and rollback instructions.
