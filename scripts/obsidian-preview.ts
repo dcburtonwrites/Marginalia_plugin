@@ -105,7 +105,11 @@ export class Setting {
     this.name = document.createElement("label");
     this.desc = document.createElement("p");
     this.control = document.createElement("div");
-    this.settingEl.append(this.name, this.desc, this.control);
+    const info = document.createElement("div");
+    info.className = "setting-item-info";
+    this.control.className = "setting-item-control";
+    info.append(this.name,this.desc);
+    this.settingEl.append(info,this.control);
     root.append(this.settingEl);
   }
   setName(value: string) {
@@ -186,6 +190,16 @@ export class Setting {
     };
     fn(api);
     return this;
+  }
+  addExtraButton(fn: any) {
+    const button = document.createElement("button");this.control.append(button);
+    const api:any = {
+      setIcon:(name:string)=>{button.textContent=name==="trash-2"?"×":name;return api;},
+      setTooltip:(text:string)=>{button.setAttribute("aria-label",text);button.title=text;return api;},
+      setDisabled:(value:boolean)=>{button.disabled=value;return api;},
+      onClick:(callback:any)=>{button.onclick=callback;return api;},
+    };
+    fn(api);return this;
   }
 }
 

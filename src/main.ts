@@ -81,6 +81,10 @@ import {
 import profilesSource from "./prompts/canon-profiles.json";
 import characterWriter from "./prompts/character-writer.md";
 import canonWriter from "./prompts/canon-writer.md";
+import {readTimeline} from "./timeline/model.ts";
+import {TimelineFeature,setupTimeline,timelineAvailable} from "./timeline/feature.ts";
+import {renderTimelineSettings} from "./timeline/settings.ts";
+import {TIMELINE,WorldTimelineView} from "./timeline/view.ts";
 
 const LIBRARIAN = "marginalia-librarian",
   EXPANSION = "marginalia-expansion";
@@ -135,6 +139,9 @@ export default class Marginalia extends Plugin {
   scriptsFeature?: ScriptFeature;
   librarianFeature?: Plugin;
   themeFeature?: WorkspaceFeature;
+  timelineSettings = readTimeline(undefined);
+  timelineFeature?: TimelineFeature;
+  private timelineSetupPending = false;
   private saveQueue: Promise<void> = Promise.resolve();
   private librarianTabPromise?: Promise<import("obsidian").WorkspaceLeaf>;
   savePluginData(): Promise<void> {
@@ -147,6 +154,7 @@ export default class Marginalia extends Plugin {
           scriptOrders: this.scriptOrders,
           writing: this.writing,
           workspace: this.workspaceSettings,
+          timeline: this.timelineSettings,
         }),
       );
     this.saveQueue = write;
@@ -155,15 +163,17 @@ export default class Marginalia extends Plugin {
   async onload() {
     const saved = await this.loadData();
     if (saved && typeof saved === "object") {
-      const { scriptOrders, writing, workspace, ...settings } = saved;
+      const { scriptOrders, writing, workspace, timeline, ...settings } = saved;
       this.settings = { ...this.settings, ...settings };
       this.scriptOrders = readOrders(scriptOrders);
       this.writing = readWriting(writing);
       this.workspaceSettings = readWorkspace(workspace);
+      this.timelineSettings = readTimeline(timeline);
     }
     addIcon("marginalia-lantern", L_ICON);
     addIcon("marginalia-m", M_ICON);
     this.addSettingTab(new MarginaliaSettings(this.app, this));
+    this.registerView(TIMELINE,leaf=>new WorldTimelineView(leaf,this));
     if (Platform.isMobile) {
       // Restore synced desktop leaves as an explanation, without AI startup.
       for (const type of [LIBRARIAN, EXPANSION])
@@ -182,8 +192,30 @@ export default class Marginalia extends Plugin {
     }
     this.applyModules();
   }
+  async setTimelineEnabled(enabled: boolean) {
+    if (this.timelineSetupPending) throw new Error("Calendar setup is already in progress.");
+    if (enabled && !timelineAvailable(this)) throw new Error("Timelines is available in World vaults on desktop only.");
+    this.timelineSetupPending = true;
+    const previous = this.timelineSettings.enabled;
+    try {
+      if (enabled) await setupTimeline(this);
+      // Vault type may change while a calendar is being created.
+      if (enabled && !timelineAvailable(this)) throw new Error("Timelines requires a World vault on desktop.");
+      this.timelineSettings.enabled = enabled;
+      await this.savePluginData();
+      this.applyModules();
+    } catch(error) { this.timelineSettings.enabled = previous; throw error; }
+    finally { this.timelineSetupPending = false; }
+  }
   applyModules() {
     const modules = this.workspaceSettings.modules;
+    if (this.timelineSettings.enabled && timelineAvailable(this) && !this.timelineFeature)
+      this.timelineFeature = this.addChild(new TimelineFeature(this));
+    else if ((!this.timelineSettings.enabled || !timelineAvailable(this)) && this.timelineFeature) {
+      for(const leaf of this.app.workspace.getLeavesOfType(TIMELINE))leaf.detach();
+      this.removeChild(this.timelineFeature);
+      this.timelineFeature = undefined;
+    }
     if (modules.scripts && !this.scriptsFeature) {
       this.scriptController = undefined;
       this.scriptsFeature = this.addChild(new ScriptFeature(this));
@@ -1392,7 +1424,8 @@ class MarginaliaSettings extends PluginSettingTab {
                 p.workspaceSettings.vaultType =
                   value === "Storyboard" ? "Storyboard" : "World";
                 await p.savePluginData();
-                p.themeFeature?.refresh();
+                p.applyModules();
+                this.display();
               }),
           );
         new Setting(body).setName("Vault setup").setDesc("Advanced: configure canon types, destination folders and templates for this vault.")
@@ -1472,6 +1505,7 @@ class MarginaliaSettings extends PluginSettingTab {
       } else if (key === "scripts") renderWritingSettings(body, p);
       else this.renderLibrarian(body);
     }
+    renderTimelineSettings(root, p, () => this.display());
   }
   renderLibrarian(root: HTMLElement) {
     const p = this.plugin;

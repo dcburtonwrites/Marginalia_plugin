@@ -6,7 +6,7 @@ const require=createRequire(import.meta.url);
 const children=[],views=[],requested=[],factories=new Map();
 class Plugin {
   constructor(app,manifest){this.app=app;this.manifest=manifest;}
-  async loadData(){return {workspace:{modules:{theme:true,scripts:true,librarian:true}}};}
+  async loadData(){return {workspace:{modules:{theme:true,scripts:true,librarian:true}},timeline:{enabled:true}};}
   addSettingTab(){}
   registerView(type,factory){views.push(type);factories.set(type,factory);}
   addChild(child){children.push(child.constructor.name);return child;}
@@ -30,18 +30,20 @@ const app={workspace:{getLeavesOfType:()=>[]}};
 const plugin=new module.exports.default(app,{id:'marginalia'});
 await plugin.onload();
 assert.deepEqual(children,['ScriptFeature','WorkspaceFeature']);
-assert.deepEqual(views,['marginalia-librarian','marginalia-expansion']);
+assert.deepEqual(views,['marginalia-world-timeline','marginalia-librarian','marginalia-expansion']);
 assert.equal(plugin.workspaceSettings.modules.librarian,true);
+assert.equal(plugin.timelineSettings.enabled,true);
+assert.equal(plugin.timelineFeature,undefined);
 assert.equal(requested.some(name=>name.startsWith('node:')),false);
 assert.equal(JSON.parse(await readFile('manifest.json')).isDesktopOnly,false);
-for (const factory of factories.values()) {
+for (const [type,factory] of factories) {
  let rendered;
- const view=factory({contentEl:{replaceChildren(node){rendered=node;}}});
+ const view=factory({contentEl:{ownerDocument:{createElement:()=>({})},replaceChildren(node){rendered=node;},append(node){rendered=node;}}});
  await view.onOpen();
- assert.match(rendered.textContent,/desktop only/);
+ assert.match(rendered.textContent,type==='marginalia-world-timeline'?/World vault on desktop/:/desktop only/);
 }
 await assert.rejects(()=>plugin.checkConnection(),/desktop only/);
 await assert.rejects(()=>plugin.generateText('','',new AbortController().signal),/desktop only/);
-const result={mobileBundleLoad:'pass',mobileStartup:'pass',restoredDesktopMessage:'pass',children,restoredDesktopViews:views,nodeImportsRequested:[],savedDesktopLibrarianPreference:true,physicalDeviceTested:false};
+const result={mobileBundleLoad:'pass',mobileStartup:'pass',restoredDesktopMessage:'pass',children,restoredDesktopViews:views,nodeImportsRequested:[],savedDesktopLibrarianPreference:true,savedDesktopTimelinePreference:true,timelineInactive:true,physicalDeviceTested:false};
 await writeFile('docs/verification/mobile-load.json',JSON.stringify(result,null,2)+'\n');
 console.log('Mobile bundle loads and starts without Node imports; AI stays inactive.');

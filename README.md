@@ -10,7 +10,9 @@ Entry Enhancement and Entry Expansion lead the build. The interface follows `des
 
 - Left-aligned app navigation above the native vault viewer; original M ribbon remains Script Studio. Each top-level `_` folder adds its own section below Projects in either vault type, except names listed under Theme → Hidden folders. `_Assets` is the editable default exclusion. Crypt, Research and Collections open directly from this menu.
 - Home, tabbed Brainstorms/Canon cards, project pages and Storyboard Project Register.
-- World/Storyboard layout, app light/dark colors and three independently enabled, collapsible settings sections: Theme, Scripts, Librarian.
+- World/Storyboard layout, app light/dark colors and independently enabled Theme, Scripts and Librarian settings. Desktop World vaults also offer opt-in Timelines.
+
+- World Timeline with ordinary Calendar notes, date validation, location lanes/grouping, filters, zoom, parallel-calendar display, event details and read-only undated chains. Enable under Settings → Marginalia → Timelines, then use its ribbon icon or Open World Timeline command. State/per-entry/snapshot views follow in later reviewed phases.
 
 - One Script Studio sidebar tab with a project/grouping dropdown, scoped outline and persistent writing-session scope.
 - View options with Collapse/Expand all and Collapse/Expand panel descriptions; labels reflect the main script/project fold state.
@@ -40,7 +42,7 @@ npm run package
 
 The three installable development files are prepared in `dist/marginalia/`: `main.js`, `manifest.json`, and `styles.css`. Nothing is copied to a vault automatically. Real-host acceptance should use a disposable vault before any live-vault adoption.
 
-For the shared-component browser preview, run `npm run preview:build` and open `.preview/index.html` for Librarian or `.preview/scripts.html` for Scripts, and `.preview/workspace.html` for app pages. Its notes and replies are fictional; it is not an installed Obsidian screenshot. UI automation is in `scripts/test-ui.mjs` and `scripts/test-workspace-ui.mjs` and uses Playwright supplied through `MARGINALIA_PLAYWRIGHT` or a local Playwright installation. It does not control Obsidian.
+For the shared-component browser preview, run `npm run preview:build` and open `.preview/index.html` for Librarian or `.preview/scripts.html` for Scripts, and `.preview/workspace.html` for app pages. Timeline settings and the World Timeline have `.preview/timeline.html` and `.preview/world-timeline.html` previews. Its notes and replies are fictional; it is not an installed Obsidian screenshot. UI automation is in `scripts/test-ui.mjs` and `scripts/test-workspace-ui.mjs` and uses Playwright supplied through `MARGINALIA_PLAYWRIGHT` or a local Playwright installation. It does not control Obsidian.
 
 The optional `scripts/check-local-ai.ts` smoke test uses only fictional notes and a running local Ollama model. No creative-vault content is read or sent by that test.
 

@@ -7,10 +7,13 @@
     "WorkspaceFeature"
   ],
   "restoredDesktopViews": [
+    "marginalia-world-timeline",
     "marginalia-librarian",
     "marginalia-expansion"
   ],
   "nodeImportsRequested": [],
   "savedDesktopLibrarianPreference": true,
+  "savedDesktopTimelinePreference": true,
+  "timelineInactive": true,
   "physicalDeviceTested": false
 }

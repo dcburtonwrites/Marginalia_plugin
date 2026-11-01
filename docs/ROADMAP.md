@@ -242,3 +242,34 @@ See verification/writing-librarian-2026-10-31.md.
 - [x] No source/Base writes; validate selection, safe missing-source disclosure and native query lifecycle cleanup.
 - [x] 202 automated tests, desktop/mobile register and workspace browser checks, native Base-filter refresh and empty-result verification.
 - [ ] Physical mobile acceptance of Base-backed mode.
+
+## Timelines · v0.20.0 development → v0.30.0 completion · D-0048–D-0054
+
+Each phase requires verification and owner review before the next phase.
+
+### Timeline Phase 1 — Calendar and date foundation
+- [x] Host-independent calendar definitions, signed years/zero, authored precision and shared sort key.
+- [x] Parallel calendar anchors, alias/primary resolution and deterministic configuration/date validation.
+- [x] World/desktop-only opt-in with non-overwriting default Calendar setup.
+- [x] Tracked-field groups/type filters and preferences in existing plugin settings.
+- [x] Model/host regressions, settings UI verification and phase evidence for owner review.
+
+[Phase 1 verification and limits](verification/timeline-phase-1-2026-11-01.md). Owner continued into Phase 2 (D-0054).
+
+### Timeline Phase 2 — World Timeline view
+- [x] Native main-pane view, reusable tab, ribbon/command/settings access and World/desktop lifecycle guards.
+- [x] Location selection/grouping/order, unknown/multiple lanes, point precision ranges and span bars.
+- [x] Search, participant type/tag/shared-project filters, zoom/pan/Fit, display calendar and selected-event details.
+- [x] Related frontmatter-linked script/plot references; guarded native note navigation.
+- [x] Read-only undated components, bounded relational placement, unanchored lane and chain diagnostics.
+- [x] Heap collision packing, windowed card/row rendering and batched undated/issues lists.
+- [x] Automated/model/host/mobile-load checks, browser dense dataset and native disposable-vault interaction/persistence/live refresh; original-note hashes preserved.
+
+[Phase 2 verification and limits](verification/timeline-phase-2-2026-11-01.md). Awaiting owner review before Phase 3.
+
+### Later reviewed phases
+- [ ] Phase 3: state derivation/precedence, unknown/conflict handling, per-entry timelines and header action.
+- [ ] Phase 4: snapshot scrubber/state/location view.
+- [ ] Phase 5: structured date/calendar editing alongside native notes.
+- [ ] Phase 6: evaluate optional Librarian deterministic/LLM integration; document implemented and deferred rules.
+- [ ] Complete feature acceptance and bump to v0.30.0.

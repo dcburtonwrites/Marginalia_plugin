@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-01",
+  "version": "0.20.0",
+  "originalNotes": 34,
+  "changedOriginalNotes": [],
+  "packageHashes": {
+    "main.js": "0db0693e7df95c4e568b3dd4cffffcf580173a26dc011449a8e8478b891a507c",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "fa3e0b2baf37c3f3bce2d88a4e0aa608f0ea73944f65ebcb71abec3b992d985a"
+  },
+  "nativeVault": ".preview/Marginalia Test Vault",
+  "nativeHost": "Obsidian 1.14.5 macOS",
+  "physicalMobileTested": false
+}

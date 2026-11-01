@@ -1242,3 +1242,80 @@ test("Project Register embeds a private copy of the first Base view without chan
   assert.deepEqual(config.filters,raw.filters);assert.deepEqual(config.formulas,raw.formulas);assert.deepEqual(config.views[0].filters,raw.views[0].filters);assert.deepEqual(config.views[0].sort,raw.views[0].sort);
   assert.throws(()=>registerSourceConfig({views:[]},"bad"),/needs a view/);
 });
+
+test("timeline enable creates one calendar, saves existing preferences, and rejects Storyboard/mobile",async()=>{
+  const h=host();let applied=0,saved:any;
+  h.plugin.applyModules=()=>{applied++;};h.plugin.saveData=async value=>{saved=structuredClone(value);};
+  h.plugin.app.vault.create=(async(path:string,source:string)=>{h.files.push(new TFile(path));h.text.set(path,source);return h.files.at(-1)!;}) as any;
+  h.plugin.app.metadataCache.getFileCache=((file:any)=>({frontmatter:file.basename==="Calendar"?{type:"Calendar",primary:true,precision:"year"}:{}})) as any;
+  await h.plugin.setTimelineEnabled(true);
+  assert.equal(saved.timeline.enabled,true);assert.equal(saved.workspace.vaultType,"World");assert.equal(applied,1);
+  assert.ok(h.text.get("Calendar.md")?.includes("type: Calendar"));
+  await h.plugin.setTimelineEnabled(false);await h.plugin.setTimelineEnabled(true);
+  assert.equal(h.files.filter(f=>f.basename==="Calendar").length,1);
+  h.plugin.workspaceSettings.vaultType="Storyboard";await assert.rejects(()=>h.plugin.setTimelineEnabled(true),/World/);
+  h.plugin.workspaceSettings.vaultType="World";Platform.isMobile=true;
+  try {await assert.rejects(()=>h.plugin.setTimelineEnabled(true),/desktop/);} finally {Platform.isMobile=false;}
+});
+test("timeline setup blocks overlapping requests and rolls back enabled preference on failed saves",async()=>{
+  const h=host();h.plugin.applyModules=()=>{throw new Error("must not start after a failed save");};
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});let creates=0;
+  h.plugin.app.vault.create=(async()=>{creates++;await gate;return new TFile("Calendar.md");}) as any;
+  h.plugin.saveData=async()=>{throw new Error("Disk unavailable");};
+  const pending=h.plugin.setTimelineEnabled(true);
+  await assert.rejects(()=>h.plugin.setTimelineEnabled(true),/already in progress/);
+  release();await assert.rejects(()=>pending,/Disk unavailable/);
+  assert.equal(creates,1);assert.equal(h.plugin.timelineSettings.enabled,false);
+});
+
+test("timeline setup reads an uncached Calendar instead of creating a duplicate",async()=>{
+  const h=host();const file=new TFile("Calendar.md");h.files.push(file);h.text.set(file.path,'---\ntype: Calendar\nprimary: true\nprecision: year\n---\n');
+  h.plugin.app.metadataCache.getFileCache=((file:any)=>file.basename==="Calendar"?null:{frontmatter:{}}) as any;
+  h.plugin.app.vault.create=(async()=>{throw new Error("must not duplicate uncached calendar");}) as any;
+  h.plugin.saveData=async()=>{};h.plugin.applyModules=()=>{};
+  await h.plugin.setTimelineEnabled(true);assert.equal(h.plugin.timelineSettings.enabled,true);
+});
+
+test("timeline lifecycle follows World/desktop gating independently of Theme and Librarian",()=>{
+  const h=host();h.plugin.workspaceSettings.modules={theme:false,scripts:false,librarian:false};h.plugin.timelineSettings.enabled=true;
+  let removed=0;h.plugin.addChild=((child:any)=>child) as any;h.plugin.removeChild=(()=>{removed++;}) as any;
+  h.plugin.applyModules();assert.ok(h.plugin.timelineFeature);
+  h.plugin.workspaceSettings.vaultType="Storyboard";h.plugin.applyModules();assert.equal(h.plugin.timelineFeature,undefined);assert.equal(removed,1);assert.equal(h.plugin.timelineSettings.enabled,true);
+  h.plugin.workspaceSettings.vaultType="World";h.plugin.applyModules();assert.ok(h.plugin.timelineFeature);
+  Platform.isMobile=true;try {h.plugin.applyModules();assert.equal(h.plugin.timelineFeature,undefined);assert.equal(removed,2);assert.equal(h.plugin.timelineSettings.enabled,true);} finally {Platform.isMobile=false;}
+});
+test("timeline metadata indexing overlays current editor dates and unload cancels pending refresh",async()=>{
+  const {TimelineFeature}=await import("../src/timeline/feature.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  const calendar=new TFile("Calendar.md");h.files.push(calendar);h.text.set(calendar.path,"Calendar lore");
+  h.plugin.app.metadataCache.getFileCache=((file:any)=>({frontmatter:file===calendar?{type:"Calendar",primary:true}:{type:"Character",Born:410}})) as any;
+  h.setEditor('---\ntype: Character\nBorn: 412\n---\nCurrent prose');
+  const callbacks:(()=>void)[]=[], events:string[]=[];
+  (h.plugin.app.vault as any).on=(name:string)=>{events.push(name);return {};};(h.plugin.app.metadataCache as any).on=(name:string)=>{events.push(name);return {};};
+  (h.plugin.app.workspace as any).on=(name:string)=>{events.push(name);return {};};(h.plugin.app.workspace as any).onLayoutReady=(fn:any)=>fn();
+  const feature=new TimelineFeature(h.plugin);feature.register=((fn:any)=>{callbacks.push(fn);}) as any;feature.registerEvent=(()=>{}) as any;
+  feature.onload();feature.refresh();assert.equal(feature.index?.selfChanges[0].date.key,412);assert.ok(events.includes("editor-change"));assert.ok(events.includes("resolved"));
+  h.setEditor('---\ntype: Character\nBorn: later\n---\nCurrent prose');feature.refresh();assert.ok(feature.index?.diagnostics.some(d=>d.field==="Born"));
+  feature.schedule();callbacks.forEach(fn=>fn());await new Promise(resolve=>setTimeout(resolve,180));assert.equal(feature.index,undefined);
+  assert.equal(h.transactions.length,0);
+});
+
+test("world timeline opens a native main tab, reuses it and does not create notes",async()=>{
+  const {openWorldTimeline,openTimelineNote,TIMELINE}=await import("../src/timeline/view.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  let opened=0,revealed=0,created=0;const states:any[]=[];const leaf={setViewState:async(state:any)=>{states.push(state);},detach:()=>{}};
+  h.plugin.app.workspace.getLeavesOfType=((type:string)=>opened&&type===TIMELINE?[leaf]:[]) as any;
+  (h.plugin.app.workspace as any).getLeaf=(kind:string)=>{assert.equal(kind,"tab");opened++;return leaf;};(h.plugin.app.workspace as any).revealLeaf=async()=>{revealed++;};
+  h.plugin.app.vault.create=(async()=>{created++;throw new Error("read only navigation");}) as any;
+  await openWorldTimeline(h.plugin);await openWorldTimeline(h.plugin);assert.equal(opened,1);assert.equal(revealed,2);assert.ok(states.every(s=>s.type===TIMELINE));
+  let navigation=0;h.plugin.app.workspace.openLinkText=(async()=>{navigation++;}) as any;
+  openTimelineNote(h.plugin,h.files[0].path);openTimelineNote(h.plugin,"Missing.md");assert.equal(navigation,1);assert.equal(created,0);
+  h.plugin.workspaceSettings.vaultType="Storyboard";await openWorldTimeline(h.plugin);assert.equal(revealed,2);
+});
+test("timeline preference renames follow native file/folder paths without changing notes",async()=>{
+  const {TimelineFeature}=await import("../src/timeline/feature.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  h.plugin.timelineSettings.primaryCalendar="Calendars/World.md";h.plugin.timelineSettings.displayCalendar="Calendars/Alternate.md";h.plugin.timelineSettings.lanes=[{path:"Places/Harbor.md",group:"Coast",enabled:false}];
+  let rename:any,saved:any;h.plugin.saveData=async value=>{saved=structuredClone(value);};
+  (h.plugin.app.vault as any).on=(name:string,fn:any)=>{if(name==="rename")rename=fn;return {};};(h.plugin.app.metadataCache as any).on=()=>({});(h.plugin.app.workspace as any).on=()=>({});(h.plugin.app.workspace as any).onLayoutReady=()=>{};
+  const cleanups:any[]=[],feature=new TimelineFeature(h.plugin);feature.register=((fn:any)=>{cleanups.push(fn);}) as any;feature.registerEvent=(()=>{}) as any;feature.onload();
+  rename({path:"World Calendars"},"Calendars");rename({path:"Locations"},"Places");await h.plugin.savePluginData();
+  assert.equal(saved.timeline.primaryCalendar,"World Calendars/World.md");assert.equal(saved.timeline.displayCalendar,"World Calendars/Alternate.md");assert.deepEqual(saved.timeline.lanes,[{path:"Locations/Harbor.md",group:"Coast",enabled:false}]);assert.equal(h.transactions.length,0);cleanups.forEach(fn=>fn());
+});

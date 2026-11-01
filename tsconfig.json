@@ -25,6 +25,7 @@
     "tests/scripts.test.ts",
     "tests/writing.test.ts",
     "tests/shortcuts.test.ts",
-    "tests/workspace.test.ts"
+    "tests/workspace.test.ts",
+    "tests/timeline.test.ts"
   ]
 }

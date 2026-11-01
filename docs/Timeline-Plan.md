@@ -2,177 +2,121 @@
 title: Timeline Feature Plan
 type: Plan
 date: 2026-11-01
-tags:
-  - marginalia
-  - timeline
-  - plan
+tags: [marginalia, timeline, plan]
 ---
 
 # Timeline Feature Plan
 
-> [!abstract] Summary
-> The Timeline is built around Event entries. Worlds define their own calendars as ordinary notes. Dates, spans, and state changes live in frontmatter. Marginalia converts everything to one internal sort key and renders a world timeline, per-entry timelines, and a "snapshot at time T" view. Items marked **Decided** came out of planning; items marked **Proposed** are my suggestions for DC to accept or change. Mockups come after this plan is signed off.
+Approved implementation contract for the Obsidian plugin. One vault is one world.
+Timelines is opt-in, available only in World vaults, and targets desktop first.
+Development uses v0.20.0; the completed feature will be v0.30.0.
+Each phase ends with verification and an owner review before the next phase.
 
-## 1. Goals and non-goals
+## 1. Goals and boundaries
 
-**Goals**
-- Show where characters, items, affiliations, and other entries are, and what state they are in, at any point on a world's in-world timeline.
-- Support fully custom calendars per world, including two calendars describing the same timeline (parallel notation).
-- Keep plain markdown as the source of truth: everything the timeline reads is in note frontmatter, editable in Obsidian.
-- Let users choose how precise their dates are (year, month, or full day).
+- World timeline, per-entry timelines, and a snapshot at time T showing known presence/state/location.
+- Custom calendars with parallel notation on one shared timeline.
+- Calendar definitions, event dates, participant links, and lifecycle dates remain ordinary Markdown frontmatter. No model writes or changes canon.
+- Preferences use existing Obsidian plugin settings storage, not new `.marginalia` settings files.
+- Native TypeScript and public Obsidian APIs; no standalone-app runtime dependency.
+- Deferred: separate time flows, relative/uncertain dates, leap rules, irregular month lengths, relational changes such as joining affiliations, and sub-year anchors.
 
-**Non-goals (for now)**
-- Separate flows of time (a realm where time runs differently). Kept in mind, deferred.
-- The AI writing or changing dates or entries. The Librarian only reports and suggests.
+## 2. Access and setup
 
-## 2. Core concepts
-
-| Term | Meaning |
-|---|---|
-| Calendar note | A note (`type: Calendar`) defining a world's eras, months, and precision |
-| Primary calendar | The calendar an entry uses when it names none |
-| Sort key | The single internal number every date converts to, so dates from any calendar compare |
-| Event | An Event entry carrying a point date or a span |
-| State change | A fact such as born, died, lost, or founded that changes an entry from a moment onward |
-| Tracked field | A frontmatter field listed in the world's state-tracking list, assigned to an effect group |
-| Effect group | Appears, Disappears, or Moves: the visual effect a state change has on the timeline |
-| Presence | An entry being linked in an event's frontmatter |
+Timelines has an independent enable setting, restricted to World vaults on desktop.
+Switching to Storyboard or mobile makes it unavailable while retaining saved preferences.
+Enabling reuses existing Calendar notes. If none exists, create a normal note named `Calendar`, using the existing native vault creation conventions. Avoid overwriting any existing file by using an available numbered name.
+The default calendar has year precision, signed numeric years, year zero, and no required era abbreviation.
+An existing malformed Calendar note produces a configuration error; it is not replaced.
+The visual feature opens in a native main-pane view like the graph. Entry views gain a timeline button beside Librarian, independent of whether Librarian is enabled.
 
 ## 3. Calendar notes
-
-**Decided**: calendars are notes with structured frontmatter, plus normal lore prose below the frontmatter. The note is a real entry and can link to other entries.
 
 ```yaml
 ---
 type: Calendar
 primary: true
-precision: month        # year | month | day
-aliases:
-  - AS
+precision: day
+aliases: [AS]
 eras:
   - name: Age of Smoke
     abbr: AS
-    epoch: 0
-    direction: forward
-months:
-  - Emberfall
-  - Thawmoon
-  - Highsun
+months: [Emberfall, Thawmoon, Highsun]
 days-per-month: 30
-format: "{month} {year} {era}"
+format: "{day} {month} {year} {era}"
 ---
 ```
 
-A second calendar for the same timeline (parallel notation) adds an anchor:
+A Calendar is a real entry with ordinary lore prose below its frontmatter.
+There are no `epoch` or `direction` properties: all calendars use signed years starting at zero. Era names/abbreviations are optional date labels, not independently offset epochs or reverse-counting eras.
+
+- `precision` is the maximum supported unit: year, month, or day. Lower-precision input is accepted and its authored precision retained.
+- Year-only input sorts at the start of that year; month-only input at the start of that month. Display never invents a finer precision than the author supplied or the selected display calendar supports.
+- Month precision requires a list of month names. Day precision additionally requires uniform `days-per-month`.
+- Year/month input is token-order independent, including an optional era. Full day input follows `format` to disambiguate day and year.
+- Names, aliases, and era abbreviations resolve calendars. Inline qualifiers can override an entry's `Calendar` setting. Ambiguous aliases produce errors, never an arbitrary selection.
+- The note marked `primary: true` is the default. A sole Calendar note is automatically primary. Multiple primary notes, or multiple calendars with no primary, require an explicit primary-calendar choice in settings and disclose the conflict; there is no alphabetical fallback.
+- Invalid calendar definitions remain visible as errors rather than silently falling back to a different calendar.
+
+Parallel calendar example:
 
 ```yaml
 ---
 type: Calendar
 precision: year
-aliases:
-  - MC
-eras:
-  - name: Mortal Count
-    abbr: MC
-    epoch: 0
-    direction: forward
-anchor: "1 MC = 340 AS"
-format: "{year} {era}"
+aliases: [MC]
+anchor: "0 MC = 339 AS"
+format: "{year}"
 ---
 ```
 
-**Decided**
-- **Precision is a per-calendar setting.** Year precision needs only an era and epoch. Month precision adds the month list. Day precision adds days per month.
-- **Lower precision maps to the first unit of the period** for sorting: a month-precision date sorts as the first of that month, a year-precision date as the first of that year.
-- **One calendar marks itself `primary: true`.** Entries on the primary calendar never need a `Calendar` field.
-- **Era placement is flexible.** `CE 200` and `200 CE` both parse. The era abbreviation, month name, and year are distinguishable tokens, so input is order-independent. The calendar's `format` string controls how dates display.
+Anchors may chain but must resolve without cycles or dangling/ambiguous targets.
+Anchors align whole years; one year has the same duration across calendars in v1. Within a year, uniform months/days occupy proportional units of the shared year. Different month structures may render different month/day notation for the same instant.
 
-**Proposed**
-- A single calendar in the vault is treated as primary automatically.
-- Two calendars both marked primary, or several calendars with none marked, produce a warning and fall back to alphabetical order (same pattern as script-chain conflicts).
-- Day-precision input must follow the declared `format`, because two numbers (day and year) make token order ambiguous.
-- Uniform `days-per-month` in v1. A per-month length list, leap rules, and irregular years are a later extension.
-- Era abbreviations resolve to their calendar for inline overrides, so `72 MC` is understood as the Mortal Count even if the entry's own calendar is Age of Smoke.
+## 4. Event dates and order
 
-## 4. Dates on entries
-
-**Decided**
-- **Fixed field names** (no per-world field naming).
-- **Date and span fields are limited to events.**
-- **Supported event date types:** point and span are required; order-only is required. Uncertain and relative dates are optional, later.
-- **A separate `Calendar` field is only needed when an entry uses a non-primary calendar.**
-
-**Proposed field set**
-
-| Field | Used on | Meaning |
-|---|---|---|
-| `Date` | Event | Point date |
-| `Start` / `End` | Event | Span |
-| `Calendar` | Any entry with dates | Calendar name or alias, plain text, only when non-primary |
-| `Preceded By` | Event | Order-only placement and tie-breaking (existing field name) |
+Fixed fields: `Date` for a point, or `Start` and `End` for a span; both span endpoints are required.
+`Calendar` is plain text (name, alias, or note path), needed only for non-primary calendars. It is not a participant link.
 
 ```yaml
-# Primary calendar, no Calendar field
 Date: Highsun 412
-
-# Non-primary calendar
+# or
 Calendar: MC
 Date: 72
-
-# Span
+# or
 Start: 410
 End: 415
-
-# Inline override on a single date
-Date: 72 MC
 ```
 
-**Proposed**
-- `Calendar` is plain text rather than a wikilink so it does not count as presence and does not add a hub node to the graph.
-- Order-only events (no date) are placed between their `Preceded By` neighbors. A chain with no dated anchor shows in an "Undated" lane, in sequence.
-- Event cards keep showing their in-story date, formatted by the display calendar.
-- A date on a non-event note is the state-change case (section 6), not a `Date` field. A stray `Date`, `Start`, or `End` on a non-event gets a deterministic warning.
+Inline example: `Date: 72 MC`.
+Only Events use Date/Start/End. Non-event entries use lifecycle fields such as Born or Lost for their own dates. Unexpected date fields on non-events produce deterministic validation errors.
+A span's state changes and movement take effect at End. A point's take effect at Date.
+Invalid, incomplete, or mixed point/span input does not receive a guessed effective date.
 
-## 5. Presence
+`Preceded By` is read-only and used only for undated chains. It never rewrites authored dates, breaks dated ties, or auto-fills event properties. Chains with no dated anchor appear in an Undated lane. An undated event between dated anchors can be positioned relationally without gaining an invented canonical date. Dangling/cyclic/conflicting chains must remain disclosed.
+Overlapping precision does not establish finer factual order; the visual layout must not imply an invented day/order.
 
-**Decided**
-- Presence comes from frontmatter only. Body wikilinks do not count.
-- Any wikilink in an event's frontmatter counts as present. The field is flexible, not limited to a fixed Characters list.
+## 5. Presence and location
 
-**Proposed**
-- Reserved structural fields are excluded from presence: `Preceded By`, `Calendar` (plain text anyway), and any similar non-participant link fields.
-- A script or plot point that links an event in its frontmatter shows up on that event's detail view and as a marker on the timeline.
+Presence uses wikilinks in Event frontmatter only, including flexible participant fields and tracked state fields. Body links do not count.
+Exclude structural fields: Preceded By, Followed By, Calendar, Project/Projects, Script/Scripts, Plot Point/Plot Points; Location/Locations defines where an event occurs rather than a participant to move.
+Locations remain stationary and supply the vertical axis. Users choose lanes and group them.
+Missing or multiple event locations must remain unknown/ambiguous instead of selecting an arbitrary first link.
+Scripts and plot points linking to Events can be shown as related markers/details in the appropriate visual phase.
 
 ## 6. State changes
 
-**Decided**
-- State changes matter (example: an item lost during an event).
-- Events carry state changes in frontmatter, reusing lifecycle fields (Born, Died, Founded) and adding new ones such as Lost.
-- A status field holding a date on a non-event note reads as a state change at that date. Events also carry state changes.
-- The tracked fields are a list in Settings, per world, grouped by intended visual effect: **Appears**, **Disappears**, **Moves**.
-- **Moves covers every presence link by default.**
+The per-vault settings list groups fields by effect:
 
-**Effect groups**
-
-| Group | Visual effect |
-|---|---|
-| Appears | The entry shows on the timeline and snapshot from this moment |
-| Disappears | The entry ends or is removed from this moment |
-| Moves | The entry's location changes to the event's location |
-
-**Default list**
-
-| Group | Fields |
-|---|---|
+| Effect | Default fields |
+| --- | --- |
 | Appears | Born, Founded, Found, Created |
 | Disappears | Died, Lost, Destroyed, Dissolved |
-| Moves | Every presence link (built in, on by default) |
+| Moves | Every participant link, built in |
 
-- Disappears and Appears can reverse each other: Lost makes an item disappear, a later Found makes it appear again.
-- Users can add their own fields to Appears or Disappears (for example Summoned or Cursed).
+Fields default to unrestricted entry types. Each Appears/Disappears field has an optional Applies to filter, and can be added/removed in settings. Structural and date fields cannot be registered as lifecycle fields.
 
-**How it works (Proposed model)**
-- A tracked field on an event lists the entries that changed:
+On Events, tracked fields list entries affected:
 
 ```yaml
 Characters: ["[[Heracles]]", "[[Nessus]]"]
@@ -181,109 +125,57 @@ Lost: ["[[Bow of Heracles]]"]
 Founded: ["[[The Argonauts]]"]
 ```
 
-- A tracked field on a non-event note holds a date and changes that note's own state:
+On non-events, tracked fields hold that entry's own date, such as `Born: 412`.
+An entry's own lifecycle date supersedes an event-derived date for the same fact. For example a birth event spanning 410–415 supplies 415, but the character's `Born: 412` wins. Retain the discrepancy for review.
+Appears/Disappears may reverse each other, such as Lost followed by Found.
+Before explicit evidence, state is unknown, not absent; entries without Born/Created can still appear when encountered.
+A snapshot derives the latest known state and location at or before T. Conflicting changes at an indistinguishable instant remain unresolved, rather than alphabetical factual precedence. Multiple simultaneous locations remain a conflict.
 
-```yaml
-# on Iolaus
-Born: 410
-# on the Bow of Heracles
-Lost: 412
-```
+## 7. Views and interaction
 
-- The value type tells the two apart: a date is a self-supplied state change, a wikilink is an event-supplied one. Both feed one state timeline.
-- Moves is implicit: any wikilink in an event's frontmatter (except reserved structural fields, section 5) places that entry at the event's location from the event's date.
-
-**Settings: state-tracking list (per world, stored in `.marginalia` inside the vault)**
-- Three sections, one per effect group, each with its fields and an "Add field" row.
-- Each Appears or Disappears row has a field name and an optional "Applies to" entry-type filter (for example Born only on Characters).
-- The Moves section shows the built-in "every presence link" rule.
-
-**Snapshot at time T (Proposed)**
-- An entry is visible at T if its latest Appears or Disappears change at or before T is an Appears.
-- Last-known location is the Locations link of the latest event at or before T in which the entry was present.
-- Ties (same sort key, common at month or year precision) are broken by the `Preceded By` chain, then alphabetically, with a notice.
-
-**Conflicts and warnings (Proposed)**
-- If an entry's own date disagrees with an event-supplied one (e.g. `Born: 410` vs. an event dated 412 listing a birth), the app flags the mismatch and shows the entry's own value until resolved.
-- Found with no earlier Lost, or Born after Died, produces a deterministic warning.
-
-## 7. Views
-
-**Decided**
-- World timeline: horizontal, swimlanes, zoom levels, filterable by type, tag, and project.
-- Per-entry timeline: on a character, location, item, etc.
-- Snapshot scrubber: where things are and what state they are in at time T.
-- Display calendar selector (switch which calendar dates render in).
-- Links from scripts and plot points to events.
-
-**Proposed**
-- Per-world display-calendar choice persists in `.marginalia`.
-- Event cards and rows show the date at the calendar's declared precision only.
-- Mixed precision on one timeline sorts correctly; a month-only event and a day-dated event in the same month are shown as overlapping rather than guessed into order.
+- Horizontal world timeline with zoom and type/tag/project filters, user-selected/grouped location lanes, Undated lane, event selection/details, and display-calendar selection.
+- Per-entry timeline for characters, locations, items, and other entries.
+- Snapshot scrubber showing known state/location at T with unknown and conflict states.
+- Per-world display/lane preferences persist in existing plugin settings.
+- The mockup in `docs/reference/World timeline mockup` governs visual direction; adapt to native Obsidian panes/themes.
+- Prioritize navigation, zoom, filters, lane controls and details. Playback/speed/follow and dashed future paths are not required for the first view; consider later only if useful.
+- Mockup warning text is illustrative. It does not establish travel-time assumptions or a requirement to implement Librarian continuity rules.
 
 ## 8. Editing
 
-**Proposed**
-- The structured frontmatter form gets a date input that follows the entry's calendar and precision (era, month, and day pickers as applicable).
-- Parse errors show inline with the expected format.
-- Calendar notes get a structured form (eras, months, anchor, format) alongside the prose editor.
-- The Settings state-tracking list is three grouped sections (Appears, Disappears, Moves) with add/remove rows.
-- No automatic writing of dates anywhere. The AI does not edit canon.
+Structured date inputs follow the selected calendar and retain authored precision. Parsing errors explain the expected format.
+Calendar definitions remain real notes; a later structured Calendar form sits alongside prose editing.
+Native Obsidian editing remains available. No automatic date generation or rewriting; all explicit form edits must preserve unrelated note content and normal native Undo where applicable.
 
-## 9. Librarian integration (Proposed)
+## 9. Validation and optional Librarian integration
 
-**Tier 1: deterministic checks**
-- Unparseable date, unknown era, month, or `Calendar` name.
-- Start after End, missing End on a span.
-- Date, Start, or End on a non-event.
-- Died before Born.
-- Present in an event dated before Born or after Died or Destroyed.
-- Item present after Lost with no Found in between.
-- Entry's own state date conflicts with an event-supplied one.
-- Two primary calendars, none marked with several existing, dangling or cyclic anchor.
-- Event dated earlier than its `Preceded By` predecessor.
-- `Preceded By` cycles or conflicts (reusing the script-chain handling).
+Phase 1 validates syntax/configuration: invalid dates, unknown/ambiguous calendars or tokens, invalid calendar structures/anchors, conflicting primaries, missing span endpoints, reversed spans, mixed Date/Start/End, non-event date properties, and malformed frontmatter.
 
-**Tier 2: LLM-based**
-- Continuity check: an entry in two places at once, behavior that conflicts with its state, implausible ages.
+Documented continuity rules for later evaluation (not a prerequisite for calendar/date foundations): Died before Born; presence before birth or after death/destruction; item presence after Lost without Found; entry/event lifecycle mismatch; invalid lifecycle sequences; undated-chain problems; simultaneous conflicting state/location.
+These deterministic rules are separate from whether a Librarian interface is implemented. LLM-based continuity/age/travel suggestions, Entry Alignment convention gaps, Gap Finder, and expanded-entry timelines are later integration candidates, not already implemented plugin features.
 
-**Other functions**
-- Entry Alignment: suggest a missing `Date` on an event, a missing `Calendar` on a non-primary-calendar entry, or a lifecycle date missing on an entry whose type usually has one (using the existing convention-gap rule).
-- Gap Finder: events with no date, characters with no Born.
-- Expanded entries can include the entry's timeline.
+## 10. Architecture
 
-## 10. Architecture notes (Proposed)
+`src/timeline` owns a host-independent calendar/date/index/settings model, plus a thin native feature/settings layer.
+At load, use the native metadata cache and overlay open source buffers; refresh on native metadata/vault/editor events, coalesced by the feature lifecycle. Exclude templates, assets, archives, and hidden plugin storage consistently with existing entry eligibility.
+No timeline read operation writes authored notes. The only Phase 1 note writer is explicit enable-time default-calendar creation; never overwrite existing notes.
+State indexing and lazy rendering arrive with their phases; no mobile startup runtime is required in desktop-first development.
 
-- Calendars are parsed at vault load. Every date resolves to a sort key then.
-- State timelines are indexed per entry at load for fast snapshot queries.
-- The timeline logic lives in the app layer, consistent with the standalone-first approach.
-- Must run on mobile: the index is small, and the views use lazy rendering for long timelines.
-- Anchors between calendars with different unit structures convert at year granularity in v1.
+## 11. Phases and review gates
 
-## 11. Phasing (Proposed)
+1. Calendar notes, parsing/formatting/shared sort key, Calendar property, configuration/date validation, World-only enable/default setup, tracked-field settings and native plugin persistence.
+2. World timeline, location lane selection/grouping, filters/zoom/details/display calendar, Undated lane and read-only undated ordering.
+3. State derivation and precedence, participant/location indexing, unknown/conflicting states, per-entry timelines and entry header access.
+4. Snapshot scrubber and state/location presentation.
+5. Structured date/calendar editing.
+6. Evaluate optional Librarian integration: deterministic rule coverage first, then any approved LLM checks.
 
-1. Calendar notes, date parsing, sort key, the `Calendar` field, deterministic validation, and the state-tracking Settings list.
-2. World timeline view, including the Undated lane and `Preceded By` ordering.
-3. State derivation, per-entry timelines.
-4. Snapshot scrubber.
-5. Structured date editing and the calendar editor form.
-6. Librarian checks (Tier 1 first, then Tier 2).
+Verify each phase and present evidence for owner review before proceeding. Existing unrelated mobile/Librarian release gates do not block this explicitly authorized feature.
 
-## 12. Deferred
+## 12. Test fixtures
 
-- Relational state changes (e.g. joined an affiliation). A paired syntax such as `Joined: "[[Heracles]] → [[Argonauts]]"` is one option.
-- Separate flows of time (a realm with different time rates).
-- Uncertain and relative dates.
-- Irregular month lengths, leap rules, and sub-year calendar anchors.
-
-## 13. Open questions
-
-1. Does tie-breaking by `Preceded By` then alphabetical match how you expect same-period events to behave?
-2. Which fields beyond `Preceded By` should be excluded from presence?
-3. Which event field marks location for last-known-location, the existing Locations field?
-4. Should tracked fields be limited per entry type by default (e.g. Born only on Characters)?
-5. Should an entry's own state date win over an event-supplied one when they conflict, or should neither win until resolved?
-6. Is year-granular anchoring enough for parallel calendars, or do any of your worlds need sub-year alignment?
+Use fictional fixtures covering signed year/zero, lower precision on fine calendars, day formats, two parallel calendars, chained/invalid/cyclic anchors, ambiguous aliases, primary conflicts, point/span/undated events, own-vs-event dates, Lost/Found reversals, unknown state, conflicting locations, invalid/non-event dates, dangling/cyclic predecessors, and setup collisions/failure/re-enable.
+Keep phase fixtures isolated from creative vaults. Index their expected behavior in the fixture's EDGE-CASES.md. Native UI acceptance is distinct from pure/model and synthetic-host evidence.
 
 ## Related Entries
 

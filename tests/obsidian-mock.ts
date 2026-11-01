@@ -7,6 +7,8 @@ export class Plugin {
   constructor(app: any) {
     this.app = app;
   }
+  addCommand(_command:any) {}
+  addRibbonIcon(_icon:string,_title:string,_callback:any) { return {remove(){}} as any; }
 }
 export class Component {}
 export class MarkdownRenderChild { constructor(public containerEl: any) {} }

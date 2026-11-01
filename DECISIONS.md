@@ -287,3 +287,52 @@
 - Question: Correct the floating View heading and align Storyboard navigation and Project Register with the app.
 - Decision: Owner requires Home, Project Register, Projects, then a divider, visible underscore folders and native Obsidian file navigation. Brainstorms, Canon and Script Studio are absent from that app menu. The register uses the app-style page shown in the supplied image, not the regular native Base view. Users may assign a Base as its source.
 - Impact: View heading sits inside the box. Navigation reconciles saved vault-type changes. The register presents summary counts, Status/Genre/Tag/Format filters and the four metadata columns. The assigned Base’s first view is copied in memory into a plugin-rendered embedded query; native Bases evaluates filters and sorting while the plugin renders project Overview matches. No Base file or source note is rewritten. The built-in all-projects source remains available when no Base is selected. Base-backed mode requires the public Obsidian 1.10 Bases API; older hosts retain the built-in register. App source was inspected read-only. The open Storyboards vault was configured as World and was switched to Storyboard through Settings.
+
+## D-0048 · Timeline scope, review gates and version · 2026-11-01 · Timelines Phase 1
+- Question: Which proposals and implementation milestones govern Timelines?
+- Options: Phase 1 only / all phases with separate review points.
+- Recommendation: Retain phased implementation and verify each increment before review.
+- Decision: Owner requested input on proposed items, accepted phased review points, authorized development, and set v0.20 before development with v0.30 for completion.
+- Impact: Timeline-Plan.md is the updated contract. Develop as 0.20.0 and reserve 0.30.0 for completed Timelines. Phase 1 precedes the visual timeline.
+
+## D-0049 · World-only native timeline and calendar setup · 2026-11-01 · Timelines Phase 1
+- Question: Where does the feature live and how is its world scope configured?
+- Options: Standalone app runtime / native Obsidian feature; per-vault / multiple worlds.
+- Recommendation: Independent native feature and existing plugin persistence.
+- Decision: One vault equals one world. Only World vaults may enable Timelines. Open it like the node graph and place an entry timeline action beside Librarian. Enabling sets up the default calendar. Desktop first. Calendar is an actual note.
+- Impact: World/desktop runtime gating; normal Calendar note creation without overwrites; main view in Phase 2 and per-entry access in Phase 3. Storyboard/mobile retain but cannot activate saved preferences.
+
+## D-0050 · Signed years, authored precision and parallel notation · 2026-11-01 · Timelines Phase 1
+- Question: Define precision, epoch/direction and parallel-calendar alignment.
+- Options: Fixed-precision inputs / lower precision allowed; epoch/direction / signed years from zero; independent calendars / year anchors.
+- Recommendation: Preserve authored precision, sort partial dates at their beginning, retain year-level anchors.
+- Decision: Owner accepts lower precision mapped to the beginning (2001 means internally 1/1/2001) without inventing displayed precision. Remove epoch and direction; allow negative/zero/positive years. Approved default Calendar with year precision and no required era abbreviation, and anchors such as 0 MC = 339 AS.
+- Impact: Year-based shared sort key; uniform month/day fractions; one year has equal duration across calendars, whole-year anchors may chain. Era labels do not define separate offsets/count directions. Invalid anchors/ambiguity are diagnosed.
+
+## D-0051 · Timeline state, span endpoints and presence · 2026-11-01 · Timelines Phase 1
+- Question: When do state changes occur, what wins in conflicts, and which entries move?
+- Options: Span Start / End; own lifecycle date / event-derived date; absent / unknown before evidence.
+- Recommendation: Distinguish unknown from absent, preserve unresolved conflicts, keep locations stationary.
+- Decision: Span changes happen at End. An entry's own date supersedes an event-derived date (birth span 410–415 gives 415 unless Born says 412). Unknown is different from absent. Location links define the event's location and vertical axis; locations do not move. Tracked fields default unrestricted.
+- Impact: Phase 1 parses self dates and event endpoints; Phase 3 derives state/movement/precedence. Structural links are excluded, no arbitrary location choice or alphabetical factual conflict winner.
+
+## D-0052 · Read-only undated ordering and practical timeline view · 2026-11-01 · Timelines Phase 1
+- Question: Should predecessor fields affect dated events and is every mockup control required?
+- Options: Script-like chain rewriting / read-only undated order; literal control inventory / purpose-driven visual implementation.
+- Recommendation: Read-only ordering, prioritize lane controls, zoom/filter/navigation/details before playback.
+- Decision: Preceded By is read-only and only for undated chains. Location lanes should be user chosen and groupable. Owner delegates necessary view design and asks for original test cases. Deterministic continuity rules should be noted but may not be implemented in the plugin.
+- Impact: No auto-fill/date tie-breaking/reordering writes for Events. Mockup movement/travel flags do not authorize travel assumptions. Basic parsing/configuration validation is separate from optional Librarian integration.
+
+## D-0053 · Existing plugin settings for timeline preferences · 2026-11-01 · Timelines Phase 1
+- Question: Save preferences in new .marginalia settings files or existing plugin storage?
+- Options: New vault sidecar / existing Obsidian plugin settings.
+- Recommendation: Existing save queue and plugin data, with definitions and dates in notes.
+- Decision: “Oh yes, use the existing settings storage.”
+- Impact: Add timeline preferences to existing saveData/loadData envelope without overwriting Scripts, workspace, or Librarian settings. No new .marginalia settings format.
+
+## D-0054 · Continue into the World Timeline view · 2026-11-01 · Timelines Phase 2
+- Question: Proceed after the Phase 1 calendar/date review point?
+- Options: Review/revise the foundation / continue to the visual world timeline.
+- Recommendation: Build the next reviewed phase on the verified calendar/date model.
+- Decision: Owner said “Continue.”
+- Impact: Phase 2 adds native graph-style main-pane access, selected/grouped location lanes, filters/zoom/details, display-calendar preference, related writing and read-only undated chains. Development remains v0.20.0; state derivation, per-entry/header access and snapshots remain in later phases.
