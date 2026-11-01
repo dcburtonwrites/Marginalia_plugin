@@ -126,22 +126,13 @@ try {
     "25:00",
   );
 
-  await page.getByText("View options", {exact:true}).click();
-  assert.equal(await page.getByRole("button",{name:"Expand all",exact:true}).count(),0);
-  await page.getByRole("button",{name:"Collapse all",exact:true}).click();
-  assert.equal(await page.locator(".marginalia-reading-fold[open]").count(),0);
-  await page.getByRole("button",{name:"Expand all",exact:true}).waitFor();
-  assert.equal(await page.getByRole("button",{name:"Collapse all",exact:true}).count(),0);
-  await page.getByRole("button",{name:"Expand panel descriptions",exact:true}).click();
-  assert.ok(await page.locator(".marginalia-fold-panel[open]").count()>0);
-  assert.equal(await page.locator(".marginalia-fold-page[open]").count(),0);
-  await page.getByRole("button",{name:"Expand all",exact:true}).click();
-  await page.getByRole("button",{name:"Collapse panel descriptions",exact:true}).click();
-  assert.equal(await page.locator(".marginalia-fold-panel[open]").count(),0);
-  assert.ok(await page.locator(".marginalia-fold-page[open]").count()>0);
-  await page.getByRole("button",{name:"Expand panel descriptions",exact:true}).click();
-  assert.equal(await page.locator(".marginalia-reading-fold:not([open])").count(),0);
-  assert.equal(await page.getByRole("button",{name:"Expand all",exact:true}).count(),0);
+  assert.equal(await page.getByText("View options",{exact:true}).count(),0);
+  const display=page.locator('.marginalia-content-controls');
+  await display.locator('summary').hover();
+  await page.getByLabel('Panel descriptions',{exact:true}).uncheck();
+  assert.ok(await page.locator('.marginalia-hide-panels').count()>0);
+  await page.getByLabel('Panel descriptions',{exact:true}).check();
+  assert.equal(await page.locator('.marginalia-hide-panels').count(),0);
   assert.deepEqual(await scriptNames(), ["Opening", "After the Bell"]);
   assert.equal(
     await page.getByRole("button", { name: "Refresh", exact: true }).count(),

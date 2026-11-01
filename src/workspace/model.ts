@@ -6,6 +6,7 @@ export interface WorkspaceSettings {
   vaultType: VaultType;
   canonTypes: CanonType[];
   entrySetup: EntrySetup;
+  projectRegisterBase: string;
   projectStatusField: string;
   projectStatusOrder: string[];
   colors: boolean;
@@ -48,6 +49,13 @@ export function readStatusOrder(value: unknown): string[] {
     ),
   ];
 }
+/** Only a vault-relative Base file can be assigned; never an external path. */
+export function basePath(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const path = value.trim();
+  return /\.base$/i.test(path) && !path.startsWith("/") && !/[\\:\x00-\x1f]/.test(path) &&
+    !path.split("/").some(part => !part || part === "." || part === ".." || part.startsWith(".")) ? path : "";
+}
 export function readWorkspace(value: unknown): WorkspaceSettings {
   const raw =
     value && typeof value === "object"
@@ -70,6 +78,7 @@ export function readWorkspace(value: unknown): WorkspaceSettings {
     vaultType: raw.vaultType === "Storyboard" ? "Storyboard" : "World",
     canonTypes: readCanonTypes(raw.canonTypes),
     entrySetup: readEntrySetup(raw.entrySetup, raw.vaultType === "Storyboard"),
+    projectRegisterBase: basePath(raw.projectRegisterBase),
     projectStatusField:
       typeof raw.projectStatusField === "string" &&
       raw.projectStatusField.trim()

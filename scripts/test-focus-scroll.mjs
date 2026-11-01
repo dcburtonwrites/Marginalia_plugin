@@ -15,6 +15,11 @@ try {
   await page.getByRole('combobox',{name:'Project or grouping'}).selectOption({label:'Copper Sky > Draft'});
   await page.locator('#sidebar').getByRole('button',{name:'Opening',exact:true}).click();
   await page.addStyleTag({content:'.note{height:100vh;overflow:hidden}.cm-editor{height:75vh}.cm-scroller{overflow:auto}'});
+  await page.evaluate(()=>{
+    const content=document.querySelector('.cm-content'),scroller=content.parentElement;
+    const metadata=document.createElement('div');metadata.className='metadata-container';metadata.textContent='Properties';metadata.style.height='88px';
+    scroller.style.display='block';scroller.insertBefore(metadata,content);
+  });
   await page.getByRole('button',{name:'Writing settings',exact:true}).click();
   await page.getByLabel('Focused writing',{exact:true}).check();
   await page.getByRole('button',{name:'Close settings'}).click();
@@ -28,6 +33,8 @@ try {
   await centered('last line');
   await page.evaluate(()=>window.mobileEditor.cursor(0));
   await centered('first line');
+  const gap=await page.evaluate(()=>{const properties=document.querySelector('.metadata-container').getBoundingClientRect(),content=document.querySelector('.cm-content').getBoundingClientRect();return content.top-properties.bottom;});
+  assert.ok(gap<30,'typewriter spacing must stay above Properties, not between Properties and content: '+gap);
   await page.evaluate(text=>window.mobileEditor.cursor(text.indexOf('Paragraph 50')),text);
   await centered('middle line');
   await page.keyboard.type('Typing here ');

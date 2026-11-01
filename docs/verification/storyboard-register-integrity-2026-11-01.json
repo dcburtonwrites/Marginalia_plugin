@@ -1,0 +1,12 @@
+{
+  "originalMarkdownCount": 34,
+  "allOriginalMarkdownUnchanged": true,
+  "assignedBaseNotRewritten": true,
+  "distributionZipAndTestInstallMatch": true,
+  "sha256": {
+    "main.js": "85d18a4b3940fceafd4829a246f2e6f3bad8f20a68fb8502af83adedf6d52073",
+    "styles.css": "863c16c4bf67b194a90355dd35a8607d6deacfbb77db0b4db9a3a2da21908525",
+    "manifest.json": "10f937097e1c14fb2c64d14b6d7577624645d14f6f446750dba15badedc85d64"
+  },
+  "automatedTests": 202
+}

@@ -160,7 +160,7 @@ Implementation behavior, limitations and app references: PDF-COMPILE-NOTES.md.
 ## First Librarian bucket — D-0041
 - [x] Project isolation through configured World/Storyboard/custom roots; foreign references cannot bypass it.
 - [x] Original-note citation normalization, unresolved-source/incomplete/no-citation/limited-coverage notices and native existing-source navigation.
-- [x] Direct-evidence writing briefs without word-count pressure; reject incomplete drafts and add a separate pre-publication source review while preserving earlier results.
+- [x] Direct-evidence writing briefs without word-count pressure; label incomplete/unsupported sections and run a separate source review, preserving usable prose and earlier results (D-0046).
 - [x] Configured custom types/templates, project overview brief, template freshness and Storyboard labels.
 - [x] Core/host/browser regressions and synthetic local-model before/after examples; native Ask/isolation/citation checks in Marginalia Test Vault.
 - [ ] Author acceptance of the before/after writing samples and broader real-vault semantic/prose quality. Structural checks are not proof of grounding.
@@ -221,3 +221,24 @@ Skipped by owner (D-0044). No writing-check interface, finding persistence or di
 - [ ] Direct software-keyboard dismissal/reopening smoothness, search placement above keyboard, IME and physical Android acceptance. Mirroring uses hardware keyboard input.
 
 See verification/dialogue-picker-2026-10-25.md for evidence and rollback instructions.
+
+
+## October 31 writing and Librarian refinements — D-0046
+
+- [x] Keep incomplete/unsupported sections visible with local warnings; preserve healthy neighboring sections, bounded correction, previous-version recovery and stale-source checks.
+- [x] Put Review progress inside the selected action; hide launch buttons while pending Enhancement results occupy the pane.
+- [x] Move typewriter top spacing before Properties and verify desktop/mobile positioning.
+- [x] Replace sidebar View options with a right-edge hover/tap checkbox menu for descriptions, callouts/notes and dialogue across native editing/Reading and project views; source and Compile unchanged.
+- [x] 200 automated tests, typecheck/package, content/focus/Librarian/desktop/structural/mobile/Compile browser checks, mobile-load smoke and native desktop test-vault checks.
+- [x] Activate the final packaged test-vault revision; native reload and Reading dialogue hide/restore verified after unlock. Final package hashes and all 34 original Markdown files remain unchanged.
+- [ ] Physical mobile acceptance of the new menu/keyboard geometry and wider themes/popouts.
+
+See verification/writing-librarian-2026-10-31.md.
+
+### Storyboard register and display-menu correction · D-0047
+- [x] Keep Show content inside the View box.
+- [x] Storyboard menu: Home, Project Register, Projects, divider, visible shared folders, native file navigation.
+- [x] App-style register totals, four dropdown filters and metadata table, using an optional assigned Base’s first query view.
+- [x] No source/Base writes; validate selection, safe missing-source disclosure and native query lifecycle cleanup.
+- [x] 202 automated tests, desktop/mobile register and workspace browser checks, native Base-filter refresh and empty-result verification.
+- [ ] Physical mobile acceptance of Base-backed mode.

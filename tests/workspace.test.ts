@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   readWorkspace,
+  basePath,
   readHiddenFolders,
   navigation,
   sharedFolders,
@@ -297,4 +298,11 @@ test('custom overview and inline project markers select the same Librarian proje
  const overview={path:'Elsewhere/Book/Overview.md',text:'#project-parent\nProject premise.',mtime:1,aliases:[],links:[],metadata:{},tags:['project-parent']};
  const source={...overview,path:'Elsewhere/Book/Characters/Mira.md',tags:[],text:'A fictional character.'};
  assert.equal(librarianType(overview,settings),'Project');assert.equal(librarianProject(source,settings,[overview,source]),'Elsewhere/Book');
+});
+
+test("Project Register Base paths are optional, vault relative and never external", () => {
+  assert.equal(readWorkspace(null).projectRegisterBase, "");
+  assert.equal(readWorkspace({projectRegisterBase:" Registers/Projects.base "}).projectRegisterBase, "Registers/Projects.base");
+  for (const value of [null, 12, "/Projects.base", "../Projects.base", "a/../Projects.base", "https://site/file.base", "C:\\Project.base", ".hidden/Project.base", "a//Project.base", "Project.md", "a/\nfile.base"])
+    assert.equal(basePath(value), "", String(value));
 });

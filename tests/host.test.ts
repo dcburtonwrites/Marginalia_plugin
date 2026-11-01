@@ -8,10 +8,11 @@ import { editorViews } from "../src/scripts/folding.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { App } from "obsidian";
+import {registerSourceConfig} from "../src/workspace/project-register.ts";
 import Marginalia from "../src/main.ts";
 import { MarkdownView, TFile, TFolder, Platform } from "./obsidian-mock.ts";
 import { setGroundingReview, setAnswer } from "./ollama-mock.ts";
-import { encode, makeExpansion } from "../src/core/storage.ts";
+import { decode, encode, makeExpansion } from "../src/core/storage.ts";
 import { retrieve } from "../src/core/retrieval.ts";
 import type { Note } from "../src/core/types.ts";
 function host() {
@@ -122,7 +123,7 @@ test("user edits or evidence changes block stale insertion without mutation", as
   h.setEditor(h.editorText() + "\nUser added a line.");
   const changed = h.editorText();
   await h.plugin.insert(h.plugin.current().suggestions[0]);
-  assert.match(h.plugin.error, /changed/);
+  assert.match(h.plugin.current().suggestions[0].warnings!.at(-1)!, /changed/);
   assert.equal(h.transactions.length, 0);
   assert.equal(h.editorText(), changed);
 });
@@ -1036,7 +1037,7 @@ test('unfinished enhancement preserves earlier review suggestions and expansion 
  const h=host();setAnswer(async()=> '## Summary\n\nMira guards the archive.');await h.plugin.run('enhancement');
  const earlier=h.plugin.current().suggestions[0];
  setAnswer(async()=> '## Summary\n\nMira guards the archive and goes back to explain how she');await h.plugin.run('enhancement');
- assert.match(h.plugin.error,/incomplete/);assert.equal(h.plugin.current().suggestions.length,1);assert.equal(h.plugin.current().suggestions[0],earlier);
+ assert.equal(h.plugin.error,'');assert.equal(h.plugin.current().suggestions.length,2);assert.equal(h.plugin.current().suggestions[0],earlier);assert.match(h.plugin.current().suggestions[1].warnings![0],/incomplete/);
  assert.equal(h.transactions.length,0);assert.equal(h.generated.size,0);
 });
 
@@ -1049,22 +1050,22 @@ test('source navigation opens an existing original file and never creates a miss
 });
 
 
-test('source-grounding review withholds unsupported drafts and checks for edits during review',async()=>{
+test('source-grounding warnings preserve output while source changes still block publication',async()=>{
  const h=host();setAnswer(async()=> '## Summary\n\nMira guards the archive.');await h.plugin.run('enhancement');const previous=h.plugin.current().suggestions[0];
  setAnswer(async()=> '## Summary\n\nMira owns the laboratory.');
  setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Summary',reason:'The original does not establish ownership.'}]}));
- await h.plugin.run('enhancement');assert.match(h.plugin.error,/Draft withheld/);assert.equal(h.plugin.current().suggestions.length,1);assert.equal(h.plugin.current().suggestions[0],previous);assert.equal(h.generated.size,0);assert.equal(h.transactions.length,0);
+ await h.plugin.run('enhancement');assert.equal(h.plugin.error,'');assert.equal(h.plugin.current().suggestions.length,2);assert.equal(h.plugin.current().suggestions[0],previous);assert.match(h.plugin.current().suggestions[1].warnings![0],/ownership/);assert.equal(h.generated.size,0);assert.equal(h.transactions.length,0);
  setAnswer(async()=> '## Summary\n\nMira guards the archive.');setGroundingReview(async()=>{h.text.set('01 Lore/Archive.md','Changed while checking.');return '{"unsupported":[]}';});
- await h.plugin.run('enhancement');assert.match(h.plugin.error,/Source notes changed/);assert.equal(h.plugin.current().suggestions.length,1);
+ await h.plugin.run('enhancement');assert.match(h.plugin.error,/Source notes changed/);assert.equal(h.plugin.current().suggestions.length,2);
 });
 
 
-test('a failed grounding review cannot replace a saved expansion',async()=>{
+test('a section warning is saved with expansion prose and the earlier output remains recoverable',async()=>{
  const h=host(),p=await h.plugin.packet(h.plugin.target!,new AbortController().signal);
  const file='.marginalia/expanded/'+h.plugin.target,earlier=encode(makeExpansion(p,'## Summary\n\nEarlier supported result.'));
  h.generated.set(file,earlier);
  setAnswer(async()=> '## Summary\n\nMira owns the laboratory.');setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Summary',reason:'Ownership is not established.'}]}));
- await h.plugin.run('expansion');assert.match(h.plugin.error,/Draft withheld/);assert.equal(h.generated.get(file),earlier);assert.equal(h.transactions.length,0);
+ await h.plugin.run('expansion');assert.equal(h.plugin.error,'');assert.match(decode(h.generated.get(file)!,h.plugin.target!).draft,/\[!warning\] Review needed/);assert.match(decode(h.generated.get(file)!,h.plugin.target!).draft,/Ownership is not established/);assert.equal(h.generated.get('.marginalia/recovery/'+h.plugin.target),earlier);assert.equal(h.transactions.length,0);
 });
 
 
@@ -1085,7 +1086,7 @@ test('new and previously unselected changed evidence invalidate pending writing'
   if(kind==='new')h.files.push(new TFile(extra));
   if(kind==='configuration')h.plugin.settings.context+=1000;else h.text.set(extra,'Mira leaves the archive.');
   await h.plugin.insert(h.plugin.current().suggestions[0]);
-  assert.match(h.plugin.error,/new evidence|configuration changed/);assert.equal(h.transactions.length,0);
+  assert.match(h.plugin.current().suggestions[0].warnings!.at(-1)!,/new evidence|configuration changed/);assert.equal(h.transactions.length,0);
  }
 });
 
@@ -1208,4 +1209,36 @@ test('current-project writing credit uses the same configured project as Script 
  h.controller.observeText(path,text,false);
  assert.equal(h.controller.session.baseline.get(path)?.scope,'Books/Harbor');
  assert.equal((await h.controller.groups()).find(group=>group.scripts.some(script=>script.path===path))?.scope,'Books/Harbor');
+});
+
+test('one problematic section carries its warning while other sections remain usable',async()=>{
+ const h=host();
+ setAnswer(async()=> '## Summary\n\nMira guards the archive.\n\n## Backstory\n\nMira founded the city.');
+ setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Backstory',reason:'Founding the city is not established.'}]}));
+ await h.plugin.run('enhancement');
+ assert.equal(h.plugin.error,'');const sections=h.plugin.current().suggestions;
+ assert.equal(sections.length,2);assert.equal(sections[0].warnings,undefined);assert.match(sections[1].warnings![0],/Founding/);
+ assert.equal(h.transactions.length,0);
+});
+
+test('unavailable review labels existing sections and a failed refinement warns only its card',async()=>{
+ const h=host();setAnswer(async()=> '## Summary\n\nMira guards the archive.');setGroundingReview(async()=> 'Unreadable review');
+ await h.plugin.run('enhancement');assert.equal(h.plugin.error,'');const section=h.plugin.current().suggestions[0];assert.match(section.warnings![0],/could not be completed/);
+ const before=section.prose;setAnswer(async()=>{throw new Error('Local model unavailable');});await h.plugin.refine(section,'Make it shorter.');
+ assert.equal(section.prose,before);assert.equal(h.plugin.error,'');assert.match(section.warnings!.at(-1)!,/Local model unavailable/);
+});
+
+
+test('a failed correction does not attach another section’s error to healthy prose',async()=>{
+ const h=host();let drafts=0;setAnswer(async()=>{if(++drafts>1)throw new Error('Model disconnected during correction');return '## Summary\n\nMira guards the archive.\n\n## Backstory\n\nMira founded the city.';});
+ setGroundingReview(async()=>JSON.stringify({unsupported:[{section:'Backstory',reason:'City founding is not established.'}]}));
+ await h.plugin.run('enhancement');const sections=h.plugin.current().suggestions;assert.equal(h.plugin.error,'');assert.equal(sections.length,2);assert.equal(sections[0].warnings,undefined);assert.ok(sections[1].warnings!.some(warning=>warning.includes('Model disconnected')));
+});
+
+test("Project Register embeds a private copy of the first Base view without changing the assigned configuration", () => {
+  const raw={filters:{and:['file.ext == "md"']},formulas:{title:'file.name'},views:[{type:"table",name:"Overview",filters:{and:['stage == "Drafting"']},sort:[{property:"file.name",direction:"DESC"}]},{type:"cards",name:"Other"}]};
+  const before=structuredClone(raw);const config=registerSourceConfig(raw,"test-id");
+  assert.deepEqual(raw,before);assert.equal(config.views.length,1);assert.equal(config.views[0].type,"marginalia-project-register-source");
+  assert.deepEqual(config.filters,raw.filters);assert.deepEqual(config.formulas,raw.formulas);assert.deepEqual(config.views[0].filters,raw.views[0].filters);assert.deepEqual(config.views[0].sort,raw.views[0].sort);
+  assert.throws(()=>registerSourceConfig({views:[]},"bad"),/needs a view/);
 });

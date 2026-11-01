@@ -448,11 +448,11 @@ test("Ask repairs only unambiguous supplied citations and discloses unresolved, 
  assert.ok(!cleanAnswer('There is insufficient evidence to establish who owns the laboratory.',p).warnings.some(w=>/incomplete/.test(w)));
 });
 
-test("writing requests direct attribution without length pressure and refuses unfinished drafts",()=>{
+test("writing requests direct attribution and labels unfinished sections without dropping them",()=>{
  const p=packet();
  const request=prompt(p,'expansion');
  assert.match(request,/Direct evidence/);assert.ok(!request.includes('1000–1400'));
- assert.throws(()=>cleanDraft('## Summary\nMira walks into the laboratory and starts to explain why she',p),/incomplete/);
+ assert.match(cleanDraft('## Summary\nMira walks into the laboratory and starts to explain why she',p)[0].warnings![0],/incomplete/);
 });
 
 
@@ -483,6 +483,7 @@ test('non-observation cannot become a definitive event denial, but an explicit d
  const {validateEvidenceBoundaries}=await import('../src/core/writing.ts');
  const p=retrieve([note('Character/Mira.md','No repair is shown.')],note('Character/Mira.md','No repair is shown.'));
  assert.throws(()=>validateEvidenceBoundaries(p,[{section:'Summary',prose:'No repair occurs.'}]),/not shown/);
+ assert.throws(()=>validateEvidenceBoundaries(p,[{section:'Summary',prose:'No repair occurs.'},{section:'Backstory',prose:'No repair happened.'}]),(error:any)=>error.issues.length===2);
  assert.doesNotThrow(()=>validateEvidenceBoundaries(p,[{section:'Summary',prose:'No repair is shown.'}]));
  assert.doesNotThrow(()=>validateEvidenceBoundaries({...p,target:{...p.target,text:'No repair is shown. No repair occurs.'}},[{section:'Summary',prose:'No repair occurs.'}]));
 });

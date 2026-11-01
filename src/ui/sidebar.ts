@@ -16,6 +16,7 @@ export interface SidebarState {
   status: string;
   busy: boolean;
   progress?: string;
+  reviewAction?:"enhancement"|"expansion";
   error: string;
   suggestions: Suggestion[];
   messages: Message[];
@@ -174,12 +175,14 @@ export function renderSidebar(
   ] as const) {
     const b = button("", () => a.run(mode), "marginalia-entry-action");
     b.disabled = !s.target || s.busy;
-    b.append(el("strong", "", label), el("span", "marginalia-muted", desc));
+    b.append(el("strong", "", label));
+    if(s.busy&&s.reviewAction===mode){const progress=el("span","marginalia-entry-progress",s.progress||"Working locally…");progress.setAttribute("role","status");b.setAttribute("aria-busy","true");b.append(progress);}
+    else b.append(el("span","marginalia-muted",desc));
     entryActions.append(b);
   }
   // Entry-writing workflows belong to Review; Ask stays conversational and
   // Library stays focused on reading saved artifacts.
-  if (s.tab === "Review") root.append(entryActions);
+  if (s.tab === "Review" && (s.busy&&s.reviewAction || !s.suggestions.some(item=>item.state==="pending"))) root.append(entryActions);
   const scope = el("div", "marginalia-scope");
   scope.append(
     el("span", "marginalia-muted", "Search in"),
@@ -297,7 +300,9 @@ export function renderSidebar(
       card.append(el("h4", "", suggestion.section));
       const prose = el("div", "marginalia-markdown");
       a.markdown(suggestion.prose, prose, suggestion.entry);
-      card.append(prose, sources(suggestion.packet, a));
+      card.append(prose);
+      for(const warning of suggestion.warnings??[]){const notice=el("p","marginalia-answer-warning",warning);notice.setAttribute("role","status");card.append(notice);}
+      card.append(sources(suggestion.packet, a));
       const actions = el("div", "marginalia-review-actions");
       const insert = button(
         "Insert into note",
@@ -362,10 +367,8 @@ export function renderSidebar(
   if (s.busy) {
     const progress = el("div", "marginalia-progress");
     progress.setAttribute("role", "status");
-    progress.append(
-      el("span", "", s.progress || "Working locally…"),
-      button("Cancel", a.cancel),
-    );
+    if(!(s.tab==="Review"&&s.reviewAction))progress.append(el("span", "", s.progress || "Working locally…"));
+    progress.append(button("Cancel", a.cancel));
     footer.append(progress);
   }
   const form = el("form", "marginalia-composer");

@@ -21,5 +21,22 @@ try{
  await page.getByText('Opened original: 01 Lore/Eastern Archive',{exact:true}).waitFor();
  await page.getByRole('button',{name:'New chat',exact:true}).click();
  assert.equal(await page.locator('.marginalia-answer-warning').count(),0);
+ await page.goto(pathToFileURL(resolve('.preview/index.html')).href+'?review-progress');
+ const selected=page.getByRole('button',{name:/Entry Enhancement/});
+ assert.equal(await selected.getAttribute('aria-busy'),'true');
+ assert.ok(await selected.getByText('Checking source grounding…',{exact:true}).isVisible());
+ assert.equal(await page.locator('.marginalia-progress > span').count(),0);
+ await page.getByRole('button',{name:'Cancel',exact:true}).waitFor();
+ await page.screenshot({path:resolve('design/verification/librarian-review-progress.png')});
+ await page.evaluate(()=>window.finishReview());
+ assert.equal(await page.locator('.marginalia-entry-action').count(),0);
+ assert.equal(await page.locator('.marginalia-suggestion').count(),2);
+ const warning=page.locator('.marginalia-suggestion').filter({has:page.getByRole('heading',{name:'Backstory'})});
+ assert.ok(await warning.getByText(/appears incomplete/).isVisible());
+ assert.equal(await page.locator('.marginalia-suggestion').first().locator('.marginalia-answer-warning').count(),0);
+ await page.screenshot({path:resolve('design/verification/librarian-section-warning.png')});
+ await page.getByRole('button',{name:'Dismiss',exact:true}).first().click();
+ await page.getByRole('button',{name:'Dismiss',exact:true}).click();
+ assert.equal(await page.locator('.marginalia-entry-action').count(),2);
  assert.deepEqual(errors,[]);console.log('Librarian UI: project label, citation repair, unfinished/omitted evidence notices and New chat cleanup passed.');
 }finally{await browser.close();}

@@ -528,3 +528,15 @@ test('page movement commands and previous/next navigation use real structural ra
  assert.throws(()=>movePage(script,0,-1),/edge/);
  const edit=movePage(script,script.text.length,-1)!;assert.equal(parse(script.text.slice(0,edit.from)+edit.text+script.text.slice(edit.to)).pages[0].title,'Page 8');
 });
+
+test('script display ranges leave properties, titles and protected examples intact',async()=>{
+  const {hiddenScriptRanges}=await import('../src/scripts/visibility-model.ts');
+  const text='---\nTitle: Sample\n---\n## Page 1\n> [!panel] Door\n> A door opens.\n\n**MIRA:** Come inside.\nThe second line.\n\n> [!note] Note\n> Keep this detail.\n\n```md\n**EXAMPLE:** Stay visible.\n```\n<!--\n**COMMENT:** Stay visible.\n-->\n<!-- single line -->\n**ORIN:** Last dialogue.\n';
+  const ranges=hiddenScriptRanges(text,{panels:false,notes:false,dialogue:false});
+  const hidden=ranges.map(range=>text.slice(range.from,range.to));
+  assert.equal(hidden.length,4);assert.ok(hidden[0].includes('A door opens.'));assert.ok(hidden[1].includes('second line'));
+  assert.ok(hidden[2].includes('[!note]'));assert.ok(hidden[3].includes('ORIN'));
+  assert.ok(!hidden.join('').includes('Title:'));assert.ok(!hidden.join('').includes('[!panel]'));assert.ok(!hidden.join('').includes('EXAMPLE'));assert.ok(!hidden.join('').includes('COMMENT'));
+  assert.deepEqual(hiddenScriptRanges('## Page 1\n\n    **EXAMPLE:** Indented code.\n',{panels:false,notes:false,dialogue:false}),[]);
+  assert.deepEqual(hiddenScriptRanges(text,{panels:true,notes:true,dialogue:true}),[]);
+});

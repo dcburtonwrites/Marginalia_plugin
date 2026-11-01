@@ -139,36 +139,15 @@ try {
   );
   await open("Project Register");
   await page.getByRole("table", { name: "Project metadata" }).waitFor();
-  assert.deepEqual(
-    await page
-      .getByRole("tablist", { name: "Project Register categories" })
-      .getByRole("tab")
-      .allTextContents(),
-    [
-      "All Entries",
-      "Foraged",
-      "Dried",
-      "Ground",
-      "Brewed",
-      "Distilled",
-      "Bottled",
-      "Drafting",
-      "Unassigned",
-    ],
-  );
-  await page.getByRole("tab", { name: "Foraged", exact: true }).click();
-  await page.getByText("No projects in this view yet.").waitFor();
-  await page.getByRole("tab", { name: "Drafting", exact: true }).click();
+  assert.deepEqual(await page.getByLabel("Filter by status").locator("option").allTextContents(),["All statuses","Foraged","Dried","Ground","Brewed","Distilled","Bottled","Drafting","Unassigned"]);
+  await page.getByLabel("Filter by status").selectOption("Foraged");
+  await page.getByText("No projects match these filters.").waitFor();
+  await page.getByLabel("Filter by status").selectOption("Drafting");
   assert.match(await page.getByRole("table").textContent(), /Copper Sky/);
-  await page.evaluate(() =>
-    window.workspaceFixture.setStatusFlow("progress", ["Bottled", "Foraged"]),
-  );
-  await page.getByRole("tab", { name: "Bottled", exact: true }).click();
+  await page.evaluate(()=>window.workspaceFixture.setStatusFlow("progress",["Bottled","Foraged"]));
+  await page.getByLabel("Filter by status").selectOption("Bottled");
   assert.match(await page.getByRole("table").textContent(), /Bottled/);
-  assert.equal(
-    await page.getByRole("tab", { name: "Drafting", exact: true }).count(),
-    0,
-  );
+  assert.equal(await page.getByLabel("Filter by status").locator('option[value="Drafting"]').count(),0);
   await open("Projects");
   assert.match(
     await page.locator(".marginalia-project-card").filter({hasText:"Copper Sky"}).textContent(),
@@ -204,6 +183,7 @@ try {
       0,
     );
   }
+  await page.getByLabel("Filter by status").selectOption("");
   assert.match(await page.getByRole("table").textContent(), /Copper Sky/);
   assert.match(await page.getByRole("table").textContent(), /Revise Opening/);
   await page.screenshot({

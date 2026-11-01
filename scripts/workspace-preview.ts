@@ -92,12 +92,14 @@ const vaultEvents = new Map<string, ((...args: any[]) => void)[]>();
 const emitVault = (name: string, ...args: any[]) => {
   for (const callback of vaultEvents.get(name) ?? []) callback(...args);
 };
+const bases = [Object.assign(new TFile("Registers/Projects.base"),{body:'views: [{"type":"table","name":"Projects"}]\n'})];
 const app: any = {
   vault: {
     getMarkdownFiles: () => files,
+    getFiles: () => [...files, ...bases],
     cachedRead: async (f: any) => f.body,
     read: async (f: any) => f.body.startsWith("---\n") ? f.body : `---\n${stringifyYaml(f.fields)}---\n${f.body}`,
-    getAbstractFileByPath: (path: string) => files.find(f=>f.path===path) ?? folders.find(f=>f.path===path),
+    getAbstractFileByPath: (path: string) => [...files, ...bases].find(f=>f.path===path) ?? folders.find(f=>f.path===path),
     createFolder: async (path: string) => { const folder=new TFolder(path);folders.push(folder);emitVault("create",folder);return folder; },
     delete: async (file: any) => {const list=file instanceof TFolder ? folders : files;list.splice(list.indexOf(file),1);emitVault("delete",file);},
     create: async (path: string, text: string) => {
@@ -128,6 +130,7 @@ const app: any = {
         : type === "file-explorer"
           ? [{ view: { containerEl: document.querySelector("aside") } }]
           : [],
+    iterateAllLeaves: () => {},
     getLeaf: () => leaf,
     revealLeaf: async () => {},
     openLinkText: async (path: string) => {
@@ -174,6 +177,9 @@ const feature = new WorkspaceFeature(owner);
 owner.themeFeature = feature;
 (window as any).workspaceFixture = {
   setup:()=>new VaultSetupModal(owner).open(),
+  settings:()=>structuredClone(owner.workspaceSettings),
+  mountStoryboard() {owner.workspaceSettings.vaultType="Storyboard";feature.mount();},
+  deleteBase() {bases.splice(0);},
   setHiddenFolders(value:string[]) {owner.workspaceSettings.hiddenFolders=readHiddenFolders(value);feature.refresh();},
   sources:()=>Object.fromEntries(files.map(file=>[file.path,file.body])),
   setStatusFlow(field: string, order: string[]) {

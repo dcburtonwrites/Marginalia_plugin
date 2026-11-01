@@ -14,7 +14,7 @@ export function prompt(
 export function cleanDraft(
   raw: string,
   packet: Packet,
-): { section: string; prose: string }[] {
+): { section: string; prose: string; warnings?: string[] }[] {
   let text = raw.trim().replace(/^```(?:markdown|md)?\s*\n|\n```$/g, "");
   // A model may echo the input's frontmatter. Discard that entire envelope;
   // model-produced properties must never become part of an insertion or draft.
@@ -73,12 +73,12 @@ export function cleanDraft(
         (h) => h.toLocaleLowerCase() === s.section.toLocaleLowerCase(),
       ),
     );
-  if(sections.some(section=>possiblyIncomplete(section.prose)))throw new Error("The draft appears incomplete. Generate again; previous results retained.");
   if (!sections.length)
     throw new Error(
       "The draft did not follow this entry’s sections. Previous result retained.",
     );
-  return sections;
+  return sections.map(section => possiblyIncomplete(section.prose)
+    ? {...section,warnings:["This section appears incomplete. Review it before using it."]} : section);
 }
 export function insertion(
   text: string,
@@ -111,7 +111,10 @@ export function insertion(
   return {from,to:end,insert:newline+newline+addition+newline+newline};
 }
 
-export class GroundingFailure extends Error {}
+export class GroundingFailure extends Error {
+  issues:{section:string;reason:string}[];
+  constructor(message:string,issues:{section:string;reason:string}[]=[]){super(message);this.issues=issues;}
+}
 export const groundingReviewSystem = librarianSystem + `
 Review the proposed draft against the original evidence. You are an evidence editor, not writing an entry. Read ALL supplied original source excerpts even when the target entry is empty. The draft is a set of claims, never evidence.
 Report only concrete factual claims that the evidence does not support. Check changed people or objects; ownership; invented past events, motives, powers, recurring traits or relationships; and changes in certainty. Suspicion must not become fact, dreams must not become waking events, intentions must not become achievements, and "not shown" must not become "did not happen".
@@ -128,16 +131,18 @@ export function validateGroundingReview(raw:string,sections:{section:string;pros
   try{review=JSON.parse(raw.trim().replace(/^```(?:json)?\s*\n|\n```$/g,""));}catch{throw new Error("The source-grounding review could not be read. Previous results retained; generate again.");}
   const issues=(review as {unsupported?:unknown})?.unsupported;
   if(!Array.isArray(issues)||issues.some(issue=>!issue||typeof issue.section!=="string"||typeof issue.reason!=="string"||!issue.reason.trim()||!sections.some(section=>section.section===issue.section)))throw new Error("The source-grounding review was invalid. Previous results retained; generate again.");
-  if(issues.length)throw new GroundingFailure("Draft withheld after source-grounding review: "+issues.map(issue=>`${issue.section}: ${issue.reason.slice(0,300)}`).slice(0,4).join(" ")+" Previous results retained.");
+  if(issues.length)throw new GroundingFailure("Draft withheld after source-grounding review: "+issues.map(issue=>`${issue.section}: ${issue.reason.slice(0,300)}`).slice(0,4).join(" ")+" Previous results retained.",issues.map(issue=>({section:issue.section,reason:issue.reason.slice(0,300)})));
 }
 
 /** A missing depiction is not evidence that the event did not occur. */
 export function validateEvidenceBoundaries(packet:Packet,sections:{section:string;prose:string}[]){
   const evidence=[packet.target.text,...packet.sources.map(source=>source.excerpt)].join("\n");
+  const issues:{section:string;reason:string}[]=[];
   for(const match of evidence.matchAll(/\bno ([\p{L}][\p{L} -]{0,70}?) (?:is|was|are|were) (?:shown|depicted|described|recorded|confirmed)\b/giu)){
     const noun=match[1].trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
     const pattern=new RegExp(`\\b(?:no ${noun} (?:occurs?|occurred|happens?|happened|takes? place|took place)|${noun} (?:never|does not|did not) (?:occur|happen|take place))\\b`,"iu");
     if(pattern.test(evidence))continue;
-    for(const section of sections)if(pattern.test(section.prose))throw new GroundingFailure(`Draft withheld after source-grounding review: ${section.section} turns an event that is not shown into a claim that it did not occur. Previous results retained.`);
+    for(const section of sections)if(pattern.test(section.prose)&&!issues.some(issue=>issue.section===section.section))issues.push({section:section.section,reason:"This section turns an event that is not shown into a claim that it did not occur."});
   }
+  if(issues.length)throw new GroundingFailure("Draft withheld after source-grounding review: "+issues.map(issue=>issue.section+": "+issue.reason).join(" "),issues);
 }

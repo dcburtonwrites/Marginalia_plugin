@@ -975,8 +975,10 @@ body.is-mobile .marginalia-mobile-speaker-picker {
 
 /* Space at both ends lets the first and last lines reach the focus target. */
 .cm-editor.marginalia-writing-focus .cm-content {
-  padding-top: var(--marginalia-focus-top, 0px) !important;
   padding-bottom: var(--marginalia-focus-bottom, 0px) !important;
+}
+.cm-editor.marginalia-writing-focus .cm-scroller {
+  padding-top: var(--marginalia-focus-top, 0px) !important;
 }
 
 .marginalia-compile-launcher { width: 100%; margin: 10px 0 4px; }
@@ -1023,3 +1025,43 @@ body.is-mobile .marginalia-compile-document { padding:20px; }
 .marginalia-scripts .marginalia-drop-target.drop-before { box-shadow: 0 -2px 0 var(--interactive-accent); }
 .marginalia-scripts .marginalia-drop-target.drop-after { box-shadow: 0 2px 0 var(--interactive-accent); }
 .marginalia-scripts .marginalia-drop-target { -webkit-touch-callout: none; }
+
+/* Script display controls are local to a content pane, independent of Compile. */
+.marginalia-content-host {position:relative;}
+.marginalia-content-controls {position:absolute;right:12px;top:64px;z-index:30;font-family:var(--font-interface);font-size:var(--font-ui-small);}
+.marginalia-content-controls > summary {list-style:none;cursor:pointer;padding:9px 12px;border:1px solid var(--background-modifier-border);border-radius:8px;background:var(--background-primary);color:var(--text-muted);box-shadow:0 2px 8px #0001;}
+.marginalia-content-controls > summary::-webkit-details-marker {display:none;}
+.marginalia-content-controls[open] > summary {color:var(--text-normal);}
+.marginalia-content-menu {position:absolute;right:0;top:100%;width:235px;margin:0;padding:12px;border:1px solid var(--background-modifier-border);border-radius:8px;background:var(--background-primary);box-shadow:0 4px 18px #0002;}
+.marginalia-content-menu-title {font-weight:var(--font-semibold);margin:0 0 8px;}
+.marginalia-content-menu label {display:flex;gap:10px;align-items:center;min-height:36px;cursor:pointer;}
+.marginalia-content-menu small {display:block;margin-top:8px;}
+.marginalia-hide-panels .callout[data-callout="panel"] > .callout-content,
+.marginalia-hide-panels .marginalia-fold-panel > .callout,
+.marginalia-hide-notes .callout:not([data-callout="panel"]),
+.marginalia-hide-dialogue .marginalia-dialogue-block {display:none !important;}
+body.is-mobile .marginalia-content-controls {top:12px;right:8px;}
+body.is-mobile .marginalia-content-menu label {min-height:44px;}
+
+.marginalia-app-navigation .marginalia-nav-divider {width:100%;margin:10px 0;border:0;border-top:1px solid var(--background-modifier-border);}
+
+.marginalia-register-summary {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:24px 0;margin:32px 0 20px;border-block:1px solid var(--background-modifier-border);}
+.marginalia-register-summary strong {display:block;font-family:var(--font-text);font-size:28px;font-weight:500;}
+.marginalia-register-summary span,.marginalia-register-source {color:var(--text-muted);font-size:var(--font-ui-small);}
+.marginalia-register-filters {display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+.marginalia-register-filters label {display:flex;gap:8px;align-items:center;color:var(--text-muted);}
+.marginalia-register-source {margin-top:24px;}
+.marginalia-register-source-engine {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);pointer-events:none;}
+.marginalia-register-results .marginalia-project-register {display:table;table-layout:fixed;}
+.marginalia-register-results .marginalia-project-register td {vertical-align:top;overflow-wrap:anywhere;}
+.marginalia-register-results .marginalia-project-register th:nth-child(1) {width:27%;}
+.marginalia-register-results .marginalia-project-register th:nth-child(2) {width:18%;}
+.marginalia-register-results .marginalia-project-register th:nth-child(3) {width:32%;}
+.marginalia-register-results .marginalia-project-register td:first-child button {font-family:var(--font-text);font-size:20px;}
+@media(max-width:600px) {.marginalia-register-results .marginalia-project-register {display:block;overflow:auto;}.marginalia-register-summary {gap:12px;}.marginalia-register-summary strong {font-size:24px;}}
+
+.marginalia-register-summary strong,.marginalia-register-results .marginalia-project-register td:first-child button {font-family:"Source Serif 4",Georgia,serif;}
+.marginalia-register-results .marginalia-project-register button {display:inline;height:auto;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left;padding:0;border:0;box-shadow:none;background:transparent;}
+.marginalia-register-results .marginalia-project-register td:last-child button {color:var(--text-accent);text-decoration:underline;}
+.marginalia-register-results .marginalia-project-register th {font-weight:400;color:var(--text-muted);}
+.marginalia-register-heading > .marginalia-new-entry {margin-left:0;}

@@ -1,6 +1,8 @@
 import {
   Plugin,
   Platform,
+  Notice,
+  Component,
   ItemView,
   type TAbstractFile,
   TFolder,
@@ -11,6 +13,7 @@ import {
 import type Marginalia from "../main.ts";
 import { el, button } from "../ui/sidebar.ts";
 import { bodyOffset } from "../core/types.ts";
+import {registerBaseSource, mountRegisterSource, ProjectRegisterModal} from "./project-register.ts";
 import { NewEntryModal } from "./creation.ts";
 import { suggest } from "../ui/suggest.ts";
 import {
@@ -41,11 +44,13 @@ function folderPaths(app: App) {
 export class WorkspaceFeature extends Plugin {
   navs = new Set<HTMLElement>();
   alive = true;
+  baseSourceAvailable = false;
   constructor(public owner: Marginalia) {
     super(owner.app, owner.manifest);
   }
   onload() {
     this.alive = true;
+    this.baseSourceAvailable = registerBaseSource(this);
     this.register(() => {
       this.alive = false;
     });
@@ -92,6 +97,11 @@ export class WorkspaceFeature extends Plugin {
             if (leaf.view instanceof AppPage && leaf.view.section === oldPath)
               leaf.view.section = file.path;
         }
+        const selected = this.owner.workspaceSettings.projectRegisterBase;
+        if (selected === oldPath || file instanceof TFolder && selected.startsWith(oldPath + "/")) {
+          this.owner.workspaceSettings.projectRegisterBase = file.path + selected.slice(oldPath.length);
+          void this.owner.savePluginData().catch(() => new Notice("Could not save the renamed Project Register Base path."));
+        }
         structureChanged(file);
       }),
     );
@@ -129,16 +139,23 @@ export class WorkspaceFeature extends Plugin {
         leaf.view.containerEl.querySelector<HTMLElement>(".nav-header")
           ?.parentElement ??
         leaf.view.containerEl.querySelector<HTMLElement>(".view-content");
-      if (!host || host.querySelector(".marginalia-app-navigation")) continue;
+      if (!host) continue;
+      const sections = navigation(this.owner.workspaceSettings.vaultType,
+        this.owner.workspaceSettings.modules.scripts, folderPaths(this.app), this.owner.workspaceSettings.hiddenFolders);
+      const signature = JSON.stringify(sections);
+      const existing = host.querySelector<HTMLElement>(".marginalia-app-navigation");
+      if (existing?.dataset.sections === signature) continue;
+      if (existing) {existing.remove();this.navs.delete(existing);}
+
       const nav = el("nav", "marginalia-app-navigation");
       nav.setAttribute("aria-label", "Marginalia navigation");
+      nav.dataset.sections = signature;
       nav.append(el("div", "marginalia-nav-title", "Marginalia"));
-      for (const name of navigation(
-        this.owner.workspaceSettings.vaultType,
-        this.owner.workspaceSettings.modules.scripts,
-        folderPaths(this.app),
-        this.owner.workspaceSettings.hiddenFolders,
-      )) {
+      let sharedStarted = false;
+      for (const name of sections) {
+        if (name.startsWith("_") && !sharedStarted) {
+          const divider = el("hr", "marginalia-nav-divider");divider.setAttribute("role", "separator");nav.append(divider);sharedStarted = true;
+        }
         const item = button(
           sectionName(name),
           () => void openPage(this.owner, name),
@@ -223,6 +240,8 @@ export class AppPage extends ItemView {
   editingPins = false;
   revision = 0;
   closed = false;
+  registerSource?: Component;
+  registerFilters = {status:"",genre:"",tag:"",format:""};
   constructor(
     leaf: WorkspaceLeaf,
     public owner: Marginalia,
@@ -266,6 +285,7 @@ export class AppPage extends ItemView {
   }
   async onClose() {
     this.closed = true;
+    this.registerSource?.unload();this.registerSource=undefined;
     this.revision++;
   }
   async entries() {
@@ -372,6 +392,7 @@ export class AppPage extends ItemView {
         focused && document.activeElement instanceof HTMLInputElement
           ? document.activeElement.selectionStart
           : null;
+      this.registerSource?.unload();this.registerSource=undefined;
       root.replaceChildren();
       root.className = "view-content marginalia-app-page";
       const page = el("div", "marginalia-page-inner");
@@ -413,8 +434,31 @@ export class AppPage extends ItemView {
       );
       page.append(header);
       header.append(button("New Entry", () => new NewEntryModal(this.owner,this.section,this.project).open(), "marginalia-new-entry"));
+      if (this.section === "Project Register") {
+        header.classList.add("marginalia-register-heading");
+        header.append(button("Choose Base…", () => new ProjectRegisterModal(this.owner,
+          () => openPage(this.owner, "Project Register")).open()));
+
+      }
       if (this.section === "Home") {
         this.home(page, entries, allProjects);
+        return;
+      }
+      if (this.section === "Project Register" && !project) {
+        page.append(el("p", "marginalia-muted", "Your projects, their next steps, and the work in front of you."));
+        const results=el("section", "marginalia-register-results");page.append(results);
+        const render=(items:Project[])=>{if(!this.closed&&revision===this.revision)this.registerPage(results,items);};
+        if (!this.owner.workspaceSettings.projectRegisterBase) render(allProjects);
+        else {
+          results.append(el("p", "marginalia-muted", "Loading projects from the assigned Base…"));
+          const engine=el("div", "marginalia-register-source-engine");engine.setAttribute("aria-hidden","true");page.append(engine);
+          const component=new Component();this.registerSource=component;component.load();
+          const pending=window.setTimeout(()=>{if(!this.closed&&revision===this.revision)results.replaceChildren(el("p","marginalia-script-warning","The Base could not supply project records. Check that Bases is enabled and the assigned Base’s first view loads correctly."));},6000);
+          component.register(()=>window.clearTimeout(pending));
+          const byOverview=new Map(allProjects.filter(p=>p.overview).map(p=>[p.overview!.path,p]));
+          try {await mountRegisterSource(this.owner,engine,component,paths=>{window.clearTimeout(pending);render([...paths].flatMap(path=>byOverview.has(path)?[byOverview.get(path)!]:[]));});}
+          catch(error) {window.clearTimeout(pending);if(revision===this.revision)results.replaceChildren(el("p","marginalia-script-warning",String(error instanceof Error?error.message:error)));}
+        }
         return;
       }
       const search = el("input", "marginalia-page-search") as HTMLInputElement;
@@ -633,6 +677,92 @@ export class AppPage extends ItemView {
         ),
       );
   }
+  registerPage(root:HTMLElement, items:Project[]) {
+    root.replaceChildren();
+    const working=(p:Project)=>values(field(p.overview,"working-document")??field(p.overview,"current-script"))[0]??"";
+    const next=(p:Project)=>values(field(p.overview,"next-action")??field(p.overview,"next action")).join("; ");
+    const resolved=(p:Project)=>{const target=working(p).replace(/^\[\[|\]\]$/g,"").split("|")[0];return target?this.app.metadataCache.getFirstLinkpathDest(target,p.overview?.path??""):null;};
+    const summary=el("div","marginalia-register-summary");summary.setAttribute("aria-label","Vault project summary");
+    for(const [count,label] of [[items.length,"Projects"],[items.filter(p=>resolved(p)).length,"Working documents"],[items.filter(p=>!projectStatuses(p.overview,this.owner.workspaceSettings).length||!next(p)||next(p)==="Review project boundaries, stage, and current writing document").length,"Needs review"]] as const){const stat=el("div");stat.append(el("strong","",String(count)),el("span","",label));summary.append(stat);}root.append(summary);
+    const filters=el("div","marginalia-register-filters");
+    for(const [key,label,all] of [["status","Status","All statuses"],["genre","Genre","All genres"],["tag","Tag","All tags"],["format","Format","All formats"]] as const){
+      const options=key==="status"?projectStatusTabs(items,this.owner.workspaceSettings).filter(v=>!["All Entries","Unassigned"].includes(v)):[...new Set(items.flatMap(p=>key==="tag"?p.overview?.tags.filter(t=>!["project-parent","project","storyboard"].includes(t))??[]:values(field(p.overview,key))))].sort();
+      const wrapper=el("label","",label+" "),select=el("select") as HTMLSelectElement;select.setAttribute("aria-label","Filter by "+key);
+      for(const [value,text] of [["",all],...options.map(v=>[v,v]),...(key==="status"?[["__unassigned","Unassigned"]]:[])]){const option=el("option","",text) as HTMLOptionElement;option.value=value;select.append(option);}
+      select.value=this.registerFilters[key];select.onchange=()=>{this.registerFilters[key]=select.value;this.registerPage(root,items);root.querySelector<HTMLSelectElement>(`[aria-label="Filter by ${key}"]`)?.focus();};wrapper.append(select);filters.append(wrapper);
+    }root.append(filters);
+    const filtered=items.filter(p=>Object.entries(this.registerFilters).every(([key,value])=>!value||(key==="status"?(value==="__unassigned"?!projectStatuses(p.overview,this.owner.workspaceSettings).length:projectStatuses(p.overview,this.owner.workspaceSettings).includes(value)):key==="tag"?p.overview?.tags.includes(value):values(field(p.overview,key)).includes(value))));
+    const count=el("p","marginalia-muted",`${filtered.length} of ${items.length} projects`);count.setAttribute("role","status");root.append(count);
+    this.registerTable(root,filtered);
+    if(!filtered.length)root.append(el("p","marginalia-muted",items.length?"No projects match these filters.":"No projects in this register yet."));
+    root.append(el("footer","marginalia-register-source marginalia-muted",this.owner.workspaceSettings.projectRegisterBase?`Source: ${this.owner.workspaceSettings.projectRegisterBase} · first view. Edit project Overviews to update metadata.`:"Source: project Overviews. Edit a project’s Overview to update its metadata."));
+  }
+  registerTable(root:HTMLElement,items:Project[]) {
+      const table = el("table", "marginalia-project-register");
+      table.setAttribute("aria-label", "Project metadata");
+      const head = el("tr");
+      for (const label of [
+        "Project / genre",
+        "Status",
+        "Next action",
+        "Working document",
+      ])
+        head.append(el("th", "", label));
+      table.append(head);
+      for (const project of items) {
+        const row = el("tr");
+        const name = el("td");
+        name.append(
+          button(
+            project.name,
+            () => void openPage(this.owner, "Projects", project.path),
+          ),
+          el("small", "", [...values(field(project.overview, "genre")),...values(field(project.overview,"format")),...(project.overview?.tags.includes("off-world")?["Off-World"]:[])].join(" · ")),
+        );
+        row.append(
+          name,
+          el(
+            "td",
+            "",
+            projectStatuses(
+              project.overview,
+              this.owner.workspaceSettings,
+            ).join(" · ") || "Unassigned",
+          ),
+          el(
+            "td",
+            "",
+            values(
+              field(project.overview, "next-action") ??
+                field(project.overview, "next action"),
+            ).join(" ") || "Not set",
+          ),
+        );
+        const working = el("td");
+        const link = values(
+          field(project.overview, "working-document") ??
+            field(project.overview, "current-script"),
+        )[0];
+        const target=link?.replace(/^\[\[|\]\]$/g,"").split("|")[0];
+        const document=target?this.app.metadataCache.getFirstLinkpathDest(target.split("#")[0],project.overview?.path??""):null;
+        if (link && document)
+          working.append(
+            button(
+              link.includes("|")?link.replace(/\]\]$/,"").split("|")[1]:document.basename,
+              () =>
+                void this.app.workspace.openLinkText(
+                  link.replace(/^\[\[|\]\]$/g, "").split("|")[0],
+                  project.overview?.path ?? "",
+                  false,
+                ),
+            ),
+          );
+        else working.textContent = link?"Document unavailable":"Not linked";
+        row.append(working);
+        table.append(row);
+      }
+      root.append(table);
+  }
   projectList(root: HTMLElement, items: Project[]) {
     if (this.owner.workspaceSettings.vaultType === "Storyboard") {
       this.tabs(root, projectStatusTabs(items, this.owner.workspaceSettings));
@@ -660,70 +790,6 @@ export class AppPage extends ItemView {
             ? (b.overview?.created ?? 0) - (a.overview?.created ?? 0)
             : a.name.localeCompare(b.name),
       );
-    if (this.section === "Project Register") {
-      const table = el("table", "marginalia-project-register");
-      table.setAttribute("aria-label", "Project metadata");
-      const head = el("tr");
-      for (const label of [
-        "Project / genre",
-        "Status",
-        "Next action",
-        "Working document",
-      ])
-        head.append(el("th", "", label));
-      table.append(head);
-      for (const project of items) {
-        const row = el("tr");
-        const name = el("td");
-        name.append(
-          button(
-            project.name,
-            () => void openPage(this.owner, "Projects", project.path),
-          ),
-          el("small", "", values(field(project.overview, "genre")).join(" · ")),
-        );
-        row.append(
-          name,
-          el(
-            "td",
-            "",
-            projectStatuses(
-              project.overview,
-              this.owner.workspaceSettings,
-            ).join(" · ") || "Unassigned",
-          ),
-          el(
-            "td",
-            "",
-            values(
-              field(project.overview, "next-action") ??
-                field(project.overview, "next action"),
-            ).join(" ") || "Not set",
-          ),
-        );
-        const working = el("td");
-        const link = values(
-          field(project.overview, "working-document") ??
-            field(project.overview, "current-script"),
-        )[0];
-        if (link)
-          working.append(
-            button(
-              link,
-              () =>
-                void this.app.workspace.openLinkText(
-                  link.replace(/^\[\[|\]\]$/g, "").split("|")[0],
-                  project.overview?.path ?? "",
-                  false,
-                ),
-            ),
-          );
-        else working.textContent = "Not linked";
-        row.append(working);
-        table.append(row);
-      }
-      root.append(table);
-    } else
       for (const project of items) {
         const card = button(
           "",

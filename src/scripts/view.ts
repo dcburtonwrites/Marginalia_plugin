@@ -1,3 +1,4 @@
+import {registerContentControls} from './content-controls.ts';
 import {
   ItemView,
   Platform,
@@ -51,6 +52,7 @@ export interface ScriptHost extends Plugin {
 export const SCRIPTS = "marginalia-scripts";
 
 export function registerScripts(plugin: ScriptHost) {
+  registerContentControls(plugin);
   const focus = writingFocus(plugin);
   plugin.refreshWritingFocus = focus.refresh;
   plugin.register(() => { plugin.refreshWritingFocus = undefined; });
@@ -311,7 +313,6 @@ export class ScriptsView extends ItemView {
   revision = 0;
   closed = false;
   saving = false;
-  viewOptionsOpen = false;
   dragging=new OutlineDragging(()=>{if(!this.closed)void this.draw();});
   currentScripts=new Map<string,Script>();
   lastOutline="";
@@ -403,17 +404,6 @@ export class ScriptsView extends ItemView {
       const compile=button("Compile PDF…",()=>openCompileOptions(this.controller),"marginalia-compile-launcher");
       compile.disabled=!selection;root.append(compile);
       groups = selectedGroups(groups, selection);
-      if (selection) {
-        const actions = el("details", "marginalia-script-actions");
-        actions.open = this.viewOptionsOpen;
-        actions.addEventListener("toggle", () => { this.viewOptionsOpen = actions.open; });
-        actions.append(el("summary", "", "View options"));
-        const controls = el("div", "marginalia-outline-actions");
-        controls.classList.add("marginalia-fold-controls");
-        this.renderFoldControls(controls);
-        actions.append(controls);
-        root.append(actions);
-      }
       root.append(el("p", "marginalia-script-caption", selection
         ? "Drag scripts, pages or panels to arrange reading order."
         : "Choose a project or grouping to begin."));
@@ -633,23 +623,8 @@ export class ScriptsView extends ItemView {
       if (!this.closed) await this.draw();
     }
   }
-  renderFoldControls(root: HTMLElement) {
-    const status = this.controller.foldStatus();
-    const labels = [status.any ? "Expand all" : "Collapse all", status.panels ? "Expand panel descriptions" : "Collapse panel descriptions"];
-    if (root.dataset.labels === labels.join("|")) return;
-    root.dataset.labels = labels.join("|");
-    root.replaceChildren();
-    for (const [index,label] of labels.entries()) {
-      const mode = index === 0 ? (status.any ? "expand" : "collapse") : (status.panels ? "expand-panels" : "panels");
-      root.append(button(label, () => {
-        void this.controller.foldScript(mode).catch((e) => new Notice(String(e)));
-      }));
-    }
-  }
   drawFooter() {
     if (this.closed) return;
-    const controls = this.contentEl.querySelector<HTMLElement>(".marginalia-fold-controls");
-    if (controls) this.renderFoldControls(controls);
     const previous = this.contentEl.querySelector(".marginalia-writing-footer");
     const session = this.controller.session;
     const signature = JSON.stringify([session.data.selection, session.data.preferences,

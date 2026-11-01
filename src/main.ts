@@ -67,6 +67,7 @@ import { readWriting } from "./scripts/writing.ts";
 import { renderWritingSettings } from "./scripts/settings.ts";
 import { registerScripts } from "./scripts/view.ts";
 import { WorkspaceFeature, PAGES } from "./workspace/feature.ts";
+import {ProjectRegisterModal} from "./workspace/project-register.ts";
 import { VaultSetupModal } from "./workspace/setup.ts";
 import { defaultEntrySetup } from "./workspace/setup-model.ts";
 import { suggest, propertyNames } from "./ui/suggest.ts";
@@ -118,6 +119,7 @@ export default class Marginalia extends Plugin {
   status = "Local · Choose a model";
   error = "";
   progress = "";
+  reviewOperation?:{mode:"enhancement"|"expansion";path:string};
   lastProgressUpdate = 0;
   sessions = new Map<string, Session>();
   expansions: SavedEntry[] = [];
@@ -584,7 +586,7 @@ export default class Marginalia extends Plugin {
       },
     };
   }
-  async task(work: (signal: AbortSignal) => Promise<void>) {
+  async task(work: (signal: AbortSignal) => Promise<void>, section?: Suggestion) {
     if (this.operation) return;
     this.error = "";
     const op = new AbortController();
@@ -596,11 +598,14 @@ export default class Marginalia extends Plugin {
     try {
       await work(op.signal);
     } catch (e) {
-      this.error = e instanceof Error ? e.message : String(e);
+      const message = e instanceof Error ? e.message : String(e);
+      if(section) section.warnings = [...new Set([...(section.warnings ?? []),message])];
+      else this.error = message;
     } finally {
       if (this.operation === op) {
         this.operation = null;
         this.progress = "";
+        this.reviewOperation = undefined;
       }
       this.refresh();
     }
@@ -629,8 +634,7 @@ export default class Marginalia extends Plugin {
   }
   updateProgress(){
     for(const leaf of this.app.workspace.getLeavesOfType(LIBRARIAN)){
-      const label=(leaf.view as ItemView).contentEl.querySelector(".marginalia-progress > span");
-      if(label)label.textContent=this.progress;
+      for(const label of (leaf.view as ItemView).contentEl.querySelectorAll(".marginalia-progress > span, .marginalia-entry-progress"))label.textContent=this.progress;
     }
   }
   async reviewGrounding(packet:Packet,sections:{section:string;prose:string}[],signal:AbortSignal){
@@ -641,21 +645,41 @@ export default class Marginalia extends Plugin {
   }
   async groundedDraft(packet:Packet,raw:string,mode:"enhancement"|"expansion",signal:AbortSignal,system:string,question=""){
     let sections=cleanDraft(raw,packet);
+    const warn=(draft:typeof sections,error:unknown)=>{
+      signal.throwIfAborted();
+      const issues=error instanceof GroundingFailure?error.issues:[];
+      const message=(error instanceof Error?error.message:String(error)).replace(/Previous results retained[.;]?/gi,"").replace(/Draft withheld after source-grounding review:\s*/i,"").trim();
+      return draft.map(section=>{
+        const reasons=issues.length?issues.filter(issue=>issue.section===section.section).map(issue=>issue.reason):["Source check could not be completed: "+message];
+        return reasons.length?{...section,warnings:[...new Set([...(section.warnings??[]),...reasons])]}:section;
+      });
+    };
     try{await this.reviewGrounding(packet,sections,signal);return sections;}
     catch(error){
-      if(!(error instanceof GroundingFailure))throw error;
       signal.throwIfAborted();
-      this.progress="Revising unsupported draft…";this.refresh();
-      const correction=await this.generateText(system,prompt(packet,mode,
-        question+"\nEvidence review correction: revise the proposed draft using ONLY original evidence. Remove unsupported claims or omit their sections. Preserve exact participants, objects and uncertainty. The prior draft and reviewer feedback are not evidence. Return only corrected finished entry sections.\n"+JSON.stringify({priorDraft:sections,reviewFeedback:error.message})),signal,"Revising unsupported draft…");
-      await this.verify(packet,signal);sections=cleanDraft(correction,packet);
-      await this.reviewGrounding(packet,sections,signal);return sections;
+      if(!(error instanceof GroundingFailure))return warn(sections,error);
+      const original=warn(sections,error);
+      try{
+        this.progress="Revising unsupported draft…";this.refresh();
+        const correction=await this.generateText(system,prompt(packet,mode,
+          question+"\nEvidence review correction: revise the proposed draft using ONLY original evidence. Remove unsupported claims or omit their sections. Preserve exact participants, objects and uncertainty. Return only corrected finished entry sections.\n"+JSON.stringify({priorDraft:sections,reviewFeedback:error.message})),signal,"Revising unsupported draft…");
+        await this.verify(packet,signal);sections=cleanDraft(correction,packet);
+        try{await this.reviewGrounding(packet,sections,signal);}catch(reviewError){sections=warn(sections,reviewError);}
+        for(const section of original)if(!sections.some(current=>current.section.toLowerCase()===section.section.toLowerCase()))
+          sections.push({...section,warnings:[...(section.warnings??[]),"The correction did not return this section. Review this earlier draft before using it."]});
+        return sections;
+      }catch(correctionError){
+        signal.throwIfAborted();
+        const message=correctionError instanceof Error?correctionError.message:String(correctionError);
+        return original.map(section=>section.warnings?.length?{...section,warnings:[...section.warnings,"Correction could not be completed: "+message]}:section);
+      }
     }
   }
   async run(mode: "enhancement" | "expansion") {
-    if (Platform.isMobile || !this.workspaceSettings.modules.librarian) return;
+    if (Platform.isMobile || !this.workspaceSettings.modules.librarian || this.operation) return;
     const path = this.target;
     if (!path) return;
+    this.reviewOperation={mode,path};
     await this.task(async (signal) => {
       const previous =
         mode === "expansion"
@@ -681,6 +705,7 @@ export default class Marginalia extends Plugin {
       );
       await this.verify(packet, signal);
       const sections = await this.groundedDraft(packet,raw,mode,signal,librarianSystem+"\n"+(type?characterWriter:canonWriter));
+      await this.verify(packet, signal);
       if (mode === "enhancement") {
         const suggestions = sections.map((s, i) => ({
           ...s,
@@ -696,13 +721,14 @@ export default class Marginalia extends Plugin {
           packet,
           sections
             .map((s) =>
-              type && s.section.toLowerCase() === "summary"
+              (type && s.section.toLowerCase() === "summary"
                 ? "> [!abstract] Summary\n" +
                   s.prose
                     .split("\n")
                     .map((line) => "> " + line)
                     .join("\n")
-                : `## ${s.section}\n\n${s.prose}`,
+                : `## ${s.section}\n\n${s.prose}`)
+              + (s.warnings?.length ? "\n\n> [!warning] Review needed\n" + s.warnings.map(warning=>"> "+warning.replace(/\r?\n/g," ")).join("\n") : ""),
             )
             .join("\n\n"),
         );
@@ -758,8 +784,10 @@ export default class Marginalia extends Plugin {
         throw new Error(
           "Refinement must return one section. Previous suggestion retained.",
         );
+      await this.verify(s.packet,signal);
       s.prose = sections[0].prose;
-    });
+      s.warnings = sections[0].warnings;
+    }, s);
   }
   async insert(s: Suggestion) {
     if (s.state !== "pending" || this.operation) return;
@@ -821,7 +849,7 @@ export default class Marginalia extends Plugin {
         };
       }
       new Notice("Inserted " + s.section + ". Undo in the note to revert.");
-    });
+    }, s);
   }
   async loadLibrary() {
     const adapter = this.app.vault.adapter,
@@ -941,6 +969,7 @@ class LibrarianView extends ItemView {
       status: p.status,
       busy: !!p.operation,
       progress: p.progress,
+      reviewAction:p.reviewOperation?.path===p.target?p.reviewOperation.mode:undefined,
       error: p.error,
       suggestions: c.suggestions,
       messages: c.messages,
@@ -1368,6 +1397,9 @@ class MarginaliaSettings extends PluginSettingTab {
           );
         new Setting(body).setName("Vault setup").setDesc("Advanced: configure canon types, destination folders and templates for this vault.")
           .addButton(button=>button.setButtonText("Configure vault…").onClick(()=>new VaultSetupModal(p).open()));
+        new Setting(body).setName("Project Register Base")
+          .setDesc("Select the Base whose first view supplies the app-style Project Register. Leave unassigned to use all discovered projects.")
+          .addButton(button => button.setButtonText("Choose Base…").onClick(() => new ProjectRegisterModal(p).open()));
         new Setting(body)
           .setName("Project Status Flow field")
           .setDesc(

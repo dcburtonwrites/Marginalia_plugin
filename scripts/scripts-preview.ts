@@ -1,3 +1,4 @@
+import {scriptContentExtension} from '../src/scripts/content-controls.ts';
 document.documentElement.dataset.theme =
   new URLSearchParams(location.search).get("theme") || "light";
 import { CompilationView, COMPILATION } from "../src/scripts/compile.ts";
@@ -144,7 +145,7 @@ const mainLeaf: any = {
       mainView=Object.assign(new MarkdownView(),{file,editor:nativeEditor,getMode:()=>"source",getViewType:()=>"markdown",onClose:async()=>cm.destroy()});
       cm = new EditorView({parent:main, state:EditorState.create({
         doc:file.text,
-        extensions:[focus.extension, history(),editorInfoField.init(()=>({file,editor:nativeEditor})),scriptFoldingExtension,
+        extensions:[scriptContentExtension, focus.extension, history(),editorInfoField.init(()=>({file,editor:nativeEditor})),scriptFoldingExtension,
           createScriptShortcutExtension(app),
           EditorView.contentAttributes.of({"aria-label":"Script editor"}),
           EditorView.updateListener.of(update=>{if(update.docChanged){

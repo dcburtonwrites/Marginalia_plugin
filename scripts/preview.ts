@@ -153,3 +153,8 @@ draw();
 
 const toolbar = document.querySelector<HTMLElement>("#librarian-host-icon");
 if (toolbar) icon(toolbar);
+
+if(params.has("review-progress")){
+  state.tab="Review";state.busy=true;state.reviewAction="enhancement";state.progress="Checking source grounding…";draw();
+  (window as any).finishReview=()=>{state.busy=false;state.reviewAction=undefined;state.suggestions=[pending(),{...pending(),id:"warning",section:"Backstory",warnings:["This section appears incomplete. Review it before using it."]}];draw();};
+}

@@ -1,0 +1,12 @@
+{
+  "originalTestNotes": 34,
+  "allOriginalMarkdownUnchanged": true,
+  "distributionZipAndInstalledFilesMatch": true,
+  "productionSha256": {
+    "main.js": "e295f017dffdb19197397b92c428249a049a58d94d15974e1e03e5ef220eb7b8",
+    "styles.css": "3c47982251d4f02481a8a4e3eccfca6dd79cb915f8d3d472ec06cac4fc99d67b",
+    "manifest.json": "10f937097e1c14fb2c64d14b6d7577624645d14f6f446750dba15badedc85d64"
+  },
+  "automatedTests": 200,
+  "nativeFinalReload": "Pass: final packaged build reloaded in native Obsidian 1.14.5; floating View menu and Reading dialogue hide/restore verified."
+}

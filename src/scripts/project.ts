@@ -1,3 +1,4 @@
+import {mountContentControls,removeContentControls} from './content-controls.ts';
 import {
   Component,
   ItemView,
@@ -69,6 +70,7 @@ export class ProjectView extends ItemView {
   }
   async onClose() {
     this.closed = true;
+    removeContentControls(this.containerEl??this.contentEl);
     this.revision++;
     for(const article of this.articles.values())this.removeChild(article.component);
     this.articles.clear();
@@ -155,6 +157,7 @@ export class ProjectView extends ItemView {
       this.articles=prepared;this.lastRender=signature;staged=[];
       this.contentEl.className="view-content marginalia-project-reading";
       this.contentEl.replaceChildren(root);this.contentEl.scrollTop=scroll;
+      mountContentControls(this.containerEl??this.contentEl,"project:"+this.projectScope+":"+this.group).apply();
     } catch (error) {
       for(const component of staged)this.removeChild(component);
       this.lastRender="";

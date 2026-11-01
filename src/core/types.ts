@@ -34,6 +34,7 @@ export interface Packet {
   guidance: string;
 }
 export interface Suggestion {
+  warnings?: string[];
   id: string;
   entry: string;
   section: string;

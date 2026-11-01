@@ -28,7 +28,15 @@ export class Notice {
     if (target) target.textContent = message;
   }
 }
-export class Component {}
+export class Component {
+  callbacks:(()=>void)[]=[];
+  register(fn:()=>void){this.callbacks.push(fn);}
+  load(){}
+  unload(){for(const fn of this.callbacks.splice(0))fn();}
+}
+const baseFactories=new Map<string,any>();
+export class BasesView {config:any;data:any;constructor(_controller:any){}}
+
 export class MarkdownRenderChild { constructor(public containerEl: any) {} }
 export class FuzzySuggestModal {}
 export const normalizePath = (path: string) => path.replace(/\\/g, "/").replace(/\/{2,}/g, "/").replace(/^\/(?!$)|\/$/g, "") || "/";
@@ -42,6 +50,12 @@ export class Modal {
 }
 export const MarkdownRenderer = {
   render: async (_app: any, text: string, el: HTMLElement) => {
+    if(text.startsWith("```base\n")){
+      const config=parseYaml(text.slice(8).replace(/\n```$/, ""));
+      const view=config.views[0],factory=baseFactories.get(view.type);
+      if(factory){const instance=factory({},el);instance.config={get:(key:string)=>view[key]};instance.data={data:_app.vault.getMarkdownFiles().filter((f:any)=>f.fields?.tags?.includes("project-parent")).map((file:any)=>({file}))};instance.onDataUpdated();}
+      return;
+    }
     for (const block of text.split(/\n\n+/)) {
       if (/^## Page\s+\d/.test(block)) {
         const [title,...rest]=block.split("\n");
@@ -183,6 +197,7 @@ export class Plugin {
   constructor(public app:any,public manifest:any){}
   register(callback:()=>void){this.cleanups.push(callback);}
   registerView(_type:string,_factory:any){}
+  registerBasesView(type:string,options:any){baseFactories.set(type,options.factory);return true;}
   registerEvent(_event:any){}
   addCommand(_command:any){}
   dispose(){for(const cleanup of this.cleanups.reverse())cleanup();}
