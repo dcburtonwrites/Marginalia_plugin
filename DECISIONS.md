@@ -385,3 +385,35 @@
 - Recommendation: Both vault types; World default world scope, Storyboard current project plus shared references, explicit Entire vault. General craft/system-design guidance with provisional author answers. Autosaved separate conversations, default Brainstorms/Development with global/per-session visible/hidden destinations. Automatic summary at a useful stopping point with Continue Development. Individually accepted insertions/replacements/deletions. Source-linked prioritized saved checklists under Brainstorms/Reviews with the same storage choices.
 - Decision: Owner accepted recommendations 1–7, authorized research, chose “Individual recommended changes,” and clarified: “Those were ‘deterministic’ checks that didn’t need an AI to be done. Those should differ from the thinking checks the AI should be doing in this.”
 - Impact: Review initially presents four actions without chat and hides alternatives after selection. Development adds its own conversation only while active. Research-informed adaptive reasoning uses no scripted interview; proposals remain provisional until accepted. Vault Review examines narrative/system/relationship issues; deterministic timeline notices stay separate and no additional mechanical detectors are smuggled into AI findings. Existing local-model, source-freshness, project, generated-evidence and native Undo boundaries remain. See docs/Librarian-Review-Plan.md and the linked research notes.
+
+
+## D-0062 · Keep AI-only Vault Review reports hidden · 2026-11-02 · Librarian review workflows
+- Question: Align the new review workspaces with the existing author-written versus AI-generated storage rule.
+- Options: Shared visible/hidden choices for both workflows / author-containing Development unchanged and AI-only Vault Review fixed to hidden storage.
+- Recommendation: Keep Entry Development unchanged and constrain report writes to .marginalia/reviews, accessible through Library.
+- Decision: Owner directed: “Entry Development should be saved under Brainstorm because it has author-written content (so no change). Vault Review should save only to the .marginalia folder and be visible in the library tab to open, because it’s AI generated”.
+- Impact: Supersedes D-0061's Vault Review storage choices. Remove report folder/location controls and ignore legacy report-folder preferences. Enforce hidden report paths even when a caller supplies a visible destination. Preserve legacy visible files; subsequent checklist saves create hidden copies and update their Library index. Development defaults, preferences and overrides remain unchanged. Updated product, architecture and workflow contract.
+
+
+## D-0063 · Contained Timeline viewport and styled groups · 2026-11-02 · Timelines presentation
+- Question: Fix viewport overflow, distinguish groups with user-chosen appearance, support trackpad horizontal scrolling and center chart navigation.
+- Options: Free-text group names / explicit create-and-style group flow; neutral banding / callout-palette colors; document overflow / contained chart with time panning.
+- Recommendation: Create groups with a name and banding or callout color before assigning locations; keep all changes in existing Timeline preferences. Constrain chart overflow, fit full card widths, pan time for horizontal wheel gestures and anchor arrows to the visible chart frame.
+- Decision: Owner requested all four changes, including “creating a group is a process with choices, then things can be added to the group” and “Use callout colors as options or banding.”
+- Impact: Added validated named group preferences with banded legacy defaults, group create/edit/remove and membership menus. Presentation-only changes do not modify note metadata or chronology. Chart owns its scrolling; horizontal gestures pan the date window and vertical scrolling browses lanes. Navigation centers on the visible chart frame; Fit events reserves card width.
+
+
+## D-0064 · Center navigation on swim lanes and inline group editing · 2026-11-02 · Timeline presentation
+- Question: Correct D-0063's centering reference and simplify group/location controls.
+- Options: Full visible chart frame / visible swim-lane intersection; block form / inline textbox and swatch palette; arrow ordering / drag handles.
+- Recommendation: Center arrows on actual visible lane bounds, excluding the date axis, blank pane area and Undated. Place Undated in a bottom-aligned separate region. Use an inline name/palette/check/cancel editor, clickable colored group buttons and drag ordering with a keyboard alternative.
+- Decision: Owner explicitly requested swim-lane centering, bottom-justified Undated, inline create/edit controls with color squares and no-color banding, saved colored group buttons, and drag/drop replacing location up/down buttons.
+- Impact: Supersedes the D-0063 full-frame centering interpretation. Resizing, scroll and post-layout updates recompute the visible lane center. Undated has independent bounded overflow. Group buttons edit in place; group changes remain draft until Save lanes. Dropping across groups adopts the target group and is described in the dialog. Arrow-key reordering remains available on focused drag handles without visible up/down buttons. No source-note changes.
+
+
+## D-0065 · Canon suggestions in the Timeline filter · 2026-11-02 · Timeline search
+- Question: Add a dropdown when the author starts typing in the timeline filter.
+- Options: Free text alone / Canon entry suggestions alongside the existing text search.
+- Recommendation: Suggest matching Canon names with type/path disambiguation; support click or Up/Down/Enter selection and Escape dismissal. Select an exact path identity so duplicate display names stay distinct.
+- Decision: Owner requested: “when the user starts typing in the filter box, show a dropdown of Canon entries”.
+- Impact: Original Canon metadata supplies up to 12 prefix/substring suggestions without note-body reads or model calls. Selected entries filter events by matching event, participant, location or related-entry path. Further typing clears the selected identity and resumes free text. Template, generated, hidden and configured Brainstorms exclusions remain. Clear filters clears the identity; selected identity persists with native filter state.

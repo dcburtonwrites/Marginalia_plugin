@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 304,
+  "packageHashes": {
+    "main.js": "6737aaac6c07562bef4a6aefa07aab646ba272818563ce9139b90bdb6c536a53",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "6f8181544eec72f0a233ed593ba6e95ba47557e944d285abc4dc1c9facecd366"
+  },
+  "nativeGroup": {
+    "name": "Coast",
+    "style": "blue"
+  },
+  "browserGeometry": {
+    "wide": [
+      1280,
+      720
+    ],
+    "narrow": [
+      620,
+      540
+    ],
+    "horizontalOverflow": false,
+    "arrowCenterErrorPixels": [
+      0,
+      0
+    ],
+    "fittedCardsInsideChart": true
+  },
+  "preservedOriginals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import {EntryTimelineUI} from "../src/timeline/entry-ui.ts";
 import {buildStateTimelines,type StateTimelines} from "../src/timeline/state.ts";
 import {WorldTimelineUI} from "../src/timeline/ui.ts";
-import {buildWorldTimeline,type WorldTimeline} from "../src/timeline/world.ts";
+import {buildWorldTimeline,timelineCanonEntries,type WorldTimeline} from "../src/timeline/world.ts";
 import {buildTimelineIndex} from "../src/timeline/index.ts";
 import {readTimeline,type TimelineNote} from "../src/timeline/model.ts";
 import {TimelineLanesModal} from "../src/timeline/view.ts";
@@ -41,7 +41,7 @@ let selectedEntry="";
 const root=document.querySelector<HTMLElement>("#timeline")!;
 const open=(path:string)=>{document.querySelector("#opened")!.textContent=path;};
 const calendar=async(path:string)=>{owner.timelineSettings.displayCalendar=path;await owner.savePluginData();};
-function update(){const index=buildTimelineIndex(notes,owner.timelineSettings);world=buildWorldTimeline(notes,index,owner.timelineSettings,resolve);states=buildStateTimelines(notes,index,world,owner.timelineSettings,resolve);world.diagnostics.push(...states.diagnostics);ui?.draw();}
+function update(){const index=buildTimelineIndex(notes,owner.timelineSettings);world=buildWorldTimeline(notes,index,owner.timelineSettings,resolve);world.canon=timelineCanonEntries(notes,owner.workspaceSettings);states=buildStateTimelines(notes,index,world,owner.timelineSettings,resolve);world.diagnostics.push(...states.diagnostics);ui?.draw();}
 function show(path=""){
   selectedEntry=path;ui?.dispose();root.classList.remove("marginalia-entry-timeline");
   ui=path?new EntryTimelineUI(root,{entry:()=>states.entries.get(selectedEntry),registry:()=>world.registry,displayCalendar:()=>owner.timelineSettings.displayCalendar,calendar,open,world:()=>show()}):new WorldTimelineUI(root,{states:()=>states,entry:path=>show(path),world:()=>world,settings:()=>owner.timelineSettings,calendar,lanes:()=>new TimelineLanesModal(owner,world).open(),open});

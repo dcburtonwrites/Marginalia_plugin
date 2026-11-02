@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 302,
+  "packageHashes": {
+    "main.js": "c87af0de896c4a03a9fd8598a9c85dd28197b76e88453bb2321dd7e1298cd07d",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "b86669f9e257c31828402a19d5861ab610ca37b183732e3a2a647f415983655f"
+  },
+  "browserChecks": [
+    "hidden-only setup",
+    "hidden report save",
+    "Library listing and reopen"
+  ],
+  "nativeRunForThisCorrection": false
+}

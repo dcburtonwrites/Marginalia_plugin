@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 308,
+  "packageHashes": {
+    "main.js": "8e9f60223df0b6c6b178aec66b00eef6380a0ed141e129ba6f638d02e8352ada",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "f6c1293370af5d56f488755f7436ff1a9a96e7705249e0e8887033aeb8581e29"
+  },
+  "nativeAcceptance": {
+    "query": "Mira",
+    "suggestions": [
+      "Timeline Demo/Mira.md",
+      "02 Character/Mira Vale.md"
+    ],
+    "keyboardSelection": true
+  },
+  "originals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  }
+}

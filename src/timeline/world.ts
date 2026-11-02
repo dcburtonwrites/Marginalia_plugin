@@ -1,6 +1,7 @@
 import {type TimelineIndex,type DatedEvent} from "./index.ts";
 import {type CalendarRegistry,type TimelineDate} from "./calendar.ts";
 import {isType,property,strings,structuralFields,applies,type TimelineNote,type TimelineSettings,type Diagnostic} from "./model.ts";
+import {canon,eligible,type WorkspaceSettings} from "../workspace/model.ts";
 import {scriptScope} from "../scripts/model.ts";
 export const UNPLACED = "@unplaced", MULTIPLE = "@multiple";
 export type LinkResolver = (target: string, source: string) => string | undefined;
@@ -12,9 +13,17 @@ export interface WorldEvent extends DatedEvent {
   position?: number; order: number; after?: string; before?: string;
 }
 export interface WorldLane {path: string; name: string; group: string; enabled: boolean}
-export interface WorldTimeline {registry: CalendarRegistry; events: WorldEvent[]; lanes: WorldLane[]; diagnostics: Diagnostic[]}
-export interface TimelineFilters {query: string; type: string; tag: string; project: string}
-export const emptyFilters = (): TimelineFilters => ({query:"",type:"",tag:"",project:""});
+export interface WorldTimeline {registry: CalendarRegistry; events: WorldEvent[]; lanes: WorldLane[]; diagnostics: Diagnostic[]; canon?:Reference[]}
+export interface TimelineFilters {entry?:string;query: string; type: string; tag: string; project: string}
+export const emptyFilters = (): TimelineFilters => ({entry:"",query:"",type:"",tag:"",project:""});
+/** Same original-entry scope as the Canon register; no note-body reads. */
+export function timelineCanonEntries(notes:TimelineNote[],settings:WorkspaceSettings):Reference[]{
+  return canon(notes.filter(n=>eligible(n.path)&&n.fields.generated!==true&&!settings.canonTypes.some(t=>t.template===n.path)).map(n=>({...n,type:n.type??(strings(property(n.fields,'type')).find(t=>settings.canonTypes.some(c=>c.name.toLowerCase()===t.toLowerCase()))),tags:n.tags??[],body:'',created:0,modified:0})),true,settings).map(n=>({path:n.path,name:n.name,type:n.type!}));
+}
+export function matchingCanonEntries(entries:Reference[],query:string):Reference[]{
+ const q=query.trim().toLowerCase();if(!q)return [];
+ return entries.filter(e=>e.name.toLowerCase().includes(q)||e.path.toLowerCase().includes(q)).sort((a,b)=>Number(!a.name.toLowerCase().startsWith(q))-Number(!b.name.toLowerCase().startsWith(q))||a.name.localeCompare(b.name)||a.path.localeCompare(b.path));
+}
 export function displayCalendar(world:WorldTimeline,settings:TimelineSettings){
   return world.registry.calendars.find(c=>c.path===settings.displayCalendar&&c.offset!==undefined)
     ?? (world.registry.primary?.offset!==undefined?world.registry.primary:undefined)
@@ -134,7 +143,7 @@ function placeUndated(events: WorldEvent[], notes: Map<string,TimelineNote>, res
 }
 export function filterEvents(world: WorldTimeline, filters: TimelineFilters): WorldEvent[] {
   const query=filters.query.trim().toLowerCase();
-  return world.events.filter(event=>(!query||[event.name,...event.participants.map(p=>p.name),...event.locations.map(p=>p.name)].some(name=>name.toLowerCase().includes(query)))&&(!filters.type||filters.type==="Event"||event.participants.some(p=>p.type===filters.type))&&(!filters.tag||event.tags.includes(filters.tag))&&(!filters.project||event.project===filters.project));
+  return world.events.filter(event=>(!filters.entry?(!query||[event.name,...event.participants.map(p=>p.name),...event.locations.map(p=>p.name)].some(name=>name.toLowerCase().includes(query))):[event.path,...event.participants.map(p=>p.path),...event.locations.map(p=>p.path),...event.related.map(p=>p.path)].includes(filters.entry))&&(!filters.type||filters.type==="Event"||event.participants.some(p=>p.type===filters.type))&&(!filters.tag||event.tags.includes(filters.tag))&&(!filters.project||event.project===filters.project));
 }
 export function periodWidth(date: TimelineDate, registry: CalendarRegistry) {
   const c=registry.calendars.find(c=>c.path===date.calendar)!;
@@ -150,6 +159,11 @@ export function timelineExtent(world: WorldTimeline, events=world.events): [numb
   for(const event of events){const range=eventRange(event,world.registry);if(range){low=Math.min(low,range[0]);high=Math.max(high,range[1]);}}
   if(!Number.isFinite(low))return [0,10];
   const span=Math.max(high-low,1),padding=span*.08;return [low-padding,Math.max(high,low+1)+padding];
+}
+/** Fit reserves room for fixed-width cards as well as authored date marks. */
+export function fittedTimelineExtent(world:WorldTimeline,events:WorldEvent[],width:number):[number,number]{
+  const [start,end]=timelineExtent(world,events),usable=Math.max(1,width-188);
+  return [start,start+(end-start)*Math.max(1,width)/usable];
 }
 export interface PlacedEvent {event: WorldEvent; x: number; width: number; row: number; markWidth: number}
 export interface LayoutLane extends WorldLane {top: number; height: number; events: PlacedEvent[]}

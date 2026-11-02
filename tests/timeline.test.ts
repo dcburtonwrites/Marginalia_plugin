@@ -314,3 +314,48 @@ test("snapshot display calendars retain the shared instant and native state reje
   for(const bad of [NaN,Infinity,-Infinity,"0",null])assert.equal(readTimelineUIState({snapshot:bad}).snapshot,undefined);
   assert.equal(readTimelineUIState({snapshot:0}).snapshot,0);assert.equal(readTimelineUIState({snapshot:-10}).snapshot,-10);
 });
+
+
+test('timeline groups preserve legacy assignments, empty groups and validated callout styles',()=>{
+ const settings=readTimeline({groups:[{name:' Coast ',style:'cyan'},{name:'Empty',style:'purple'},{name:'Coast',style:'red'},{name:'Unsafe',style:'url(bad)'}],lanes:[{path:'Harbor.md',group:'Coast'},{path:'Archive.md',group:'Legacy'}]});
+ assert.deepEqual(settings.groups,[{name:'Coast',style:'cyan'},{name:'Empty',style:'purple'},{name:'Unsafe',style:'banded'},{name:'Legacy',style:'banded'}]);
+ assert.deepEqual(readTimeline(JSON.parse(JSON.stringify(settings))).groups,settings.groups);
+ assert.equal(settings.lanes[1].group,'Legacy');
+});
+
+test('fitting the timeline reserves room for full event cards at both wide and narrow viewport edges',async()=>{
+ const {fittedTimelineExtent}=await import('../src/timeline/world.ts');
+ const w=world([place(),event('First',{Date:-10,Locations:'[[Harbor]]'}),event('Last',{Date:100,Locations:'[[Harbor]]'})]);
+ for(const width of [240,600,1100]){const [start,end]=fittedTimelineExtent(w,w.events,width);const items=layoutTimeline(w,w.events,start,end-start,width).flatMap(l=>l.events);assert.equal(items.length,2);assert.ok(items.every(p=>p.x>=0&&p.x+176<=width));}
+});
+
+
+test('navigation centers within sparse and scrolled swim lanes, excluding the axis, blank pane space and Undated footer',async()=>{
+ const {visibleLaneCenter}=await import('../src/timeline/ui.ts');
+ assert.equal(visibleLaneCenter([{top:86,height:82},{top:168,height:82}],0,600),168);
+ assert.equal(visibleLaneCenter([{top:86,height:20000}],9000,438),247);
+ assert.equal(visibleLaneCenter([{top:86,height:82}],300,600),undefined);
+ assert.equal(visibleLaneCenter([],0,600),undefined);
+});
+
+test('drag ordering preserves unrelated lanes and moves membership with a cross-group drop',async()=>{
+ const {moveTimelineLane}=await import('../src/timeline/model.ts');
+ const lanes=[{path:'Archive.md',group:'Coast',enabled:true},{path:'Harbor.md',group:'Coast',enabled:false},{path:'Observatory.md',group:'Highlands',enabled:true}];
+ const moved=moveTimelineLane(lanes,'Harbor.md','Observatory.md',true);
+ assert.deepEqual(moved.map(l=>l.path),['Archive.md','Observatory.md','Harbor.md']);assert.equal(moved[2].group,'Highlands');assert.equal(moved[2].enabled,false);assert.equal(lanes[1].group,'Coast');
+ assert.equal(moveTimelineLane(lanes,'missing','Archive.md'),lanes);assert.equal(moveTimelineLane(lanes,'Archive.md','Archive.md'),lanes);
+});
+
+
+test('timeline suggestions use Canon originals, preserve duplicate names by path and rank prefix matches first',async()=>{
+ const {timelineCanonEntries,matchingCanonEntries}=await import('../src/timeline/world.ts');const {readWorkspace}=await import('../src/workspace/model.ts');
+ const entries=timelineCanonEntries([note('02 Character/Mira.md',{type:'Character'}),note('02 Character/Mirabel.md',{type:'Character'}),note('00 Brainstorms/Mira ideas.md',{type:'Character'}),note('.marginalia/Mira.md',{type:'Character'}),note('_templates/Mira.md',{type:'Character'}),note('02 Character/Generated Mira.md',{type:'Character',generated:true}),note('06 System/Mira gate.md',{type:'System'}),note('Calendar.md',{type:'Calendar'})],readWorkspace(null));
+ assert.equal(entries.length,3);assert.equal(matchingCanonEntries(entries,'  mir  ').length,3);assert.equal(matchingCanonEntries(entries,'').length,0);assert.equal(matchingCanonEntries(entries,'missing').length,0);
+ const choices=matchingCanonEntries([{path:'A/Mira.md',name:'Mira',type:'Character'},{path:'B/Mira.md',name:'Mira',type:'Character'},{path:'Other.md',name:'About Mira',type:'Character'}],'Mira');assert.deepEqual(choices.map(e=>e.path),['A/Mira.md','B/Mira.md','Other.md']);
+});
+
+test('selecting a Canon suggestion filters by entry identity rather than a duplicate display name',()=>{
+ const w=world([place(),note('A/Mira.md',{type:'Character'}),note('B/Mira.md',{type:'Character'}),event('First',{Date:1,Cast:'[[A/Mira]]'}),event('Second',{Date:2,Cast:'[[B/Mira]]'})]);
+ assert.equal(filterEvents(w,{...emptyFilters(),query:'Mira'}).length,2);
+ assert.deepEqual(filterEvents(w,{...emptyFilters(),query:'Mira',entry:'A/Mira.md'}).map(e=>e.name),['First']);
+});

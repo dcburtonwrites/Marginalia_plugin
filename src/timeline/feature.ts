@@ -4,7 +4,7 @@ import {eligible,entryType,projectResolver} from "../workspace/model.ts";
 import {buildTimelineIndex,type TimelineIndex} from "./index.ts";
 import {strings,type TimelineNote,type Diagnostic} from "./model.ts";
 import {ensureDefaultCalendar} from "./setup.ts";
-import {buildWorldTimeline,type WorldTimeline} from "./world.ts";
+import {buildWorldTimeline,timelineCanonEntries,type WorldTimeline} from "./world.ts";
 import {TIMELINE,WorldTimelineView,openWorldTimeline} from "./view.ts";
 import {buildStateTimelines,type StateTimelines} from "./state.ts";
 import {ENTRY_TIMELINE,EntryTimelineView,openEntryTimeline} from "./entry-view.ts";
@@ -110,6 +110,7 @@ export class TimelineFeature extends Plugin {
     this.index = buildTimelineIndex(notes,this.owner.timelineSettings);
     this.index.diagnostics.unshift(...diagnostics);
     this.world=buildWorldTimeline(notes,this.index,this.owner.timelineSettings,(target,source)=>this.app.metadataCache.getFirstLinkpathDest(target,source)?.path);
+    this.world.canon=timelineCanonEntries(notes,this.owner.workspaceSettings);
     this.states=buildStateTimelines(notes,this.index,this.world,this.owner.timelineSettings,(target,source)=>this.app.metadataCache.getFirstLinkpathDest(target,source)?.path);
     this.world.diagnostics.push(...this.states.diagnostics);
     this.noteActions();

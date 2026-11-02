@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 306,
+  "packageHashes": {
+    "main.js": "4ff97f0cd4fc6df8b579c4c11c431d229970c5c58d5f59d006f7adef91e029a8",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "084a75a7b694b2fcdc4c2f788682dafdb34db8cea40a106985cfea4809bca740"
+  },
+  "browserSparseGeometry": {
+    "visibleLaneCenter": 337,
+    "arrowCenters": [
+      337,
+      337
+    ],
+    "undatedBottom": 720,
+    "bodyBottom": 720
+  },
+  "browserActualDrag": "Salt Harbor before Eastern Archive; membership adopted Lowlands; persisted across reload",
+  "nativeSparseScreenshot": "timeline-lanes-centered-native-2026-11-02.png",
+  "originals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  }
+}

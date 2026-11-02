@@ -1595,11 +1595,12 @@ class MarginaliaSettings extends PluginSettingTab {
     new Setting(root).setName("Librarian sidebar").setDesc("Open the Librarian in the right sidebar. Also available through the note-header lantern or the Open Librarian command.")
       .addButton(button => button.setButtonText("Open Librarian").onClick(() => { void p.openLibrarian(); }));
     root.append(el("h3","","Development and review storage"));
-    new Setting(root).setName("Default save location").setDesc("Applies to new conversations and reports. Existing workspaces stay in their current locations; each new session can override this choice.")
+    new Setting(root).setName("Development save location").setDesc("Applies to new Development conversations. Existing conversations stay in their current locations; each new conversation can override this choice.")
       .addDropdown(drop=>drop.addOption("vault","In the vault").addOption("hidden","Hidden in .marginalia").setValue(p.reviewData.hidden?"hidden":"vault").onChange(async value=>{p.reviewData.hidden=value==="hidden";await p.savePluginData();}));
-    for(const [key,label,defaultFolder] of [["developmentFolder","Development folder",p.reviews.defaults("development").folder],["reportFolder","Vault Review folder",p.reviews.defaults("report").folder]] as const){
+    for(const [key,label,defaultFolder] of [["developmentFolder","Development folder",p.reviews.defaults("development").folder]] as const){
       new Setting(root).setName(label).setDesc("Leave empty to follow the configured Brainstorms location.").addText(input=>input.setValue(p.reviewData[key]).setPlaceholder(defaultFolder).onChange(async value=>{try{const normalized=readReviewData({...p.reviewData,[key]:value})[key];if(value.trim()&&!normalized)return;p.reviewData[key]=normalized;await p.savePluginData();}catch{new Notice("Could not save the review folder.");}}));
     }
+    new Setting(root).setName("Vault Review storage").setDesc("AI-generated reports are saved only in .marginalia/reviews. Open saved reports from the Librarian Library tab.");
     root.append(el("h3", "", "Local AI"));
     new Setting(root)
       .setName("Ollama address")

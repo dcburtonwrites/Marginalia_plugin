@@ -328,3 +328,39 @@ Each phase requires verification and owner review before the next phase.
 - [x] Final package native reactivation and saved report/checkbox, hidden session and completed Development reopening verified on 2026-11-02.
 
 [Workflow contract](Librarian-Review-Plan.md) · [Research](verification/librarian-review-research-2026-11-01.md) · [Verification and limits](verification/librarian-review-2026-11-01.md). 301 tests pass. Version remains v0.20.0 pending feature acceptance.
+
+
+### Librarian storage correction · D-0062
+- [x] Vault Review saves only to .marginalia/reviews, with no destination controls; Library opens reports.
+- [x] Development retains Brainstorms defaults and its existing preferences/overrides.
+- [x] Legacy visible report reads remain supported; subsequent saves create hidden copies without modifying the old note.
+- [x] 302 automated tests, package/typecheck/mobile-load checks and browser setup/save/Library-reopen verification pass.
+
+[Storage correction verification](verification/librarian-review-storage-2026-11-02.md).
+
+
+### Timeline viewport and styled groups · D-0063
+- [x] Contained chart and full-card Fit events; arrows centered on visible chart height.
+- [x] Horizontal trackpad-style time panning with ordinary vertical lane scrolling.
+- [x] Explicit group create/name/style flow, callout-color or neutral bands, membership menus, editing/removal and persisted legacy groups.
+- [x] 304 automated tests, package/typecheck/mobile-load checks, browser geometry/gesture/group persistence and native themed group acceptance.
+
+[Verification and limits](verification/timeline-groups-2026-11-02.md). Version remains 0.20.0.
+
+
+### Swim-lane centering and inline groups · D-0064
+- [x] Arrow midpoint follows actual visible location lanes, including sparse/empty windows, resizing and scroll.
+- [x] Undated is a separate bottom-aligned, bounded region.
+- [x] Inline group textbox, color squares/no-color banding, check/cancel and colored edit buttons.
+- [x] Drag/drop lane ordering and cross-group membership, plus keyboard access on drag handles; remove up/down buttons.
+- [x] 306 passing tests, package/mobile checks, browser geometry/inline edit/actual drag/save/reload and native sparse-lane/footer acceptance.
+
+[Verification](verification/timeline-inline-groups-2026-11-02.md). Version remains 0.20.0.
+
+
+### Timeline Canon filter suggestions · D-0065
+- [x] Matching Canon dropdown on typing, with name/type/path and bounded results.
+- [x] Click and keyboard selection, dismissal, exact identity filtering and free-text fallback.
+- [x] 308 passing tests, package/mobile/preview checks and browser/native dropdown/selection acceptance.
+
+[Verification](verification/timeline-canon-filter-2026-11-02.md). Version remains 0.20.0.

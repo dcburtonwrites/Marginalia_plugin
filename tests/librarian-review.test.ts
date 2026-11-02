@@ -15,9 +15,9 @@ function fixture(){const files=new Map<string,string>(),data=readReviewData(null
  const host:ReviewHost={data:()=>data,settings:()=>settings,context:()=>32768,target:()=>current.target.path,saveIndex:async()=>{},storage:()=>storage,refresh:()=>{},progress:()=>{},task:async work=>work(new AbortController().signal),packet:async()=>current,verify:async()=>{},generate:async(system,user)=>{reads++;return model(system,user);},apply:async(p,edit)=>{applied++;const c=planEdit(p.target.text,edit);return {...p,target:{...p.target,text:p.target.text.slice(0,c.from)+c.insert+p.target.text.slice(c.to)}};},originals:async()=>[note(),note('Archive.md','The archive bars all visitors at dawn.')],stamp:notes=>hash(JSON.stringify(notes)),timeline:batch=>({context:null,sources:batch.sources}),open:()=>{}};
  const controller=new ReviewController(host);return {files,data,settings,current,storage,host,controller,setModel:(next:typeof model)=>{model=next;},applied:()=>applied,reads:()=>reads};}
 test('review storage defaults follow Brainstorms and safe destination overrides do not migrate existing workspaces',()=>{
- const data=readReviewData(null),settings=readWorkspace(null);assert.ok(destination(data,settings,'development').folder.endsWith('/Development'));assert.ok(destination(data,settings,'report').folder.endsWith('/Reviews'));
+ const data=readReviewData(null),settings=readWorkspace(null);assert.ok(destination(data,settings,'development').folder.endsWith('/Development'));assert.deepEqual(destination(data,settings,'report'),{hidden:true,folder:'.marginalia/reviews'});
  assert.equal(documentPath('development','session-1',{hidden:true,folder:'ignored'}),'.marginalia/development/Development session-1.md');
- assert.throws(()=>documentPath('report','id',{hidden:false,folder:'../Canon'}));assert.throws(()=>documentPath('report','id',{hidden:false,folder:'_templates'}));
+ assert.equal(documentPath('report','id',{hidden:false,folder:'../Canon'}),'.marginalia/reviews/Vault Review id.md');assert.equal(documentPath('report','id',{hidden:false,folder:'_templates'}),'.marginalia/reviews/Vault Review id.md');
  assert.equal(readReviewData({developmentFolder:'../Canon'}).developmentFolder,'');
 });
 test('individual edits require exact unique body anchors and cannot edit frontmatter',()=>{
@@ -72,7 +72,7 @@ test('AI findings require verbatim original evidence and weak contradictions are
 });
 test('vault review maps sources, compares verified quotations and saves a real checklist without changing original notes',async()=>{
  const f=fixture();f.setModel(async(_system,user)=>{const finding={category:'opportunity',priority:'medium',title:'Explore access policy',reason:'The entry and archive may need a relationship.',next:'Develop why Mira has access.',evidence:[{path:'Mira.md',quote:'Original prose about Mira.'}],entries:['Archive access']};return JSON.stringify({findings:[finding],facts:[{path:'Mira.md',quote:'Original prose about Mira.'},{path:'Archive.md',quote:'The archive bars all visitors at dawn.'}]});});
- await f.controller.vault(true);const doc=f.controller.active!.doc as Report;assert.equal(doc.kind,'report');assert.equal(doc.coverage.notes,2);assert.ok(doc.coverage.passes>=2);assert.equal(f.applied(),0);assert.ok(f.files.get(f.controller.active!.index.path)!.includes('- [ ]'));
+ await f.controller.vault(true,{hidden:false,folder:'Brainstorms/Reviews'});assert.ok(f.controller.active!.index.path.startsWith('.marginalia/reviews/'));const resumed=new ReviewController(f.host);await resumed.resume(f.controller.active!.index.id);assert.equal(resumed.active!.doc.kind,'report');const doc=f.controller.active!.doc as Report;assert.equal(doc.kind,'report');assert.equal(doc.coverage.notes,2);assert.ok(doc.coverage.passes>=2);assert.equal(f.applied(),0);assert.ok(f.files.get(f.controller.active!.index.path)!.includes('- [ ]'));
  await f.controller.checked(doc.findings[0].id,true);assert.ok(f.files.get(f.controller.active!.index.path)!.includes('- [x]'));
 });
 test('a changed source inventory blocks publishing a completed Vault Review',async()=>{
@@ -118,4 +118,14 @@ test('conversation context grows with the configured model context rather than s
 
 test('source batching bounds serialized bytes for Unicode and escaped control characters without dropping original text',()=>{
  const original=note('Unicode.md',('甲"\n\u0001').repeat(600));const batches=reviewBatches([original],1200);assert.ok(batches.every(batch=>new TextEncoder().encode(JSON.stringify(batch)).length<=1200));assert.equal(batches.flatMap(batch=>batch.sources.filter(s=>batch.primary.includes(s.id))).map(s=>s.excerpt).join(''),original.text);
+});
+
+
+test('legacy visible reports stay readable but subsequent saves use hidden storage without overwriting the old note',async()=>{
+ const f=fixture(),doc=report(),legacy='00 Brainstorms/Reviews/Legacy.md',raw=encodeReview(doc);
+ f.files.set(legacy,raw);f.data.index.push({id:doc.id,path:legacy,entry:doc.entry,kind:'report',updated:doc.updated});
+ await f.controller.resume(doc.id);assert.equal(f.controller.active!.doc.kind,'report');
+ await f.controller.checked(doc.findings[0].id,true);
+ assert.equal(f.files.get(legacy),raw);assert.equal(f.data.index[0].path,'.marginalia/reviews/Vault Review report-1.md');
+ const next=new ReviewController(f.host);await next.resume(doc.id);assert.equal((next.active!.doc as Report).findings[0].checked,true);
 });

@@ -203,3 +203,13 @@ View → Snapshot at time replaces the chart with a read-only snapshot. The scru
 Librarian’s requests interpret only admitted original frontmatter plus the complete target note, using the existing calendar/index/World/state models. Calendar definitions are requested as metadata-only sources within the retrieval budget. Context preserves authored precision, shared time keys, span endpoints, own-field precedence, inactive/undated/invalid records and relevant existing diagnostics. Ask, writing, refinement and source-grounding review receive the same rules. Sources consulted exposes interpreted dates and issues; raw original passages remain authoritative and citeable. Record IDs are not citation targets.
 
 Context is bounded and omissions are disclosed. Project boundaries and provisional/template/asset exclusions still apply. No timeline read writes notes, changes source facts or adds an automatic age/travel/lifecycle-sequence checker. Timeline tracked-field/primary-calendar configuration changes stale prior results; display-calendar and lane changes do not change factual interpretation. Structured editing remains deferred and the feature is ready for review before the v0.30.0 completion milestone.
+
+
+### Viewport and styled group refinement · D-0063 · 2026-11-02
+
+Keep chart content inside the view pane with chart-owned scrolling. Horizontal trackpad gestures pan through dates; vertical scrolling traverses lanes. Earlier/later arrows remain centered in the actual visible swim-lane area, excluding axis/blank space and the separate bottom-aligned Undated section (D-0064). Fit events includes room for full card width. Locations now creates a named group and chooses banding or a callout-palette color before assigning lanes through menus; groups can be edited/removed and their preferences persist independently of notes. Existing free-text groups are retained as banded groups.
+
+D-0064 refines Locations to inline name/swatch/check/cancel editing, clickable colored group buttons and drag handles in place of lane ordering arrows. No-color means neutral banding. Dragging across a group boundary moves membership; focused handles also support Up/Down keys.
+
+
+D-0065 adds Canon autocomplete to the World Timeline search input. Results show name/type/path and support click and keyboard selection. Selecting filters by entry identity; unselected text retains existing name search. The dropdown is bounded and uses original Canon metadata only.

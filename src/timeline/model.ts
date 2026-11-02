@@ -3,7 +3,10 @@ export type Precision = "year" | "month" | "day";
 export type Effect = "Appears" | "Disappears";
 export interface TrackedField { name: string; effect: Effect; types: string[] }
 export interface LanePreference { path: string; group: string; enabled: boolean }
-export interface TimelineSettings { enabled: boolean; primaryCalendar: string; fields: TrackedField[]; displayCalendar: string; lanes: LanePreference[] }
+export const groupStyles = ["banded","blue","cyan","green","yellow","orange","red","purple","pink","gray"] as const;
+export type GroupStyle = typeof groupStyles[number];
+export interface TimelineGroup {name:string;style:GroupStyle}
+export interface TimelineSettings { enabled: boolean; primaryCalendar: string; fields: TrackedField[]; displayCalendar: string; lanes: LanePreference[]; groups:TimelineGroup[] }
 export interface TimelineNote { path: string; name: string; type?: string; fields: Record<string, unknown>; tags?: string[]; project?: string }
 export interface Diagnostic { code: string; path: string; field?: string; message: string }
 export const defaultFields: TrackedField[] = [
@@ -38,7 +41,10 @@ export function readTimeline(value: unknown): TimelineSettings {
     paths.add(row.path);
     lanes.push({path:row.path,group:typeof row.group === "string" ? row.group.trim() : "",enabled:row.enabled !== false});
   }
-  return {enabled: raw.enabled === true, primaryCalendar: typeof raw.primaryCalendar === "string" ? raw.primaryCalendar : "", fields, displayCalendar:typeof raw.displayCalendar === "string" ? raw.displayCalendar : "",lanes};
+  const groups:TimelineGroup[]=[],names=new Set<string>();
+  for(const value of Array.isArray(raw.groups)?raw.groups:[]){if(!value||typeof value!=="object")continue;const row=value as Record<string,unknown>,name=typeof row.name==='string'?row.name.trim():'';if(!name||names.has(name))continue;names.add(name);groups.push({name,style:groupStyles.includes(row.style as GroupStyle)?row.style as GroupStyle:'banded'});}
+  for(const lane of lanes)if(lane.group&&!names.has(lane.group)){names.add(lane.group);groups.push({name:lane.group,style:'banded'});}
+  return {enabled: raw.enabled === true, primaryCalendar: typeof raw.primaryCalendar === "string" ? raw.primaryCalendar : "", fields, displayCalendar:typeof raw.displayCalendar === "string" ? raw.displayCalendar : "",lanes,groups};
 }
 export function applies(field: TrackedField, note: TimelineNote) {
   const type=note.type??strings(property(note.fields,"type"))[0];
@@ -48,3 +54,10 @@ export function isType(note: TimelineNote, type: string) {
   return strings(property(note.fields, "type")).some(v => v.toLowerCase() === type.toLowerCase()) || note.type?.toLowerCase() === type.toLowerCase();
 }
 export const defaultCalendarSource = `---\ntype: Calendar\nprimary: true\nprecision: year\nformat: "{year}"\n---\n\n# Calendar\n\nThe world's calendar. Years may be negative, zero, or positive.\n`;
+
+/** Reorder presentation preferences; dropping across groups adopts the target group. */
+export function moveTimelineLane(lanes:LanePreference[],source:string,target:string,after=false):LanePreference[]{
+ const from=lanes.find(l=>l.path===source),to=lanes.find(l=>l.path===target);if(!from||!to||source===target)return lanes;
+ const next=lanes.filter(l=>l.path!==source).map(l=>({...l})),index=next.findIndex(l=>l.path===target);
+ next.splice(index+(after?1:0),0,{...from,group:to.group});return next;
+}

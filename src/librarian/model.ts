@@ -4,7 +4,7 @@ import {folderPath} from "../workspace/setup-model.ts";
 export type ReviewMode="enhancement"|"expansion"|"development"|"vault";
 export interface Destination {hidden:boolean;folder:string}
 export interface ReviewIndex {id:string;path:string;entry:string;kind:"development"|"report";updated:string}
-export interface ReviewData {hidden:boolean;developmentFolder:string;reportFolder:string;index:ReviewIndex[]}
+export interface ReviewData {hidden:boolean;developmentFolder:string;index:ReviewIndex[]}
 export interface Edit {id:string;kind:"insert"|"replace"|"delete";before:string;after:string;reason:string;state:"pending"|"accepted"|"dismissed"}
 export interface Development {version:1;kind:"development";id:string;entry:string;created:string;updated:string;status:"active"|"complete";messages:{role:"user"|"assistant";text:string}[];summary:string;changes:Edit[];packet?:Packet;warnings:string[]}
 export interface Finding {id:string;category:"supported"|"concern"|"opportunity";priority:"high"|"medium"|"low";title:string;reason:string;next:string;evidence:{path:string;quote:string}[];entries:string[];checked:boolean}
@@ -13,15 +13,16 @@ export type ReviewDocument=Development|Report;
 export function readReviewData(value:unknown):ReviewData {
  const raw=value&&typeof value==="object"?value as Partial<ReviewData>:{};
  const safe=(value:unknown)=>{try{return typeof value==="string"&&value?folderPath(value):"";}catch{return "";}};
- return {hidden:raw.hidden===true,developmentFolder:safe(raw.developmentFolder),reportFolder:safe(raw.reportFolder),index:Array.isArray(raw.index)?raw.index.filter((x):x is ReviewIndex=>!!x&&typeof x.id==="string"&&/^[a-z0-9-]+$/i.test(x.id)&&typeof x.path==="string"&&safeDocumentPath(x.path)&&typeof x.entry==="string"&&["development","report"].includes(x.kind)&&typeof x.updated==="string").map(x=>({...x})):[]};
+ return {hidden:raw.hidden===true,developmentFolder:safe(raw.developmentFolder),index:Array.isArray(raw.index)?raw.index.filter((x):x is ReviewIndex=>!!x&&typeof x.id==="string"&&/^[a-z0-9-]+$/i.test(x.id)&&typeof x.path==="string"&&safeDocumentPath(x.path)&&typeof x.entry==="string"&&["development","report"].includes(x.kind)&&typeof x.updated==="string").map(x=>({...x})):[]};
 }
 export function safeDocumentPath(path:string){return path.endsWith('.md')&&!path.includes('\\')&&!path.split('/').some(p=>!p||p==='.'||p==='..'||/[\u0000-\u001f]/.test(p))&&(!path.split('/').some(p=>p.startsWith('.'))||path.startsWith('.marginalia/development/')||path.startsWith('.marginalia/reviews/'));}
 export function destination(data:ReviewData,settings:WorkspaceSettings,kind:"development"|"report"):Destination {
- const base=settings.entrySetup.brainstorm.folder.replace(/\/$/,"");return {hidden:data.hidden,folder:(kind==="development"?data.developmentFolder:data.reportFolder)||[base,kind==="development"?"Development":"Reviews"].filter(Boolean).join('/')};
+ if(kind==='report')return {hidden:true,folder:'.marginalia/reviews'};
+ const base=settings.entrySetup.brainstorm.folder.replace(/\/$/,"");return {hidden:data.hidden,folder:data.developmentFolder||[base,"Development"].filter(Boolean).join('/')};
 }
 export function documentPath(kind:"development"|"report",id:string,where:Destination,entry=""){
  if(!/^[a-z0-9-]+$/i.test(id))throw new Error('Invalid review identity.');
- const root=where.hidden?`.marginalia/${kind==='development'?'development':'reviews'}`:folderPath(where.folder);
+ const root=kind==='report'?'.marginalia/reviews':where.hidden?`.marginalia/${kind==='development'?'development':'reviews'}`:folderPath(where.folder);
  const name=kind==='development'&&entry?title(entry).replace(/[^\p{L}\p{N} _-]/gu,' ').trim().slice(0,60):'';
  return `${root==='/'?'':root+'/'}${kind==='development'?'Development':'Vault Review'}${name?' - '+name+' -':''} ${id}.md`;
 }
