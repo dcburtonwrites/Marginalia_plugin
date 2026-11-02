@@ -30,7 +30,7 @@ const app={workspace:{getLeavesOfType:()=>[]}};
 const plugin=new module.exports.default(app,{id:'marginalia'});
 await plugin.onload();
 assert.deepEqual(children,['ScriptFeature','WorkspaceFeature']);
-assert.deepEqual(views,['marginalia-world-timeline','marginalia-librarian','marginalia-expansion']);
+assert.deepEqual(views,['marginalia-world-timeline','marginalia-entry-timeline','marginalia-librarian','marginalia-expansion']);
 assert.equal(plugin.workspaceSettings.modules.librarian,true);
 assert.equal(plugin.timelineSettings.enabled,true);
 assert.equal(plugin.timelineFeature,undefined);
@@ -40,7 +40,7 @@ for (const [type,factory] of factories) {
  let rendered;
  const view=factory({contentEl:{ownerDocument:{createElement:()=>({})},replaceChildren(node){rendered=node;},append(node){rendered=node;}}});
  await view.onOpen();
- assert.match(rendered.textContent,type==='marginalia-world-timeline'?/World vault on desktop/:/desktop only/);
+ assert.match(rendered.textContent,type.includes('timeline')?/World vault on desktop/:/desktop only/);
 }
 await assert.rejects(()=>plugin.checkConnection(),/desktop only/);
 await assert.rejects(()=>plugin.generateText('','',new AbortController().signal),/desktop only/);

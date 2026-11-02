@@ -47,5 +47,6 @@ export function cleanAnswer(raw:string,packet:Packet){
   if(possiblyIncomplete(raw))warnings.push("This answer may be incomplete: its ending appears unfinished. Ask again before relying on it.");
   if(!/\[\[[^\]\n]+\]\]/.test(result.text))warnings.push("No original-note citations were returned. The source list shows material consulted, not verification of individual claims.");
   if(packet.omitted)warnings.push(`Evidence coverage is limited: ${packet.omitted} source passages did not fit in this request.`);
+  if(packet.timeline?.omitted)warnings.push(`${packet.timeline.omitted} timeline records, calendars or issues did not fit; this is not a complete continuity review.`);
   return {text:result.text,warnings};
 }

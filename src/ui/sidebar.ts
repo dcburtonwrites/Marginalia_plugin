@@ -1,3 +1,4 @@
+import {renderReviewWorkspace,type ReviewUIState,type ReviewUIActions} from "../librarian/ui.ts";
 import type { Expansion, Packet, Suggestion } from "../core/types.ts";
 import { title } from "../core/types.ts";
 import { suggest } from "./suggest.ts";
@@ -9,6 +10,7 @@ export interface Message {
   warnings?:string[];
 }
 export interface SidebarState {
+  review?:ReviewUIState;
   vaultType?: "World"|"Storyboard";
   target: string | null;
   pinned: boolean;
@@ -25,6 +27,7 @@ export interface SidebarState {
   referenceChoices?: {path: string; type: string}[];
 }
 export interface SidebarActions {
+  review?:ReviewUIActions;
   tab(tab: Tab): void;
   pin(): void;
   settings(): void;
@@ -97,6 +100,14 @@ function sources(packet: Packet, a: SidebarActions): HTMLElement {
         `${packet.omitted} passages omitted for context; ${packet.excluded} provisional or out-of-scope notes excluded.`,
       ),
     );
+  if(packet.timeline){
+    const timeline=el("details","marginalia-timeline-evidence");timeline.append(el("summary","",`Timeline context · ${packet.timeline.records.length} ${packet.timeline.records.length===1?"record":"records"} · ${packet.timeline.issues.length} ${packet.timeline.issues.length===1?"issue":"issues"}`));
+    timeline.append(el("p","marginalia-muted",packet.timeline.coverage));
+    if(packet.timeline.omitted)timeline.append(el("p","marginalia-muted",`${packet.timeline.omitted} timeline records, calendars or issues omitted for context.`));
+    for(const record of packet.timeline.records){const line=el("div","marginalia-source");line.append(button(record.source,()=>a.source(record.source),"marginalia-source-link"),el("p","",`${record.field??(record.kind==="presence"?"Event presence":"Event")} · ${record.date??(record.dateStatus==="invalid"?"Invalid date":"Undated")}${record.effect?" · "+record.effect:""}${!record.active?" · "+(record.explanation??"Overridden"):""}`));timeline.append(line);}
+    for(const issue of packet.timeline.issues){const line=el("div","marginalia-source");line.append(button(issue.path,()=>a.source(issue.path),"marginalia-source-link"),el("p","",`${issue.field?issue.field+": ":""}${issue.message}`));timeline.append(line);}
+    d.append(timeline);
+  }
   for (const s of packet.sources) {
     const unit = el("div", "marginalia-source");
     unit.append(
@@ -134,7 +145,7 @@ export function renderSidebar(
   const reset = button("New chat", a.newChat, "marginalia-icon-button");
   reset.title = "Start a new chat for this note";
   reset.disabled = s.busy;
-  tools.append(reset, button("Settings", a.settings, "marginalia-icon-button"));
+  if(s.tab!=="Review")tools.append(reset);tools.append(button("Settings", a.settings, "marginalia-icon-button"));
   header.append(tools);
   root.append(header);
   const status = el("div", "marginalia-status");
@@ -168,13 +179,17 @@ export function renderSidebar(
     ),
   );
   root.append(context);
+  const selectedReview=s.review?s.review.mode:(s.suggestions.some(item=>item.state==="pending")?"enhancement":undefined);
   const entryActions = el("div", "marginalia-entry-actions");
   for (const [mode, label, desc] of [
-    ["enhancement", "Entry Enhancement", "Review additions to this entry"],
-    ["expansion", "Entry Expansion", "Read a fuller, supported synthesis"],
+    ["enhancement", "Entry Enhancement", "Find supported additions to individual sections. Review and insert each suggestion."],
+    ["expansion", "Entry Expansion", "Read a fuller synthesis of established material, saved separately from your original."],
+    ["development", "Entry Development", "Explore this entry through a guided conversation about its gaps, relationships and role in the story. Review proposed changes at the end."],
+    ["vault", "Vault Review", "Examine story logic, underdeveloped ideas and connections across your chosen scope. Receive a source-linked development checklist."],
   ] as const) {
-    const b = button("", () => a.run(mode), "marginalia-entry-action");
-    b.disabled = !s.target || s.busy;
+    const b = button("", () => {if(mode==="development"||mode==="vault")a.review?.select(mode);else a.run(mode);}, "marginalia-entry-action");
+    if(selectedReview&&selectedReview!==mode)continue;
+    b.disabled = (mode!=="vault"&&!s.target) || s.busy;
     b.append(el("strong", "", label));
     if(s.busy&&s.reviewAction===mode){const progress=el("span","marginalia-entry-progress",s.progress||"Working locally…");progress.setAttribute("role","status");b.setAttribute("aria-busy","true");b.append(progress);}
     else b.append(el("span","marginalia-muted",desc));
@@ -182,7 +197,7 @@ export function renderSidebar(
   }
   // Entry-writing workflows belong to Review; Ask stays conversational and
   // Library stays focused on reading saved artifacts.
-  if (s.tab === "Review" && (s.busy&&s.reviewAction || !s.suggestions.some(item=>item.state==="pending"))) root.append(entryActions);
+  if (s.tab === "Review" && (!selectedReview||s.busy&&s.reviewAction)) root.append(entryActions);
   const scope = el("div", "marginalia-scope");
   scope.append(
     el("span", "marginalia-muted", "Search in"),
@@ -197,7 +212,7 @@ export function renderSidebar(
   ref.disabled = s.busy || !s.target;
   ref.setAttribute("aria-expanded", "false");
   scope.append(ref);
-  root.append(scope);
+  if(s.tab!=="Review"||selectedReview)root.append(scope);
   const picker = el("div", "marginalia-reference-picker");
   picker.hidden = true;
   const referenceType = el("select");
@@ -221,7 +236,7 @@ export function renderSidebar(
   referenceInput.onchange = pinReference;
   referenceInput.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); pinReference(); } });
   referenceType.onchange = () => { referenceInput.value=""; referenceInput.focus(); referenceSuggestions.refresh(); };
-  if (s.references.length) {
+  if (s.references.length&&(s.tab!=="Review"||selectedReview)) {
     const refs = el("div", "marginalia-references");
     for (const path of s.references) {
       const b = button(title(path) + " ×", () => a.removeReference(path));
@@ -286,8 +301,9 @@ export function renderSidebar(
     }
   } else if (s.tab === "Review") {
     const pending = s.suggestions.filter((x) => x.state === "pending");
-    body.append(el("h3", "", "Entry Enhancement"));
-    if (!pending.length)
+    const handled=s.review&&a.review?renderReviewWorkspace(body,s.review,a.review,s.busy,s.target,a):false;
+    if(!handled&&selectedReview){body.append(button("Back to Review",()=>a.review?.back()));body.append(el("h3", "",selectedReview==="expansion"?"Entry Expansion":"Entry Enhancement"));}
+    if (!handled&&selectedReview&&!pending.length)
       body.append(
         el(
           "p",
@@ -295,7 +311,7 @@ export function renderSidebar(
           "Run Entry Enhancement to review proposed section additions. Your original note stays under your control.",
         ),
       );
-    for (const suggestion of pending) {
+    for (const suggestion of handled||selectedReview!=="enhancement"?[]:pending) {
       const card = el("article", "marginalia-suggestion");
       card.append(el("h4", "", suggestion.section));
       const prose = el("div", "marginalia-markdown");
@@ -329,6 +345,7 @@ export function renderSidebar(
       body.append(card);
     }
   } else {
+    if(s.review?.index.length){body.append(el("h3","","Development and review workspaces"));for(const saved of [...s.review.index].sort((a,b)=>b.updated.localeCompare(a.updated))){body.append(button(`${saved.kind==="development"?"Development":"Vault Review"} · ${saved.entry?title(saved.entry):"Vault"} · ${new Date(saved.updated).toLocaleString()}`,()=>a.review?.resume(saved.id),"marginalia-library-item"));}}
     body.append(
       el("h3", "", "Expansions"),
       el(
@@ -374,8 +391,9 @@ export function renderSidebar(
   const form = el("form", "marginalia-composer");
   const input = el("textarea");
   input.dataset.composer = "true";
-  input.placeholder = "Ask the Librarian…";
-  input.setAttribute("aria-label", "Ask the Librarian");
+  const development=s.tab==="Review"&&s.review?.mode==="development"&&s.review.doc?.kind==="development"&&s.review.doc.status==="active";
+  input.placeholder = development?"Develop this entry…":"Ask the Librarian…";
+  input.setAttribute("aria-label", development?"Reply in Development":"Ask the Librarian");
   input.value = draft ?? "";
   input.rows = 2;
   input.disabled = !s.target || s.busy;
@@ -387,7 +405,7 @@ export function renderSidebar(
     if (input.value.trim() && !s.busy) {
       const value = input.value;
       input.value = "";
-      a.ask(value);
+      if(development)a.review?.reply(value);else a.ask(value);
     }
   };
   form.addEventListener("submit", (e) => {
@@ -400,8 +418,8 @@ export function renderSidebar(
       submit();
     }
   });
+  if(s.tab!=="Review"||development)footer.append(form);
   footer.append(
-    form,
     el(
       "p",
       "marginalia-footnote",

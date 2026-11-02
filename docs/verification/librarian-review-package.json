@@ -1,0 +1,69 @@
+{
+  "version": "0.20.0",
+  "packageHashes": {
+    "main.js": "811f6ccf46323cecbea6c77d96d529fdb436e5875677e922c76ea8e2a98f4db2",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "b86669f9e257c31828402a19d5861ab610ca37b183732e3a2a647f415983655f"
+  },
+  "installedMatchesPackage": {
+    "Librarian Review Pilot": true,
+    "Marginalia Test Vault": true
+  },
+  "pilotOriginals": 5,
+  "pilotChanged": [],
+  "priorTestVaultOriginals": 53,
+  "priorTestVaultChanged": [],
+  "nativeChecks": {
+    "launcher": true,
+    "developmentResumedAfterPluginRefresh": true,
+    "automaticWrapUp": true,
+    "individualInsertionAccepted": true,
+    "oneUndoRestoredOriginal": true,
+    "visibleChecklistMarkedComplete": true,
+    "hiddenSessionCreatedAndCancelled": true,
+    "finalPackageNativeRestart": true,
+    "finalChecklistCheckedStateRestored": true,
+    "finalHiddenSessionResumed": true,
+    "finalCompletedDevelopmentResumed": true
+  },
+  "savedDocuments": [
+    {
+      "kind": "development",
+      "path": "00 Brainstorms/Development/Development mvyp44xs-c9x87z34.md",
+      "status": "complete",
+      "messages": 3,
+      "changes": [
+        {
+          "kind": "insert",
+          "state": "accepted"
+        }
+      ]
+    },
+    {
+      "kind": "report",
+      "path": "00 Brainstorms/Reviews/Vault Review mvypq7xx-v22bp3w1.md",
+      "findings": 3,
+      "checked": 1,
+      "coverage": {
+        "notes": 5,
+        "parts": 5,
+        "passes": 2,
+        "excluded": 1
+      }
+    },
+    {
+      "kind": "development",
+      "path": ".marginalia/development/Development mvyq4gqg-lcvj3krt.md",
+      "status": "active",
+      "messages": 0,
+      "changes": []
+    }
+  ],
+  "automatedTests": {
+    "pureAndModel": 210,
+    "host": 91,
+    "total": 301,
+    "failed": 0
+  },
+  "finalNativeVerificationDate": "2026-11-02"
+}

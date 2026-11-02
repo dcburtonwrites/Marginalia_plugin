@@ -1,3 +1,5 @@
+import {EntryTimelineUI} from "../src/timeline/entry-ui.ts";
+import {buildStateTimelines,type StateTimelines} from "../src/timeline/state.ts";
 import {WorldTimelineUI} from "../src/timeline/ui.ts";
 import {buildWorldTimeline,type WorldTimeline} from "../src/timeline/world.ts";
 import {buildTimelineIndex} from "../src/timeline/index.ts";
@@ -25,12 +27,26 @@ const notes:TimelineNote[]=[
   n("08 Projects/Glass Meridian/Scripts/Draft I.md",{type:"Script",Events:["[[Arrival]]"],role:"manuscript",format:"comic-script"}),
   n("08 Projects/Glass Meridian/Plot/The atlas.md",{type:"Plot Point",Event:"[[Arrival]]"}),
 ];
-const resolve=(target:string,source:string)=>{
-  const path=target.replace(/\.md$/i,"");return notes.find(n=>n.path.replace(/\.md$/i,"")===path)?.path??(notes.filter(n=>n.name===path).length===1?notes.find(n=>n.name===path)?.path:undefined);
+let indexedLength=-1;
+const paths=new Map<string,string>(),names=new Map<string,string|undefined>();
+const resolve=(target:string,_source:string)=>{
+  if(indexedLength!==notes.length){paths.clear();names.clear();for(const note of notes){paths.set(note.path.replace(/\.md$/i,""),note.path);names.set(note.name,names.has(note.name)?undefined:note.path);}indexedLength=notes.length;}
+  const path=target.replace(/\.md$/i,"");return paths.get(path)??names.get(path);
 };
 let world:WorldTimeline;
 const owner:any={workspaceSettings:readWorkspace(null),timelineSettings:readTimeline(JSON.parse(localStorage.getItem("timeline-phase2-settings")??'{"enabled":true}')),savePluginData:async()=>{localStorage.setItem("timeline-phase2-settings",JSON.stringify(owner.timelineSettings));document.querySelector("#saved")!.textContent="Preferences saved";},app:{workspace:{openLinkText:async(path:string)=>{document.querySelector("#opened")!.textContent=path;}}},timelineFeature:{refresh:()=>update()}};
-function update(){world=buildWorldTimeline(notes,buildTimelineIndex(notes,owner.timelineSettings),owner.timelineSettings,resolve);ui.draw();}
-const ui=new WorldTimelineUI(document.querySelector("#timeline")!,{world:()=>world,settings:()=>owner.timelineSettings,calendar:async(path)=>{owner.timelineSettings.displayCalendar=path;await owner.savePluginData();},lanes:()=>new TimelineLanesModal(owner,world).open(),open:path=>{document.querySelector("#opened")!.textContent=path;}});
-update();
-for(const [name,action] of [["Light / dark",()=>document.body.classList.toggle("theme-dark")],["Move Arrival to 28",()=>{notes.find(n=>n.name==="Arrival")!.fields.Date=28;update();}],["Break predecessor",()=>{notes.find(n=>n.name==="A sealed dispatch")!.fields["Preceded By"]="[[Missing event]]";update();}],["Load 5,000 events",()=>{if(notes.some(n=>n.name==="Dense event 0"))return;for(let i=0;i<5000;i++)notes.push(n(`Events/Dense event ${i}.md`,{type:"Event",Date:20,Locations:"[[Eastern Archive]]"}));update();}]] as const){const b=document.createElement("button");b.textContent=name;b.onclick=action;document.querySelector("#fixture-controls")!.append(b);}
+let states:StateTimelines;
+let ui:WorldTimelineUI|EntryTimelineUI;
+let selectedEntry="";
+const root=document.querySelector<HTMLElement>("#timeline")!;
+const open=(path:string)=>{document.querySelector("#opened")!.textContent=path;};
+const calendar=async(path:string)=>{owner.timelineSettings.displayCalendar=path;await owner.savePluginData();};
+function update(){const index=buildTimelineIndex(notes,owner.timelineSettings);world=buildWorldTimeline(notes,index,owner.timelineSettings,resolve);states=buildStateTimelines(notes,index,world,owner.timelineSettings,resolve);world.diagnostics.push(...states.diagnostics);ui?.draw();}
+function show(path=""){
+  selectedEntry=path;ui?.dispose();root.classList.remove("marginalia-entry-timeline");
+  ui=path?new EntryTimelineUI(root,{entry:()=>states.entries.get(selectedEntry),registry:()=>world.registry,displayCalendar:()=>owner.timelineSettings.displayCalendar,calendar,open,world:()=>show()}):new WorldTimelineUI(root,{states:()=>states,entry:path=>show(path),world:()=>world,settings:()=>owner.timelineSettings,calendar,lanes:()=>new TimelineLanesModal(owner,world).open(),open});
+  ui.draw();
+}
+update();show();
+for(const [label,path] of [["Mira timeline","Characters/Mira.md"],["Atlas timeline","Items/Tide atlas.md"],["Orin timeline","Characters/Orin.md"],["Archive timeline","Locations/Eastern Archive.md"],["World view",""]]){const b=document.createElement("button");b.textContent=label;b.onclick=()=>show(path);document.querySelector("#fixture-controls")!.append(b);}
+for(const [name,action] of [["Recover atlas",()=>{if(!notes.some(n=>n.name==="Atlas found again"))notes.push(n("Events/Atlas found again.md",{type:"Event",Date:40,Found:"[[Tide atlas]]",Locations:"[[Eastern Archive]]"}));update();}],["Own birth 2",()=>{notes.find(n=>n.name==="Mira")!.fields.Born=2;update();}],["Light / dark",()=>document.body.classList.toggle("theme-dark")],["Move Arrival to 28",()=>{notes.find(n=>n.name==="Arrival")!.fields.Date=28;update();}],["Break predecessor",()=>{notes.find(n=>n.name==="A sealed dispatch")!.fields["Preceded By"]="[[Missing event]]";update();}],["Load 5,000 events",()=>{if(notes.some(n=>n.name==="Dense event 0"))return;for(let i=0;i<5000;i++)notes.push(n(`Events/Dense event ${i}.md`,{type:"Event",Date:20,Locations:"[[Eastern Archive]]",Characters:"[[Mira]]"}));update();}]] as const){const b=document.createElement("button");b.textContent=name;b.onclick=action;document.querySelector("#fixture-controls")!.append(b);}

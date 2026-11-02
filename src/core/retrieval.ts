@@ -85,6 +85,11 @@ export function passages(note: Note): Omit<Source, "id">[] {
   return out;
 }
 
+/** Same evidence boundary for retrieval and optional structured context. */
+export function evidenceNotes(notes:Note[],target:Note,scope:(note:Note)=>string|undefined):Note[]{
+  const targetScope=scope(target);
+  return notes.filter(note=>permitted(note.path)&&(!targetScope||!scope(note)||scope(note)===targetScope)&&(note.path===target.path||!provisional(note)));
+}
 export function retrieve(
   notes: Note[],
   target: Note,
@@ -92,6 +97,7 @@ export function retrieve(
   explicit: string[] = [],
   guidance = "",
   scope: (note:Note)=>string|undefined = note=>project(note.path),
+  metadataReferences:string[] = [],
 ): Packet {
   const targetScope=scope(target);
   const eligible=notes.filter(n=>permitted(n.path));
@@ -134,6 +140,7 @@ export function retrieve(
     (n) =>
       n.path === target.path ||
       explicit.includes(n.path) ||
+      metadataReferences.includes(n.path) ||
       target.links.includes(n.path) ||
       n.links.includes(target.path) ||
       mentioned(n.text),
@@ -158,7 +165,7 @@ export function retrieve(
       excluded++;
       continue;
     }
-    let units = passages(n);
+    let units = metadataReferences.includes(n.path)&&n.path!==target.path&&!explicit.includes(n.path)?[]:passages(n);
     if (n.path !== target.path && !explicit.includes(n.path) && (script(n) || scope(n))) {
       const hits = new Set(
         units.flatMap((u, i) => (mentioned(u.excerpt) ? [i] : [])),

@@ -41,7 +41,8 @@ export function readTimeline(value: unknown): TimelineSettings {
   return {enabled: raw.enabled === true, primaryCalendar: typeof raw.primaryCalendar === "string" ? raw.primaryCalendar : "", fields, displayCalendar:typeof raw.displayCalendar === "string" ? raw.displayCalendar : "",lanes};
 }
 export function applies(field: TrackedField, note: TimelineNote) {
-  return !field.types.length || field.types.some(type => type.toLowerCase() === note.type?.toLowerCase());
+  const type=note.type??strings(property(note.fields,"type"))[0];
+  return !field.types.length || field.types.some(value => value.toLowerCase() === type?.toLowerCase());
 }
 export function isType(note: TimelineNote, type: string) {
   return strings(property(note.fields, "type")).some(v => v.toLowerCase() === type.toLowerCase()) || note.type?.toLowerCase() === type.toLowerCase();

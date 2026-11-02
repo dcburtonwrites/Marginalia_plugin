@@ -126,7 +126,7 @@ Founded: ["[[The Argonauts]]"]
 ```
 
 On non-events, tracked fields hold that entry's own date, such as `Born: 412`.
-An entry's own lifecycle date supersedes an event-derived date for the same fact. For example a birth event spanning 410–415 supplies 415, but the character's `Born: 412` wins. Retain the discrepancy for review.
+An entry's own lifecycle date supersedes all event-derived dates for the same field, including repeated Lost/Found cycles (D-0057). Other fields continue to apply; no cycle matching is inferred. For example a birth event spanning 410–415 supplies 415, but the character's `Born: 412` wins. Retain the discrepancy for review.
 Appears/Disappears may reverse each other, such as Lost followed by Found.
 Before explicit evidence, state is unknown, not absent; entries without Born/Created can still appear when encountered.
 A snapshot derives the latest known state and location at or before T. Conflicting changes at an indistinguishable instant remain unresolved, rather than alphabetical factual precedence. Multiple simultaneous locations remain a conflict.
@@ -144,7 +144,7 @@ A snapshot derives the latest known state and location at or before T. Conflicti
 ## 8. Editing
 
 Structured date inputs follow the selected calendar and retain authored precision. Parsing errors explain the expected format.
-Calendar definitions remain real notes; a later structured Calendar form sits alongside prose editing.
+Calendar definitions remain real notes. Structured date/Calendar forms are deferred by the owner (D-0060); normal property/prose editing remains available.
 Native Obsidian editing remains available. No automatic date generation or rewriting; all explicit form edits must preserve unrelated note content and normal native Undo where applicable.
 
 ## 9. Validation and optional Librarian integration
@@ -152,14 +152,14 @@ Native Obsidian editing remains available. No automatic date generation or rewri
 Phase 1 validates syntax/configuration: invalid dates, unknown/ambiguous calendars or tokens, invalid calendar structures/anchors, conflicting primaries, missing span endpoints, reversed spans, mixed Date/Start/End, non-event date properties, and malformed frontmatter.
 
 Documented continuity rules for later evaluation (not a prerequisite for calendar/date foundations): Died before Born; presence before birth or after death/destruction; item presence after Lost without Found; entry/event lifecycle mismatch; invalid lifecycle sequences; undated-chain problems; simultaneous conflicting state/location.
-These deterministic rules are separate from whether a Librarian interface is implemented. LLM-based continuity/age/travel suggestions, Entry Alignment convention gaps, Gap Finder, and expanded-entry timelines are later integration candidates, not already implemented plugin features.
+Librarian now receives existing syntax/configuration, mismatch, undated-chain and simultaneous-conflict diagnostics from admitted timeline evidence, with source links and explicit coverage limits. The additional lifecycle-sequence/presence detectors, automatic age/travel checks, Entry Alignment convention gaps, Gap Finder and expanded-entry timeline views remain deferred. See the Phase 6 rule coverage table in docs/verification/timeline-phase-6-2026-11-01.md. Optional LLM answers are grounded assistance, not a deterministic continuity proof.
 
 ## 10. Architecture
 
 `src/timeline` owns a host-independent calendar/date/index/settings model, plus a thin native feature/settings layer.
 At load, use the native metadata cache and overlay open source buffers; refresh on native metadata/vault/editor events, coalesced by the feature lifecycle. Exclude templates, assets, archives, and hidden plugin storage consistently with existing entry eligibility.
 No timeline read operation writes authored notes. The only Phase 1 note writer is explicit enable-time default-calendar creation; never overwrite existing notes.
-State indexing and lazy rendering arrive with their phases; no mobile startup runtime is required in desktop-first development.
+State indexing and lazy rendering are available. Librarian uses these host-independent models on admitted request evidence; no mobile startup runtime is required in desktop-first development.
 
 ## 11. Phases and review gates
 
@@ -180,3 +180,26 @@ Keep phase fixtures isolated from creative vaults. Index their expected behavior
 ## Related Entries
 
 - [[Marginalia Product Plan]]
+
+## 13. Navigation refinement
+
+The default World Timeline navigation is one compact bar including the title. Search and filters expand under Filters; calendar, location lanes and event navigation expand under View. Panels are mutually exclusive and start collapsed for a newly opened view. Active filters retain a visible count when hidden. Time-panning arrows overlay the chart edges on hover or keyboard focus, with a no-hover fallback. Narrow panes move zoom into View rather than adding another toolbar row. This refines Phase 2 presentation and does not advance the feature's later phases.
+
+
+### Phase 3 implementation · D-0056–D-0057
+
+State/location histories and native per-entry timelines are available from the note-header button beside Librarian or the current-entry command. Own dates retain precedence across every occurrence of their field. Overridden events remain visible with their source and discrepancy; invalid own dates block fallback until repaired. Event presence/location is still recorded independently of an overridden lifecycle effect. Undated relational placement never supplies a state date. Locations show hosted events and remain stationary. Unknown, absent and conflicting states/locations are explicit.
+
+The per-entry view shows latest recorded state and a chronological, progressively loaded history, source links and display-calendar options. The World selected-event footer occupies no space until an event is selected. Phases 3–4 are verified; structured editing remains behind its review gate.
+
+
+### Phase 4 implementation · D-0059
+
+View → Snapshot at time replaces the chart with a read-only snapshot. The scrubber steps through distinct recorded changes; the date form also queries arbitrary supported dates. Initial time is the selected event’s effective date or the latest state checkpoint. Unknown, absent, conflicts, stationary locations and source evidence remain explicit. The table includes all indexed entries and has its own name/path, type and state filters, independent of event filters and selected chart lanes. Entry links open histories. The chosen shared instant persists with native leaf state and survives display-calendar conversion. Large tables render in batches. Automatic playback and travel inference remain outside Phase 4.
+
+
+### Phase 6 implementation · D-0060
+
+Librarian’s requests interpret only admitted original frontmatter plus the complete target note, using the existing calendar/index/World/state models. Calendar definitions are requested as metadata-only sources within the retrieval budget. Context preserves authored precision, shared time keys, span endpoints, own-field precedence, inactive/undated/invalid records and relevant existing diagnostics. Ask, writing, refinement and source-grounding review receive the same rules. Sources consulted exposes interpreted dates and issues; raw original passages remain authoritative and citeable. Record IDs are not citation targets.
+
+Context is bounded and omissions are disclosed. Project boundaries and provisional/template/asset exclusions still apply. No timeline read writes notes, changes source facts or adds an automatic age/travel/lifecycle-sequence checker. Timeline tracked-field/primary-calendar configuration changes stale prior results; display-calendar and lane changes do not change factual interpretation. Structured editing remains deferred and the feature is ready for review before the v0.30.0 completion milestone.

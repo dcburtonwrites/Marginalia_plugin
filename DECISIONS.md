@@ -336,3 +336,52 @@
 - Recommendation: Build the next reviewed phase on the verified calendar/date model.
 - Decision: Owner said “Continue.”
 - Impact: Phase 2 adds native graph-style main-pane access, selected/grouped location lanes, filters/zoom/details, display-calendar preference, related writing and read-only undated chains. Development remains v0.20.0; state derivation, per-entry/header access and snapshots remain in later phases.
+
+## D-0055 · Single-bar timeline navigation · 2026-11-01 · Timelines Phase 2 refinement
+- Question: Reduce the bulky title/navigation/filter area.
+- Options: Always-visible control rows / one compact default bar with requested expansion.
+- Recommendation: Collapse search/filters and secondary view options, keep active filters visible through a count, and put time panning at the chart edges.
+- Decision: Owner requested search/filters hidden until requested, hover arrows at the timeline ends, and clarified: “The goal is one bar even with the title as the default when loaded, expanding when needed.”
+- Impact: One compact title/count/zoom/Filters/View bar. Calendar, location and previous/next-event controls expand under View; search/filter controls expand under Filters, one panel at a time. New view instances start collapsed; filtering/viewport preferences retain their existing semantics. Time-panning arrows overlay the chart edges on hover or keyboard focus, with touch fallback. No source-note, settings-format, date/state or feature-phase changes.
+
+## D-0056 · Complete Phase 3 and remove the empty detail footer · 2026-11-01 · Timelines Phase 3
+- Question: Continue to state/per-entry timelines and apply the next compact-view suggestion?
+- Options: Retain the empty event detail footer / show details only for a selected event.
+- Recommendation: Hide the unused footer so the timeline has more room until details are requested.
+- Decision: “Follow your next suggestion as your complete phase 3.”
+- Impact: Implement read-only state/location histories, precedence, unknown/conflict handling and per-entry/header access. Hide the World detail footer until selection. Preserve the single default toolbar and v0.20.0. Phase 4 remains behind review.
+
+## D-0057 · Own lifecycle fields override every event occurrence · 2026-11-01 · Timelines Phase 3
+- Question: Which Lost dates govern when an entry has its own Lost date and several event-supplied Lost dates across repeated cycles?
+- Options: Own field overrides all event dates / match the own date to one cycle.
+- Recommendation: Override all occurrences of the same field for literal, predictable precedence.
+- Decision: “The entry’s Lost date overrides all event-supplied Lost dates (Recommended; literal, predictable precedence).”
+- Impact: Each own lifecycle field supersedes all event-supplied dates for that field, including repeated cycles. Retain source events and discrepancies in history; other fields such as Found still apply. Invalid own dates block fallback until repaired. No cycle matching or source rewriting.
+
+## D-0058 · Dismiss selected event details · 2026-11-01 · Timelines Phase 3 refinement
+- Question: The event detail footer opens but cannot be dismissed manually or by clicking away.
+- Options: Manual close only / close control plus chart-background dismissal.
+- Recommendation: Support both, with Escape and focus returned to the chart.
+- Decision: Owner reported the missing dismissal behavior and requested correction.
+- Impact: Add a compact × control, background-click dismissal and Escape within chart/details. Clear native leaf selection through the existing changed callback; preserve event/source-link actions and chart scroll position.
+
+## D-0059 · Begin snapshot phase · 2026-11-01 · Timelines Phase 4
+- Question: Continue from verified entry histories to the snapshot scrubber/state/location view?
+- Options: Review Phase 3 further / proceed to Phase 4.
+- Recommendation: Build the snapshot on the existing read-only state checkpoints and calendar model.
+- Decision: “Begin phase 4.”
+- Impact: Add Snapshot at time under World Timeline’s View control, preserving the single default toolbar. Scrub recorded changes or enter any supported date; inspect state, last recorded location and source evidence at/before that instant. Own-date precedence and unresolved conflicts remain unchanged. Persist the chosen shared time in native leaf state; keep derived facts in memory and preferences in existing storage. Stop for review before structured editing; retain v0.20.0.
+
+## D-0060 · Defer structured editing and integrate Timelines with Librarian · 2026-11-01 · Timelines Phase 6
+- Question: Implement the proposed structured date/Calendar forms or move to Librarian integration?
+- Options: Build Phase 5 forms / defer Phase 5 and begin Phase 6.
+- Recommendation: Treat the date helper as optional and defer the larger Calendar form; retain normal property editing.
+- Decision: “Let's skip phase 5 for now. Let's move on to phase 6 to ensure the Librarian is updated for this feature.” Owner subsequently said “Continue.”
+- Impact: Phase 5 is deferred, not required for this increment. Integrate existing date/state/precedence rules and deterministic diagnostics into source-bounded Librarian context and source review. Preserve project/provisional exclusions, source provenance, context limits and existing write guards. Chronology settings join freshness checks. Additional lifecycle-sequence, age and travel detectors remain explicitly deferred after evaluation; no new automatic correction or AI date writer. Retain v0.20.0 for feature review, reserving v0.30.0 for acceptance.
+
+## D-0061 · Entry Development and Vault Review · 2026-11-01 · Librarian review workflows
+- Question: Define the two new Review workflows, storage, scope, completion, edit application and relationship to deterministic checks.
+- Options: World-only / both vault types; grounded originals alone / general craft knowledge for hypothetical exploration; one transient chat / multiple autosaved resumable sessions; manual-only / automatic wrap-up with continuation; separate draft / individually accepted changes; ephemeral report / saved prioritized checklist.
+- Recommendation: Both vault types; World default world scope, Storyboard current project plus shared references, explicit Entire vault. General craft/system-design guidance with provisional author answers. Autosaved separate conversations, default Brainstorms/Development with global/per-session visible/hidden destinations. Automatic summary at a useful stopping point with Continue Development. Individually accepted insertions/replacements/deletions. Source-linked prioritized saved checklists under Brainstorms/Reviews with the same storage choices.
+- Decision: Owner accepted recommendations 1–7, authorized research, chose “Individual recommended changes,” and clarified: “Those were ‘deterministic’ checks that didn’t need an AI to be done. Those should differ from the thinking checks the AI should be doing in this.”
+- Impact: Review initially presents four actions without chat and hides alternatives after selection. Development adds its own conversation only while active. Research-informed adaptive reasoning uses no scripted interview; proposals remain provisional until accepted. Vault Review examines narrative/system/relationship issues; deterministic timeline notices stay separate and no additional mechanical detectors are smuggled into AI findings. Existing local-model, source-freshness, project, generated-evidence and native Undo boundaries remain. See docs/Librarian-Review-Plan.md and the linked research notes.

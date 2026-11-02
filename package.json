@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/core.test.ts tests/transport.test.ts tests/scripts.test.ts tests/writing.test.ts tests/shortcuts.test.ts tests/workspace.test.ts tests/timeline.test.ts && node scripts/test-host.mjs",
+    "test": "node --experimental-strip-types --test tests/core.test.ts tests/transport.test.ts tests/scripts.test.ts tests/writing.test.ts tests/shortcuts.test.ts tests/workspace.test.ts tests/timeline.test.ts tests/timeline-librarian.test.ts tests/librarian-review.test.ts && node scripts/test-host.mjs",
     "preview:build": "node scripts/preview.mjs",
     "package": "npm run typecheck && npm run build && node scripts/package.mjs"
   },

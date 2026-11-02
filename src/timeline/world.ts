@@ -5,7 +5,7 @@ import {scriptScope} from "../scripts/model.ts";
 export const UNPLACED = "@unplaced", MULTIPLE = "@multiple";
 export type LinkResolver = (target: string, source: string) => string | undefined;
 export interface Reference {path: string; name: string; type: string}
-export interface Participant extends Reference { effect?: "Appears" | "Disappears" }
+export interface Participant extends Reference { effect?: "Appears" | "Disappears"; effects?: ("Appears"|"Disappears")[] }
 export interface WorldEvent extends DatedEvent {
   name: string; participants: Participant[]; locations: Reference[]; lane: string;
   tags: string[]; project?: string; related: Reference[]; invalid: boolean;
@@ -51,7 +51,8 @@ export function buildWorldTimeline(notes: TimelineNote[], index: TimelineIndex, 
         } else if(!isType(target,"Location")) {
           const effect=settings.fields.find(f=>f.name.toLowerCase()===field.toLowerCase()&&applies(f,{...target,type:typeOf(target)}))?.effect;
           const previous=participants.get(target.path);
-          participants.set(target.path,{...ref(target),effect:effect??previous?.effect});
+          const effects=[...new Set([...(previous?.effects??[]),...(effect?[effect]:[])])];
+          participants.set(target.path,{...ref(target),effect:effects.length===1?effects[0]:undefined,effects});
         }
       }
     }

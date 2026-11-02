@@ -265,11 +265,66 @@ Each phase requires verification and owner review before the next phase.
 - [x] Heap collision packing, windowed card/row rendering and batched undated/issues lists.
 - [x] Automated/model/host/mobile-load checks, browser dense dataset and native disposable-vault interaction/persistence/live refresh; original-note hashes preserved.
 
-[Phase 2 verification and limits](verification/timeline-phase-2-2026-11-01.md). Awaiting owner review before Phase 3.
+[Phase 2 verification and limits](verification/timeline-phase-2-2026-11-01.md). Owner authorized Phase 3 (D-0056).
 
 ### Later reviewed phases
-- [ ] Phase 3: state derivation/precedence, unknown/conflict handling, per-entry timelines and header action.
-- [ ] Phase 4: snapshot scrubber/state/location view.
-- [ ] Phase 5: structured date/calendar editing alongside native notes.
-- [ ] Phase 6: evaluate optional Librarian deterministic/LLM integration; document implemented and deferred rules.
+- [x] Phase 3: state derivation/precedence, unknown/conflict handling, per-entry timelines and header action (D-0056–D-0057).
+- [x] Phase 4: snapshot scrubber/state/location view (D-0059).
+- [ ] Phase 5: structured date/calendar editing — **deferred by owner, D-0060**; native property editing remains available.
+- [x] Phase 6: evaluate optional Librarian deterministic/LLM integration; document implemented and deferred rules (D-0060).
 - [ ] Complete feature acceptance and bump to v0.30.0.
+
+### Timeline Phase 2 refinement — D-0055
+- [x] One compact default bar including the title; search/filters and secondary View controls expand on request.
+- [x] Active-filter count, mutually exclusive panels, Escape/focus handling and narrow-pane zoom placement.
+- [x] Chart-edge hover/keyboard pan arrows; no permanent panning row.
+- [x] 239 regression tests, typecheck/package/mobile-load smoke, browser interactions and native disposable-vault layout check.
+
+[Compact toolbar verification](verification/timeline-compact-toolbar-2026-11-01.md). Owner authorized and completed Phase 3 below.
+
+
+### Timeline Phase 3 — Entry state/location histories · D-0056–D-0057
+- [x] Span-end effects, own-field precedence across repeated cycles, corroboration and mismatch provenance.
+- [x] Unknown versus absent; simultaneous state/location conflicts; stationary locations and undated non-inference.
+- [x] Native per-entry timeline, compact header, calendar display, source links and progressive history loading.
+- [x] Header icon beside Librarian, independent module lifecycle, reusable/rename-aware native tabs and disabled/mobile guards.
+- [x] Hide the empty selected-event footer while retaining one default World toolbar.
+- [x] 259 automated tests, package/mobile-load checks, browser dense history and native disposable-vault acceptance; all 49 baseline notes unchanged.
+
+[Phase 3 verification and limits](verification/timeline-phase-3-2026-11-01.md). Owner authorized Phase 4 (D-0059). Development remains v0.20.0.
+
+
+### Timeline Phase 4 — Snapshots · D-0059
+- [x] Calendar-aware time input and recorded-change scrubber with previous/next navigation.
+- [x] State/location table using Phase 3 checkpoints; unknown/absent/conflicts and stationary locations remain explicit.
+- [x] Evidence limited to at/before T, entry-history/source navigation, independent table filters and batched rows.
+- [x] Native saved snapshot time, calendar conversion without time changes and default single-bar preservation.
+- [x] 264 passing automated tests, packaged/mobile-load checks, dense browser interaction and native date/state acceptance; 53 baseline notes unchanged.
+
+[Phase 4 verification and limits](verification/timeline-phase-4-2026-11-01.md). Owner deferred Phase 5 and authorized Phase 6 (D-0060). Version remains v0.20.0.
+
+
+### Timeline Phase 6 — Librarian integration · D-0060
+- [x] Interpret admitted Calendar/event/lifecycle metadata using the same timeline models and existing precedence rules.
+- [x] Supply bounded source-linked context to Ask, Enhancement, Expansion, Refine and grounding review; disclose incomplete coverage.
+- [x] Show interpreted dates/overrides and existing deterministic diagnostics within Sources consulted.
+- [x] Preserve World/desktop opt-in, project/provisional/template/asset boundaries and original-note-only citations.
+- [x] Chronology settings invalidate stale results; presentation-only calendar/lane preferences do not.
+- [x] 276 automated tests, packaged/mobile-load checks and native local-model birth/unknown-state acceptance; original test-vault notes preserved.
+- [x] Publish rule coverage and explicitly deferred lifecycle/age/travel detectors.
+
+[Phase 6 verification and limits](verification/timeline-phase-6-2026-11-01.md). Ready for feature review; Phase 5 remains deferred. Final v0.30.0 acceptance/bump remains pending.
+
+
+## Librarian Development and Vault Review · D-0061
+- [x] Research and document adaptive, author-led development and source-backed AI thinking; distinguish mechanical timeline checks.
+- [x] Four-action Review launcher without initial chat; hide alternatives after selection and provide Back to Review.
+- [x] Autosaved, resumable multi-session Development, visible/hidden default and per-session destinations, automatic/manual wrap-up and continuation.
+- [x] Individually accepted exact-body insertions, replacements and deletions; source/configuration guards and native Undo.
+- [x] Scoped batched Vault Review with cross-entry quote comparison, source-supported/possible/opportunity categories, priorities, actions and saved checklists.
+- [x] Separate deterministic timeline notices, generated-workspace exclusion and backwards-compatible existing settings/expansion workflows.
+- [x] Automated model/storage/controller/host regression, packaging and mobile-load checks.
+- [x] Native local-model Development/wrap-up/individual insertion/Undo, scoped report, saved checklist and hidden-session acceptance; all 58 baseline originals preserved.
+- [x] Final package native reactivation and saved report/checkbox, hidden session and completed Development reopening verified on 2026-11-02.
+
+[Workflow contract](Librarian-Review-Plan.md) · [Research](verification/librarian-review-research-2026-11-01.md) · [Verification and limits](verification/librarian-review-2026-11-01.md). 301 tests pass. Version remains v0.20.0 pending feature acceptance.

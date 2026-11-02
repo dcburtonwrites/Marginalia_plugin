@@ -205,3 +205,112 @@ test("empty predecessor lists are roots, repeated identical links are unambiguou
   const w=world([event("Root",{"Preceded By":[]}),event("Next",{"Preceded By":["[[Root]]","[[Root]]"]}),event("Wrong",{"Preceded By":0})]);
   assert.ok(!w.diagnostics.some(d=>["Root.md","Next.md"].includes(d.path)));assert.ok(w.events.find(e=>e.name==="Root")!.order<w.events.find(e=>e.name==="Next")!.order);assert.ok(w.diagnostics.some(d=>d.path==="Wrong.md"&&d.code==="order-dangling"));
 });
+
+import {buildStateTimelines,stateAt} from "../src/timeline/state.ts";
+function histories(entries:TimelineNote[],options:unknown={}){
+  const notes=[calendar(),...entries],settings=readTimeline(options);
+  const resolve=(target:string,_source:string)=>{const matches=notes.filter(n=>n.path.replace(/\.md$/i,"")===target.replace(/\.md$/i,"")||n.name===target);return matches.length===1?matches[0].path:undefined;};
+  const index=buildTimelineIndex(notes,settings),w=buildWorldTimeline(notes,index,settings,resolve);
+  return {notes,index,world:w,states:buildStateTimelines(notes,index,w,settings,resolve)};
+}
+test("unknown lifecycle differs from absent; encountering an entry supplies presence without inventing a birth",()=>{
+  const {states}=histories([place(),note("Mira.md",{type:"Character"}),event("Meeting",{Date:10,Cast:"[[Mira]]",Locations:"[[Harbor]]"}),event("Lost",{Date:20,Lost:"[[Mira]]",Locations:"[[Harbor]]"})]);
+  const entry=states.entries.get("Mira.md")!;assert.equal(stateAt(entry,9).state,"unknown");assert.equal(stateAt(entry,9).visible,false);
+  const seen=stateAt(entry,10);assert.equal(seen.state,"unknown");assert.equal(seen.observed,true);assert.equal(seen.visible,true);assert.equal(seen.locationState,"known");
+  assert.equal(stateAt(entry,20).state,"absent");assert.equal(stateAt(entry,20).visible,false);
+});
+test("own birth date wins, while event effects and movement still occur at the span end",()=>{
+  const {states}=histories([place(),note("Mira.md",{type:"Character",Born:412}),event("Founding",{Start:410,End:415,Born:"[[Mira]]",Locations:"[[Harbor]]"})]);
+  const entry=states.entries.get("Mira.md")!;assert.equal(stateAt(entry,411).state,"unknown");assert.equal(stateAt(entry,412).state,"present");assert.equal(stateAt(entry,414).locationState,"unknown");assert.equal(stateAt(entry,415).locations[0].path,"Harbor.md");
+  const supplied=entry.records.find(r=>r.kind==="state"&&r.source==="event")!;assert.equal(supplied.date?.key,415);assert.equal(supplied.active,false);assert.ok(supplied.supersededBy);assert.ok(entry.diagnostics.some(d=>d.code==="state-date-mismatch"));
+});
+test("an entry's own Lost date overrides every event-supplied Lost across repeated cycles",()=>{
+  const {states}=histories([place(),note("Atlas.md",{type:"Item",Lost:5}),event("First loss",{Date:4,Lost:"[[Atlas]]",Locations:"[[Harbor]]"}),event("Recovery",{Date:10,Found:"[[Atlas]]",Locations:"[[Harbor]]"}),event("Second loss",{Date:20,Lost:"[[Atlas]]",Locations:"[[Harbor]]"})]);
+  const entry=states.entries.get("Atlas.md")!;assert.equal(entry.records.filter(r=>r.field==="Lost"&&r.source==="event"&&r.active).length,0);assert.equal(entry.records.filter(r=>r.field==="Lost"&&r.source==="event").length,2);
+  assert.equal(stateAt(entry,5).state,"absent");assert.equal(stateAt(entry,10).state,"present");assert.equal(stateAt(entry,20).state,"present");assert.equal(entry.diagnostics.filter(d=>d.code==="state-date-mismatch").length,2);
+});
+test("matching own and event dates retain corroborating sources without a mismatch",()=>{
+  const {states}=histories([note("Mira.md",{type:"Character",Born:1}),event("Birth",{Date:1,Born:"[[Mira]]"})]);const entry=states.entries.get("Mira.md")!;
+  assert.equal(stateAt(entry,1).state,"present");assert.equal(entry.records.filter(r=>r.kind==="state").length,2);assert.equal(entry.diagnostics.some(d=>d.code==="state-date-mismatch"),false);
+});
+test("Lost and Found reverse visibility when no own dates override them",()=>{
+  const {states}=histories([note("Atlas.md",{type:"Item"}),event("Make",{Date:0,Created:"[[Atlas]]"}),event("Lose",{Date:1,Lost:"[[Atlas]]"}),event("Find",{Date:2,Found:"[[Atlas]]"}),event("Lose again",{Date:3,Lost:"[[Atlas]]"})]);const entry=states.entries.get("Atlas.md")!;
+  assert.deepEqual([0,1,2,3].map(t=>stateAt(entry,t).state),["present","absent","present","absent"]);
+});
+test("same-time contradictory effects stay conflicting regardless of predecessor or input order",()=>{
+  const entries=[note("Atlas.md",{type:"Item"}),event("Found",{Date:1,Found:"[[Atlas]]"}),event("Lost",{Date:1,Lost:"[[Atlas]]","Preceded By":"[[Found]]"}),event("Recovery",{Date:2,Found:"[[Atlas]]"})];
+  for(const inputs of [entries,[...entries].reverse()]){const entry=histories(inputs).states.entries.get("Atlas.md")!;assert.equal(stateAt(entry,1).state,"conflict");assert.equal(stateAt(entry,1).visible,true);assert.equal(stateAt(entry,2).state,"present");assert.ok(entry.diagnostics.some(d=>d.code==="state-conflict"));}
+});
+test("same-time locations conflict, identical sources corroborate, and later missing locations stay unknown",()=>{
+  const entries=[place(),note("Archive.md",{type:"Location"}),note("Mira.md",{type:"Character"}),event("At harbor",{Date:1,Cast:"[[Mira]]",Locations:"[[Harbor]]"}),event("Also harbor",{Date:1,Cast:"[[Mira]]",Locations:"[[Harbor]]"}),event("Harbor again",{Date:2,Cast:"[[Mira]]",Locations:"[[Harbor]]"}),event("At archive",{Date:2,Cast:"[[Mira]]",Locations:"[[Archive]]"}),event("Unlocated",{Date:3,Cast:"[[Mira]]"})];
+  const entry=histories(entries).states.entries.get("Mira.md")!;assert.equal(stateAt(entry,1).locationState,"known");assert.equal(stateAt(entry,1).locations.length,1);assert.equal(stateAt(entry,2).locationState,"conflict");assert.equal(stateAt(entry,2).locations.length,2);assert.equal(stateAt(entry,3).locationState,"unknown");assert.equal(stateAt(entry,3).locations.length,0);
+});
+test("a known and unresolved location at the same time cannot silently become a known position",()=>{
+  const entry=histories([place(),note("Mira.md",{type:"Character"}),event("Known",{Date:1,Cast:"[[Mira]]",Locations:"[[Harbor]]"}),event("Unknown",{Date:1,Cast:"[[Mira]]",Locations:"[[Missing place]]"})]).states.entries.get("Mira.md")!;
+  assert.equal(stateAt(entry,1).locationState,"unknown");assert.equal(stateAt(entry,1).locations[0].path,"Harbor.md");
+});
+test("locations remain stationary and include hosted events plus their own lifecycle",()=>{
+  const entry=histories([note("Harbor.md",{type:"Location",Founded:0}),event("Move?",{Date:1,Cast:"[[Harbor]]",Locations:"[[Harbor]]"})]).states.entries.get("Harbor.md")!;
+  assert.equal(entry.records.some(r=>r.kind==="presence"),false);assert.equal(entry.records.some(r=>r.kind==="event"),true);assert.equal(stateAt(entry,1).state,"present");assert.equal(stateAt(entry,1).locationState,"stationary");
+});
+test("undated relational placement and invalid dates never acquire state instants",()=>{
+  const {states,world}=histories([note("Mira.md",{type:"Character"}),event("First",{Date:1}),event("Middle",{"Preceded By":"[[First]]",Cast:"[[Mira]]",Born:"[[Mira]]"}),event("Last",{Date:3,"Preceded By":"[[Middle]]"}),event("Bad",{Date:"tomorrow",Cast:"[[Mira]]",Died:"[[Mira]]"})]);
+  assert.ok(world.events.find(e=>e.name==="Middle")?.position);const entry=states.entries.get("Mira.md")!;assert.equal(entry.frames.length,0);assert.equal(stateAt(entry,Infinity).state,"unknown");assert.equal(stateAt(entry,Infinity).observed,false);assert.ok(entry.records.length>=4);assert.ok(entry.diagnostics.some(d=>d.code==="date-invalid"));
+});
+test("an invalid own value blocks a competing event fact rather than silently winning through fallback",()=>{
+  const entry=histories([note("Mira.md",{type:"Character",Born:"later"}),event("Birth",{Date:1,Born:"[[Mira]]"})]).states.entries.get("Mira.md")!;
+  assert.equal(stateAt(entry,1).state,"unknown");assert.equal(entry.records.find(r=>r.kind==="state")?.active,false);assert.ok(entry.diagnostics.some(d=>d.code==="date-invalid"));
+});
+test("type filters apply to self and event facts for frontmatter-only entry types",()=>{
+  const {states}=histories([note("Mira.md",{type:"Character",Born:0}),note("Atlas.md",{type:"Item",Born:0}),event("Birth",{Date:1,Born:["[[Mira]]","[[Atlas]]"]})],{fields:[{name:"Born",effect:"Appears",types:["Character"]}]});
+  assert.equal(stateAt(states.entries.get("Mira.md")!,0).state,"present");assert.equal(stateAt(states.entries.get("Atlas.md")!,1).state,"unknown");assert.equal(states.entries.get("Atlas.md")!.records.some(r=>r.kind==="state"),false);
+});
+test("state checkpoints support long histories without changing source inputs",()=>{
+  const inputs=[place(),note("Mira.md",{type:"Character"}),...Array.from({length:3000},(_,i)=>event(`Meeting ${i}`,{Date:i,Cast:"[[Mira]]",Locations:"[[Harbor]]"}))];const before=structuredClone(inputs),entry=histories(inputs).states.entries.get("Mira.md")!;
+  assert.equal(entry.frames.length,3000);assert.equal(stateAt(entry,1234.5).key,1234);assert.equal(stateAt(entry,-Infinity).visible,false);assert.equal(stateAt(entry,Infinity).key,2999);assert.throws(()=>stateAt(entry,NaN));assert.deepEqual(inputs,before);
+});
+
+test("parallel calendar state dates compare the shared key, and real Calendar entries can have lifecycle dates",()=>{
+  const notes=[calendar({aliases:["AS"],Founded:-1}),note("Mortal.md",{type:"Calendar",aliases:["MC"],anchor:"0 MC = 339 AS"}),note("Mira.md",{type:"Character",Calendar:"MC",Born:73}),event("Birth",{Date:"412 AS",Born:"[[Mira]]"})],settings=readTimeline(null);
+  const index=buildTimelineIndex(notes,settings),resolve=(target:string)=>notes.find(n=>n.name===target)?.path,w=buildWorldTimeline(notes,index,settings,resolve),states=buildStateTimelines(notes,index,w,settings,resolve);
+  assert.equal(stateAt(states.entries.get("Mira.md")!,412).state,"present");assert.equal(states.diagnostics.some(d=>d.code==="state-date-mismatch"),false);assert.equal(stateAt(states.entries.get("Calendar.md")!,-1).state,"present");
+});
+test("conflicting fields on one event retain both authored effects instead of a last-field winner",()=>{
+  const {world,states}=histories([note("Mira.md",{type:"Character"}),event("Contradiction",{Date:1,Born:"[[Mira]]",Died:"[[Mira]]"})]);
+  assert.deepEqual(world.events[0].participants[0].effects,["Appears","Disappears"]);assert.equal(world.events[0].participants[0].effect,undefined);assert.equal(stateAt(states.entries.get("Mira.md")!,1).state,"conflict");
+});
+
+import {snapshotTimes,snapshotRows,snapshotPosition,snapshotDate} from "../src/timeline/snapshot.ts";
+test("snapshots use only dated evidence, preserve unknown and absent, and include own dates",()=>{
+  const {states}=histories([place(),note("Mira.md",{type:"Character",Born:-2,Died:5}),note("Atlas.md",{type:"Item"}),event("Unplaced",{Cast:"[[Atlas]]"}),event("Span",{Start:0,End:3,Cast:"[[Mira]]",Locations:"[[Harbor]]"})]);
+  assert.deepEqual(snapshotTimes(states),[-2,3,5]);
+  const mira=(time:number)=>snapshotRows(states,time).find(row=>row.entry.path==="Mira.md")!;
+  assert.equal(mira(-3).frame.state,"unknown");assert.equal(mira(-2).frame.state,"present");assert.equal(mira(2).frame.locationState,"unknown");assert.equal(mira(3).frame.locations[0].path,"Harbor.md");assert.equal(mira(5).frame.state,"absent");
+  assert.equal(snapshotRows(states,100).find(row=>row.entry.path==="Atlas.md")!.frame.observed,false);
+  assert.throws(()=>snapshotRows(states,Infinity));assert.throws(()=>snapshotRows(states,NaN));
+});
+test("snapshot sources cannot borrow future evidence and queries do not mutate checkpoints",()=>{
+  const {states}=histories([note("Atlas.md",{type:"Item"}),event("Create",{Date:0,Created:"[[Atlas]]"}),event("Lose",{Date:1,Lost:"[[Atlas]]"}),event("Recover",{Date:2,Found:"[[Atlas]]"})]);
+  const entry=states.entries.get("Atlas.md")!,before=structuredClone(entry);
+  for(const [time,state] of [[-1,"unknown"],[0,"present"],[1,"absent"],[2,"present"]] as const){const row=snapshotRows(states,time).find(row=>row.entry===entry)!;assert.equal(row.frame.state,state);for(const id of [...row.frame.stateSources,...row.frame.locationSources])assert.ok(entry.records.find(record=>record.id===id)!.date!.key<=time);}
+  assert.deepEqual(entry,before);
+});
+test("snapshot filters retain conflicts, stationary locations and never assume absent from unknown",()=>{
+  const {states}=histories([place(),note("Mira.md",{type:"Character"}),note("Other.md",{type:"Item"}),event("Both",{Date:0,Born:"[[Mira]]",Died:"[[Mira]]",Locations:"[[Harbor]]"})]);
+  assert.equal(snapshotRows(states,0,{query:"mira",type:"Character",state:"conflict"}).length,1);
+  assert.equal(snapshotRows(states,0,{query:"Other",type:"Item",state:"absent"}).length,0);
+  assert.equal(snapshotRows(states,0,{query:"Other",type:"Item",state:"unknown"}).length,1);
+  assert.equal(snapshotRows(states,-1,{query:"Harbor",type:"Location",state:""})[0].frame.locationState,"stationary");
+});
+test("snapshot checkpoints handle empty sets, before-first times, ties and signed dates",()=>{
+  assert.deepEqual(snapshotTimes({entries:new Map(),diagnostics:[]}),[]);assert.deepEqual(snapshotRows({entries:new Map(),diagnostics:[]},0),[]);
+  assert.deepEqual([-20,-10,-5,0,1,5,100].map(t=>snapshotPosition([-10,0,5],t)),[-1,0,0,1,1,2,2]);assert.equal(snapshotPosition([],0),-1);
+  const {states}=histories([note("Mira.md",{type:"Character",Born:0}),event("Birth",{Date:0,Born:"[[Mira]]"}),event("Invalid",{Start:2,End:1})]);assert.deepEqual(snapshotTimes(states),[0]);
+});
+test("snapshot display calendars retain the shared instant and native state rejects invalid snapshot dates",()=>{
+  const registry=buildCalendars([dayCalendar(),note("Mortal.md",{type:"Calendar",precision:"year",aliases:["MC"],anchor:"0 MC = 339 AS",format:"{year} MC"})]);
+  const time=parseDate("5 Highsun 412 AS",registry).key;
+  assert.equal(snapshotDate(time,registry.calendars.find(c=>c.name==="Mortal")!,registry),"73 MC");assert.equal(snapshotDate(time,registry.primary!,registry),"5 Highsun 412 AS");
+  for(const bad of [NaN,Infinity,-Infinity,"0",null])assert.equal(readTimelineUIState({snapshot:bad}).snapshot,undefined);
+  assert.equal(readTimelineUIState({snapshot:0}).snapshot,0);assert.equal(readTimelineUIState({snapshot:-10}).snapshot,-10);
+});

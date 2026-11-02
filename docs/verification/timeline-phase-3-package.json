@@ -1,0 +1,11 @@
+{
+  "version": "0.20.0",
+  "existingMarkdownNotes": 49,
+  "changedNotes": [],
+  "packageHashes": {
+    "main.js": "53bf551f493d1e51391b4342437ee662d538ab4e75c339dc12a21d958b9f3f5a",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "8bd72a66571a252fa18913bb18e444ff8123907b5f679922e2beeeb252d7276a"
+  },
+  "installedMatchesPackage": true
+}

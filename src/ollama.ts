@@ -56,6 +56,7 @@ export async function generate(
   signal: AbortSignal,
   transport: Transport = httpTransport,
   onProgress?: (progress: GenerationProgress) => void,
+  format?: "json",
 ): Promise<string> {
   settings = { ...settings };
   if (!settings.model)
@@ -104,6 +105,7 @@ export async function generate(
         { role: "user", content: user },
       ],
       stream: true,
+      ...(format?{format}:{}),
       ...(details.thinking?.values?.includes(false) ? { think: false } : {}),
       options: {
         num_ctx: settings.context,

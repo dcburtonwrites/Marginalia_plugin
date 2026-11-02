@@ -1,3 +1,4 @@
+import type {LibrarianTimeline} from "../timeline/librarian.ts";
 export interface Note {
   tags?:string[];
   path: string;
@@ -23,6 +24,7 @@ export interface Stamp {
 }
 export interface Freshness { inventory:string; configuration:string; }
 export interface Packet {
+  timeline?:LibrarianTimeline;
   freshness?: Freshness;
   entryType?: string;
   target: Note;

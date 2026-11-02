@@ -1,0 +1,10 @@
+{
+  "version": "0.20.0",
+  "existingMarkdownNotes": 49,
+  "changedNotes": [],
+  "packageHashes": {
+    "main.js": "869448c63fdf5bde4af722651610cf42c4d7126fcdd76748adc525a7c58b9aee",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "39c4407534a529d3d3be7b7339b661fe6154a90271e4217477221085023088f0"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "version": "0.20.0",
+  "existingMarkdownNotes": 53,
+  "changedNotes": [],
+  "packageHashes": {
+    "main.js": "fdde3b23668a79f808b71b27e050fcc85ce4af3d3c898255273468c8ca0740e6",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "826d92f08c3b97f95f4875f7b10959895adf2200400b5d64cef26660238070a9"
+  },
+  "installedMatchesPackage": true,
+  "nativeSavedTimelineState": [
+    {
+      "filters": {
+        "query": "",
+        "type": "",
+        "tag": "",
+        "project": ""
+      },
+      "snapshot": 430,
+      "selected": ""
+    }
+  ]
+}

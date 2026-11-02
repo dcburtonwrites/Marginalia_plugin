@@ -55,3 +55,5 @@ await build({entryPoints:["scripts/timeline-preview.ts"],bundle:true,format:"iif
 await copyFile("scripts/timeline-preview.html",".preview/timeline.html");
 await build({entryPoints:["scripts/world-timeline-preview.ts"],bundle:true,format:"iife",platform:"browser",outfile:".preview/world-timeline-preview.js",plugins:[{name:"timeline-world-host",setup(b){b.onResolve({filter:/^obsidian$/},()=>({path:new URL("./obsidian-preview.ts",import.meta.url).pathname}));}}]});
 await copyFile("scripts/world-timeline-preview.html",".preview/world-timeline.html");
+await build({entryPoints:["scripts/review-preview.ts"],bundle:true,format:"iife",platform:"browser",outfile:".preview/review-preview.js"});
+await writeFile('.preview/reviews.html',(await readFile('scripts/preview.html','utf8')).replace('src="preview.js"','src="review-preview.js"'));

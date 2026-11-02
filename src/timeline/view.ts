@@ -1,3 +1,4 @@
+import {openEntryTimeline} from "./entry-view.ts";
 import {ItemView,Modal,Setting,Notice,TFile,type WorkspaceLeaf} from "obsidian";
 import type Marginalia from "../main.ts";
 import {timelineAvailable} from "./feature.ts";
@@ -36,6 +37,8 @@ export class WorldTimelineView extends ItemView {
     if(!this.ui){
       this.ui=new WorldTimelineUI(this.contentEl,{
         world:()=>this.owner.timelineFeature?.world,
+        states:()=>this.owner.timelineFeature?.states,
+        entry:path=>{void openEntryTimeline(this.owner,path);},
         settings:()=>this.owner.timelineSettings,
         calendar:async path=>{
           const previous=this.owner.timelineSettings.displayCalendar;this.owner.timelineSettings.displayCalendar=path;

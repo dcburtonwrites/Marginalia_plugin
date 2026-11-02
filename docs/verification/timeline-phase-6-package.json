@@ -1,0 +1,17 @@
+{
+  "version": "0.20.0",
+  "existingMarkdownNotes": 53,
+  "changedNotes": [],
+  "packageHashes": {
+    "main.js": "a7a613fb86d459b798ba57c280db18a2bafd7bad8b38782857e82f6c96ebc98f",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "826d92f08c3b97f95f4875f7b10959895adf2200400b5d64cef26660238070a9"
+  },
+  "installedMatchesPackage": true,
+  "nativeLocalModel": "gemma4:12b-mlx",
+  "nativeAskChecks": {
+    "ownBirthOverridesSpanEnd": "412 overrides 415; original-note citations",
+    "beforeFirstEvidence": "411 AS: state unknown; no dated location evidence"
+  },
+  "finalPluginRefresh": "Community plugins disable/enable; Librarian opens from note header"
+}

@@ -7,7 +7,7 @@ export function librarianProject(note:Note,settings:WorkspaceSettings,notes:Note
 }
 export function librarianType(note:Note,settings:WorkspaceSettings,notes:Note[]=[note]) {
   const tags=[...values(note.tags),...values(note.metadata.tags),...values(note.metadata.cssclasses)].flatMap(v=>v.split(/[\s,]+/)).map(v=>v.replace(/^#/,"").toLowerCase());
-  const declared=values(note.metadata["canon-type"])[0];
+  const declared=values(note.metadata["canon-type"])[0]??values(note.metadata.type)[0];
   const configured=settings.canonTypes.find(type=>type.name.toLowerCase()===declared?.toLowerCase());
   if(configured)return configured.name;
   const type=entryType(note.path,tags,settings.canonTypes);

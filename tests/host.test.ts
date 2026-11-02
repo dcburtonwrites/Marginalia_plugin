@@ -1319,3 +1319,79 @@ test("timeline preference renames follow native file/folder paths without changi
   rename({path:"World Calendars"},"Calendars");rename({path:"Locations"},"Places");await h.plugin.savePluginData();
   assert.equal(saved.timeline.primaryCalendar,"World Calendars/World.md");assert.equal(saved.timeline.displayCalendar,"World Calendars/Alternate.md");assert.deepEqual(saved.timeline.lanes,[{path:"Locations/Harbor.md",group:"Coast",enabled:false}]);assert.equal(h.transactions.length,0);cleanups.forEach(fn=>fn());
 });
+
+test("entry timeline actions sit beside Librarian, work without it and unload cleanly",async()=>{
+  const {TimelineFeature}=await import("../src/timeline/feature.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  (h.plugin.app.vault as any).on=()=>({});(h.plugin.app.metadataCache as any).on=()=>({});(h.plugin.app.workspace as any).on=()=>({});(h.plugin.app.workspace as any).onLayoutReady=()=>{};
+  const cleanups:any[]=[],feature=new TimelineFeature(h.plugin);feature.register=((fn:any)=>{cleanups.push(fn);}) as any;feature.registerEvent=(()=>{}) as any;
+  h.plugin.noteActions();feature.onload();feature.noteActions();feature.noteActions();
+  assert.deepEqual(h.view.actions.map(a=>a.title),["Open Librarian for this note","Open timeline for this entry"]);
+  h.plugin.workspaceSettings.modules.librarian=false;for(const a of h.plugin.headerActions.values())a.remove();h.plugin.headerActions.clear();feature.noteActions();assert.equal(h.view.actions.length,1);assert.equal(h.view.actions[0].title,"Open timeline for this entry");
+  cleanups.forEach(fn=>fn());assert.equal(h.view.actions.length,0);assert.equal(feature.states,undefined);
+});
+test("per-entry timeline opens the correct path and reuses its own native tab",async()=>{
+  const {openEntryTimeline,ENTRY_TIMELINE}=await import("../src/timeline/entry-view.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  let created=0,revealed=0;const states:any[]=[];const leaf={setViewState:async(state:any)=>{states.push(state);},getViewState:()=>({type:ENTRY_TIMELINE,state:{entryPath:h.files[0].path}}),detach:()=>{}};
+  h.plugin.app.workspace.getLeavesOfType=((type:string)=>created&&type===ENTRY_TIMELINE?[leaf]:[]) as any;(h.plugin.app.workspace as any).getLeaf=()=>{created++;return leaf;};(h.plugin.app.workspace as any).revealLeaf=async()=>{revealed++;};
+  await openEntryTimeline(h.plugin,h.files[0].path);await openEntryTimeline(h.plugin,h.files[0].path);await openEntryTimeline(h.plugin,"Missing.md");assert.equal(created,1);assert.equal(revealed,2);assert.ok(states.every(s=>s.state.entryPath===h.files[0].path));
+  h.plugin.workspaceSettings.vaultType="Storyboard";await openEntryTimeline(h.plugin,h.files[0].path);assert.equal(revealed,2);
+});
+
+test("entry header actions follow the current note and disappear on templates",async()=>{
+  const {TimelineFeature}=await import("../src/timeline/feature.ts");const h=host();h.plugin.timelineSettings.enabled=true;h.plugin.workspaceSettings.modules.librarian=false;
+  (h.plugin.app.vault as any).on=()=>({});(h.plugin.app.metadataCache as any).on=()=>({});(h.plugin.app.workspace as any).on=()=>({});(h.plugin.app.workspace as any).onLayoutReady=()=>{};
+  const cleanups:any[]=[],feature=new TimelineFeature(h.plugin);feature.register=((fn:any)=>cleanups.push(fn)) as any;feature.registerEvent=(()=>{}) as any;feature.onload();feature.noteActions();
+  let opened:any;(h.plugin.app.workspace as any).getLeaf=()=>({setViewState:async(state:any)=>{opened=state;},detach:()=>{}});(h.plugin.app.workspace as any).revealLeaf=async()=>{};
+  h.view.file=h.files[1];h.view.actions[0].callback();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(opened.state.entryPath,h.files[1].path);
+  h.view.file=new TFile("_templates/Test.md");feature.noteActions();assert.equal(h.view.actions.length,0);cleanups.forEach(fn=>fn());
+});
+
+test("entry timeline identities survive native folder renames and remain reusable",async()=>{
+  const {TimelineFeature}=await import("../src/timeline/feature.ts"),{EntryTimelineView,ENTRY_TIMELINE,openEntryTimeline}=await import("../src/timeline/entry-view.ts");const h=host();h.plugin.timelineSettings.enabled=true;
+  const view=new EntryTimelineView({} as any,h.plugin);view.entryPath=h.files[0].path;
+  let state:any,saves=0,rename:any;const leaf={view,getViewState:()=>({type:ENTRY_TIMELINE,state:view.getState()}),setViewState:async(next:any)=>{state=next;},detach:()=>{}};
+  h.plugin.app.workspace.getLeavesOfType=((type:string)=>type===ENTRY_TIMELINE?[leaf]:[]) as any;(h.plugin.app.workspace as any).requestSaveLayout=()=>{saves++;};(h.plugin.app.workspace as any).revealLeaf=async()=>{};(h.plugin.app.workspace as any).getLeaf=()=>{throw new Error("must reuse renamed entry tab");};
+  (h.plugin.app.vault as any).on=(name:string,fn:any)=>{if(name==="rename")rename=fn;return {};};(h.plugin.app.metadataCache as any).on=()=>({});(h.plugin.app.workspace as any).on=()=>({});(h.plugin.app.workspace as any).onLayoutReady=()=>{};
+  const cleanups:any[]=[],feature=new TimelineFeature(h.plugin);feature.register=((fn:any)=>cleanups.push(fn)) as any;feature.registerEvent=(()=>{}) as any;feature.onload();
+  rename({path:"People"},"02 Character");h.files[0].path="People/Mira.md";assert.equal(view.getState().entryPath,"People/Mira.md");assert.equal(saves,1);await openEntryTimeline(h.plugin,"People/Mira.md");assert.equal(state.state.entryPath,"People/Mira.md");assert.equal(h.transactions.length,0);cleanups.forEach(fn=>fn());
+});
+
+test("disabling Timelines detaches world and entry views and removes owned header actions",()=>{
+  const {plugin,view}=host();plugin.timelineSettings.enabled=true;plugin.workspaceSettings.modules={theme:false,scripts:false,librarian:false};
+  let detached=0;const leaf=()=>({detach:()=>{detached++;}});
+  plugin.app.workspace.getLeavesOfType=((type:string)=>type==="marginalia-world-timeline"?[leaf()]:type==="marginalia-entry-timeline"?[leaf(),leaf()]:[]) as any;
+  const action=view.addAction("chart-no-axes-gantt","Open timeline for this entry",()=>{});
+  const cleanups=[()=>action.remove()];plugin.timelineFeature={headerActions:new Map([[view,action]])} as any;plugin.removeChild=(()=>{cleanups.forEach(fn=>fn());}) as any;
+  plugin.timelineSettings.enabled=false;plugin.applyModules();assert.equal(detached,3);assert.equal(view.actions.length,0);assert.equal(plugin.timelineFeature,undefined);
+});
+
+test("Librarian packets interpret timeline dates from source buffers, admit calendars and invalidate changed chronology settings",async()=>{
+  const h=host();h.plugin.timelineSettings.enabled=true;h.plugin.settings.context=32768;
+  const calendar=new TFile('Calendar.md'),event=new TFile('Founding.md');h.files.push(calendar,event);
+  h.text.set(calendar.path,'---\ntype: Calendar\nprimary: true\nprecision: year\n---\n# World calendar\n');
+  h.text.set(event.path,'---\ntype: Event\nStart: 410\nEnd: 415\nBorn: "[[02 Character/Mira]]"\n---\nMira was born during construction.');
+  h.setEditor('---\ntype: Character\nBorn: 412\n---\n## Summary\n\nMira guards the archive.');
+  h.plugin.app.metadataCache.getFileCache=((file:any)=>({frontmatter:file===event?{type:'Event',Start:410,End:415,Born:'[[02 Character/Mira]]'}:file===calendar?{type:'Calendar',primary:true,precision:'year'}:{type:'Character',Born:400}})) as any;
+  const packet=await h.plugin.packet(h.files[0].path,new AbortController().signal);
+  assert.ok(packet.timeline);assert.ok(packet.sources.some(s=>s.notePath===calendar.path));assert.equal(packet.timeline.records.find(r=>r.source===h.files[0].path)?.time,412);assert.equal(packet.timeline.records.find(r=>r.source===event.path&&r.kind==='state')?.active,false);
+  await h.plugin.verify(packet,new AbortController().signal);
+  h.plugin.timelineSettings.displayCalendar='Alternate.md';await h.plugin.verify(packet,new AbortController().signal);
+  h.plugin.timelineSettings.fields=[];await assert.rejects(h.plugin.verify(packet,new AbortController().signal),/configuration changed/);
+  assert.equal(h.transactions.length,0);assert.equal(h.generated.size,0);
+});
+test("disabled timelines and Storyboard Librarian requests do not apply World timeline interpretation",async()=>{
+  const h=host();assert.equal((await h.plugin.packet(h.files[0].path,new AbortController().signal)).timeline,undefined);
+  h.plugin.timelineSettings.enabled=true;h.plugin.workspaceSettings.vaultType='Storyboard';assert.equal((await h.plugin.packet(h.files[0].path,new AbortController().signal)).timeline,undefined);
+});
+
+test("visible generated development workspaces are excluded from freshness even before the metadata cache catches up",async()=>{
+  const h=host(),before=await h.plugin.packet(h.files[0].path,new AbortController().signal),workspace=new TFile('Custom/Development/session.md');h.files.push(workspace);h.text.set(workspace.path,'---\ngenerated: true\nstatus: provisional\n---\nMira may leave the archive.');
+  const snapshot=await h.plugin.snapshot(new AbortController().signal);assert.equal(snapshot.find(n=>n.path===workspace.path)?.metadata.generated,true);
+  await h.plugin.verify(before,new AbortController().signal);assert.ok(!(await h.plugin.packet(h.files[0].path,new AbortController().signal)).sources.some(source=>source.notePath===workspace.path));
+});
+test("development applies only the individually accepted exact change and rebases later recommendations without absorbing other edits",async()=>{
+  const h=host();h.setEditor('---\ntype: Character\n---\n## Summary\n\nMira guards the archive.\n\nShe keeps the keys.');const signal=new AbortController().signal,packet=await h.plugin.packet(h.files[0].path,signal);
+  const edit:any={id:'one',kind:'replace',before:'Mira guards the archive.',after:'Mira guards the archive to protect her sister.',reason:'Author choice',state:'pending'};
+  const next=await h.plugin.applyDevelopmentEdit(packet,edit,signal);assert.equal(h.transactions.length,1);assert.ok(h.editorText().startsWith('---\ntype: Character\n---'));assert.ok(h.editorText().includes('She keeps the keys.'));await h.plugin.verify(next,signal);
+  const prior=h.editorText();h.text.set(h.files[1].path,'New canon evidence.');await assert.rejects(h.plugin.applyDevelopmentEdit(next,{...edit,id:'two',kind:'delete',before:'She keeps the keys.',after:''},signal),/changed/);assert.equal(h.editorText(),prior);assert.equal(h.transactions.length,1);
+});

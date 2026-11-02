@@ -8,7 +8,6 @@ export function buildTimelineIndex(notes: TimelineNote[], settings: TimelineSett
   const registry = buildCalendars(notes,settings.primaryCalendar);
   const result: TimelineIndex = {registry,events:[],selfChanges:[],diagnostics:[...registry.diagnostics]};
   for (const note of notes) {
-    if (isType(note,"Calendar")) continue;
     const get = (field: string) => property(note.fields,field);
     const calendar = get("Calendar");
     let calendarName = "";

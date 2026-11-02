@@ -4,7 +4,7 @@ An Obsidian plugin bringing Marginalia's app pages and script organizer to deskt
 
 **Status: first development build.** Source, compiled plugin and synthetic verification are available. It is installed in the isolated `Marginalia Test Vault` under `.preview/`, using fictional notes. Native functional checks passed; source-grounding and prose-quality acceptance remain open. Reanimator and the standalone app remain unchanged. The updated script organizer passes automated checks and native functional checks; native drag-gesture verification is pending because pointer automation stopped responding.
 
-Entry Enhancement and Entry Expansion lead the build. The interface follows `design/reference/librarian-sidebar-concept.png`, with Entry Enhancement and Entry Expansion beneath active-note context in **Review only**. Ask stays conversational; Library browses saved expansions. Selected icons: B (Knowledge lantern) for Librarian and F (Winged M + nib) for the left ribbon. Theme-safe production vectors are in `design/icons/selected/`.
+Review starts with Entry Enhancement, Entry Expansion, Entry Development and Vault Review. Selecting an action hides the alternatives. Development opens a saved, adaptive conversation with individually accepted changes; Vault Review produces a source-linked checklist. Ask stays conversational; Library resumes developments/reports and browses saved expansions. Selected icons: B (Knowledge lantern) for Librarian and F (Winged M + nib) for the left ribbon. Theme-safe production vectors are in `design/icons/selected/`.
 
 ## Included
 
@@ -12,7 +12,7 @@ Entry Enhancement and Entry Expansion lead the build. The interface follows `des
 - Home, tabbed Brainstorms/Canon cards, project pages and Storyboard Project Register.
 - World/Storyboard layout, app light/dark colors and independently enabled Theme, Scripts and Librarian settings. Desktop World vaults also offer opt-in Timelines.
 
-- World Timeline with ordinary Calendar notes, date validation, location lanes/grouping, filters, zoom, parallel-calendar display, event details and read-only undated chains. Enable under Settings → Marginalia → Timelines, then use its ribbon icon or Open World Timeline command. State/per-entry/snapshot views follow in later reviewed phases.
+- World Timeline with ordinary Calendar notes, date validation, location lanes/grouping, filters, zoom, parallel-calendar display, event details and read-only undated chains. Enable under Settings → Marginalia → Timelines, then use its ribbon icon or Open World Timeline command. Per-entry timelines open beside Librarian and show derived state/location histories, own-date precedence and unresolved conflicts. View → Snapshot at time opens a date scrubber and state/location table with source evidence. Librarian uses source-linked timeline dates, precedence and diagnostics. Structured editing is deferred; ordinary note properties remain editable.
 
 - One Script Studio sidebar tab with a project/grouping dropdown, scoped outline and persistent writing-session scope.
 - View options with Collapse/Expand all and Collapse/Expand panel descriptions; labels reflect the main script/project fold state.

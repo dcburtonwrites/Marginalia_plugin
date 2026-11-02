@@ -1,14 +1,20 @@
+import {SnapshotUI} from "./snapshot-ui.ts";
+import {snapshotTimes} from "./snapshot.ts";
+import type {StateTimelines} from "./state.ts";
 import {formatDate,type Calendar,type TimelineDate} from "./calendar.ts";
 import {type TimelineSettings} from "./model.ts";
 import {emptyFilters,filterEvents,layoutTimeline,timelineExtent,displayCalendar,type WorldTimeline,type WorldEvent,type LayoutLane,type TimelineFilters,UNPLACED,MULTIPLE} from "./world.ts";
-export interface TimelineUIState {filters: TimelineFilters; start?: number; span?: number; selected: string}
+export interface TimelineUIState {filters: TimelineFilters; start?: number; span?: number; selected: string; snapshot?:number}
+let nextTimelinePanel=0;
 export function readTimelineUIState(value: unknown): TimelineUIState {
   const raw=value&&typeof value==="object"?value as Record<string,unknown>:{},filters=raw.filters&&typeof raw.filters==="object"?raw.filters as Record<string,unknown>:{};
   const normalized=emptyFilters();for(const key of Object.keys(normalized) as (keyof TimelineFilters)[])if(typeof filters[key]==="string")normalized[key]=filters[key];
-  return {filters:normalized,start:typeof raw.start==="number"&&Number.isFinite(raw.start)?raw.start:undefined,span:typeof raw.span==="number"&&Number.isFinite(raw.span)&&raw.span>0?raw.span:undefined,selected:typeof raw.selected==="string"?raw.selected:""};
+  return {filters:normalized,start:typeof raw.start==="number"&&Number.isFinite(raw.start)?raw.start:undefined,span:typeof raw.span==="number"&&Number.isFinite(raw.span)&&raw.span>0?raw.span:undefined,snapshot:typeof raw.snapshot==="number"&&Number.isFinite(raw.snapshot)?raw.snapshot:undefined,selected:typeof raw.selected==="string"?raw.selected:""};
 }
 export interface TimelineUIPort {
   world(): WorldTimeline | undefined;
+  states?():StateTimelines|undefined;
+  entry?(path:string):void;
   settings(): TimelineSettings;
   calendar(path: string): Promise<void>;
   lanes(): void;
@@ -17,6 +23,8 @@ export interface TimelineUIPort {
 }
 export class WorldTimelineUI {
   state=readTimelineUIState(undefined);
+  private snapshotUI?:SnapshotUI;
+  private snapshotRoot?:HTMLElement;
   private chart?: HTMLElement;
   private body?: HTMLElement;
   private details?: HTMLElement;
@@ -25,38 +33,66 @@ export class WorldTimelineUI {
   private disposed=false;
   private width=0;
   private undatedLimit=100;
+  private panel?:"filters"|"view";
+  private panelId=`marginalia-timeline-panel-${++nextTimelinePanel}`;
+  private filterToggle?: HTMLButtonElement;
   root:HTMLElement;
   port:TimelineUIPort;
   constructor(root: HTMLElement,port: TimelineUIPort){
     this.root=root;this.port=port;
     root.classList.add("marginalia-world-timeline");
     if(typeof ResizeObserver!=="undefined"){
-      this.resize=new ResizeObserver(()=>{if(Math.abs(root.clientWidth-this.width)>2){this.width=root.clientWidth;this.renderBody();}});
+      this.resize=new ResizeObserver(()=>{if(this.state.snapshot===undefined&&Math.abs(root.clientWidth-this.width)>2){this.width=root.clientWidth;this.renderBody();}});
       this.resize.observe(root);
     }
   }
   private node<K extends keyof HTMLElementTagNameMap>(tag: K,cls="",text?:string){const e=this.root.ownerDocument.createElement(tag);e.className=cls;if(text!==undefined)e.textContent=text;return e;}
-  private button(text:string,action:()=>void,label=text,cls=""){const b=this.node("button",cls,text);b.type="button";b.setAttribute("aria-label",label);b.onclick=action;return b;}
+  private button(text:string,action:()=>void,label=text,cls=""){const b=this.node("button",cls,text);b.type="button";b.setAttribute("aria-label",label);if(text&&text!==label)b.title=label;b.onclick=action;return b;}
   private changed(){this.port.changed?.();}
   dispose(){this.disposed=true;this.resize?.disconnect();this.root.replaceChildren();}
   draw(){
     if(this.disposed)return;
-    const active=this.root.ownerDocument.activeElement as HTMLInputElement|null,focus=active?.dataset.tlControl,selection=active?.selectionStart;
+    const active=this.root.ownerDocument.activeElement as HTMLInputElement|null,focus=active?.dataset.tlControl,snapshotFocus=active?.dataset.snapshotControl,selection=active?.selectionStart;
     const scrollTop=this.chart?.scrollTop??0,scrollLeft=this.chart?.scrollLeft??0;
     const world=this.port.world();this.root.replaceChildren();
     if(!world){this.root.append(this.node("p","marginalia-timeline-empty","Loading this world’s calendars and events…"));return;}
     const header=this.node("header","marginalia-timeline-header"),heading=this.node("div");
-    heading.append(this.node("span","marginalia-timeline-context","In-world chronology"),this.node("h1","","World Timeline"));header.append(heading);
+    heading.append(this.node("h1","",this.state.snapshot===undefined?"World Timeline":"World Snapshot"));header.append(heading);
+    this.status=this.node("div","marginalia-timeline-status");this.status.setAttribute("role","status");header.append(this.status);
     const controls=this.node("div","marginalia-timeline-controls");
-    controls.append(this.button("−",()=>this.zoom(2),"Zoom out"),this.button("+",()=>this.zoom(.5),"Zoom in"),this.button("Fit events",()=>{this.state.start=undefined;this.state.span=undefined;this.changed();this.renderBody();}),this.button("Locations…",()=>this.port.lanes(),"Choose and group location lanes"));
+    if(this.state.snapshot===undefined)controls.append(this.zoomControls("marginalia-timeline-toolbar-zoom"));
+    this.filterToggle=this.button("Filters",()=>this.togglePanel("filters"),"Search and filters","marginalia-timeline-panel-toggle");
+    this.filterToggle.dataset.tlControl="filters-toggle";this.filterToggle.setAttribute("aria-controls",`${this.panelId}-filters`);this.filterToggle.setAttribute("aria-expanded",String(this.panel==="filters"));
+    const viewToggle=this.button("View",()=>this.togglePanel("view"),"Timeline view options","marginalia-timeline-panel-toggle");
+    viewToggle.dataset.tlControl="view-toggle";viewToggle.setAttribute("aria-controls",`${this.panelId}-view`);viewToggle.setAttribute("aria-expanded",String(this.panel==="view"));
+    if(this.state.snapshot===undefined)controls.append(this.filterToggle);controls.append(viewToggle);header.append(controls);this.root.append(header);
+    const view=this.node("div","marginalia-timeline-view-options");view.id=`${this.panelId}-view`;view.hidden=this.panel!=="view";view.setAttribute("role","region");view.setAttribute("aria-label","Timeline view options");
+    if(this.state.snapshot===undefined)view.append(this.zoomControls("marginalia-timeline-panel-zoom"));
+    if(this.state.snapshot===undefined)view.append(this.button("Locations…",()=>this.port.lanes(),"Choose and group location lanes"));
     const calendarLabel=this.node("label","marginalia-timeline-select","Display "),calendar=this.node("select");calendar.setAttribute("aria-label","Display calendar");calendar.dataset.tlControl="calendar";
     const calendars=world.registry.calendars.filter(c=>c.offset!==undefined);
     for(const c of calendars){const option=this.node("option","",c.name);option.value=c.path;calendar.append(option);}
     const selected=this.displayCalendar(world);
     calendar.value=selected?.path??"";calendar.disabled=!calendars.length;
     calendar.onchange=()=>{void this.port.calendar(calendar.value).then(()=>this.draw()).catch(()=>{if(this.status)this.status.textContent="Could not save the display calendar.";});};
-    calendarLabel.append(calendar);controls.append(calendarLabel);header.append(controls);this.root.append(header);
+    calendarLabel.append(calendar);view.append(calendarLabel);
+    if(this.state.snapshot===undefined){view.append(this.button("Previous event",()=>this.navigate(-1)),this.button("Next event",()=>this.navigate(1)));if(this.port.states)view.append(this.button("Snapshot at time…",()=>this.openSnapshot()));}
+    else view.append(this.button("Back to timeline",()=>this.closeSnapshot()));this.root.append(view);
+    view.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.panel=undefined;this.draw();this.root.querySelector<HTMLButtonElement>('[data-tl-control="view-toggle"]')?.focus();}};
+    if(this.state.snapshot!==undefined){
+      this.chart=undefined;this.body=undefined;this.details=undefined;this.status.textContent="";
+      if(!this.snapshotRoot){this.snapshotRoot=this.node("div");this.snapshotUI=new SnapshotUI(this.snapshotRoot,{
+        states:()=>this.port.states?.(),registry:()=>this.port.world()!.registry,calendar:()=>this.displayCalendar(this.port.world()!),time:()=>this.state.snapshot!,
+        change:time=>{this.state.snapshot=time;this.changed();this.snapshotUI?.refreshTime();},
+        open:path=>this.port.open(path),entry:path=>(this.port.entry??this.port.open)(path),back:()=>this.closeSnapshot(),
+      });}
+      this.root.append(this.snapshotRoot);this.snapshotUI!.draw();
+      if(snapshotFocus){const control=this.root.querySelector<HTMLInputElement>(`[data-snapshot-control="${snapshotFocus}"]`);control?.focus({preventScroll:true});if(selection!==null&&selection!==undefined&&(control?.type==="text"||control?.type==="search"))control.setSelectionRange(selection,selection);}
+      else if(focus)this.root.querySelector<HTMLElement>(`[data-tl-control="${focus}"]`)?.focus();return;
+    }
     const filters=this.node("div","marginalia-timeline-filters");
+    filters.id=`${this.panelId}-filters`;filters.hidden=this.panel!=="filters";filters.setAttribute("role","region");filters.setAttribute("aria-label","Search and filters");
+    for(const panel of [filters,view])panel.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.panel=undefined;this.changed();this.draw();this.root.querySelector<HTMLButtonElement>(`[data-tl-control="${panel===filters?"filters-toggle":"view-toggle"}"]`)?.focus();}};
     const search=this.node("input");search.type="search";search.placeholder="Find an event or participant…";search.setAttribute("aria-label","Find timeline events");search.value=this.state.filters.query;search.dataset.tlControl="query";
     search.oninput=()=>{this.state.filters.query=search.value;this.changed();this.renderBody();};filters.append(search);
     const options:{key:"type"|"tag"|"project";label:string;values:string[]}[]=[
@@ -71,11 +107,24 @@ export class WorldTimelineUI {
       select.value=this.state.filters[key];select.onchange=()=>{this.state.filters[key]=select.value;this.changed();this.renderBody();};filters.append(select);
     }
     filters.append(this.button("Clear filters",()=>{this.state.filters=emptyFilters();this.changed();this.draw();}));this.root.append(filters);
-    this.status=this.node("div","marginalia-timeline-status");this.status.setAttribute("role","status");this.root.append(this.status);
     this.body=this.node("div","marginalia-timeline-body");this.root.append(this.body);
-    this.details=this.node("section","marginalia-timeline-details");this.details.setAttribute("aria-label","Selected event details");this.root.append(this.details);
+    this.details=this.node("section","marginalia-timeline-details");this.details.setAttribute("aria-label","Selected event details");this.details.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.dismissDetails(true);}};this.root.append(this.details);
     this.renderBody(scrollTop,scrollLeft);this.renderDetails();
     if(focus){const control=this.root.querySelector<HTMLInputElement>(`[data-tl-control="${focus}"]`);control?.focus();if(selection!==null&&selection!==undefined&&control?.type==="search")control.setSelectionRange(selection,selection);}
+  }
+  private openSnapshot(){
+    const states=this.port.states?.();if(!states)return;
+    this.state.snapshot=this.port.world()?.events.find(event=>event.path===this.state.selected)?.effective?.key??snapshotTimes(states).at(-1)??0;
+    this.panel=undefined;this.changed();this.draw();
+  }
+  private closeSnapshot(){this.state.snapshot=undefined;this.panel=undefined;this.changed();this.draw();}
+  private togglePanel(panel:"filters"|"view"){
+    this.panel=this.panel===panel?undefined:panel;this.changed();this.draw();
+    if(this.panel==="filters")this.root.querySelector<HTMLInputElement>('[data-tl-control="query"]')?.focus();
+  }
+  private zoomControls(cls:string){
+    const group=this.node("div",`marginalia-timeline-zoom ${cls}`);
+    group.append(this.button("−",()=>this.zoom(2),"Zoom out"),this.button("+",()=>this.zoom(.5),"Zoom in"),this.button("↔",()=>{this.state.start=undefined;this.state.span=undefined;this.changed();this.renderBody();},"Fit events"));return group;
   }
   private displayCalendar(world:WorldTimeline):Calendar|undefined{
     return displayCalendar(world,this.port.settings());
@@ -90,13 +139,24 @@ export class WorldTimelineUI {
   private events(){const world=this.port.world()!;return filterEvents(world,this.state.filters);}
   private domain(){const world=this.port.world()!,extent=timelineExtent(world,this.events());return {start:this.state.start??extent[0],span:this.state.span??extent[1]-extent[0]};}
   private zoom(factor:number){const {start,span}=this.domain(),calendar=this.displayCalendar(this.port.world()!);const unit=!calendar||calendar.precision==="year"?1:calendar.precision==="month"?1/calendar.months.length:1/(calendar.months.length*calendar.daysPerMonth);const next=Math.max(unit*3,Math.min(2e16,span*factor));this.state.start=start+(span-next)/2;this.state.span=next;this.changed();this.renderBody();}
-  private pan(direction:number){const {start,span}=this.domain();this.state.start=start+span*.75*direction;this.state.span=span;this.changed();this.renderBody();}
+  private pan(direction:number){
+    const selector=`.marginalia-timeline-pan.${direction<0?"is-earlier":"is-later"}`,focused=this.root.ownerDocument.activeElement===this.root.querySelector(selector);
+    const {start,span}=this.domain();this.state.start=start+span*.75*direction;this.state.span=span;this.changed();this.renderBody();
+    if(focused)this.root.querySelector<HTMLButtonElement>(selector)?.focus();
+  }
   private select(event:WorldEvent,reveal=false){
     this.state.selected=event.path;this.changed();
     if(event.position===undefined){const undated=this.events().filter(e=>e.position===undefined).sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name));this.undatedLimit=Math.max(this.undatedLimit,undated.findIndex(e=>e.path===event.path)+1);}
     if(reveal&&event.position!==undefined){const {start,span}=this.domain();if(event.position<start||event.position>start+span){this.state.start=event.position-span/2;this.state.span=span;}}
     const top=this.chart?.scrollTop??0;this.renderBody(top,this.chart?.scrollLeft??0);this.renderDetails();
-    if(reveal){const button=this.root.querySelector<HTMLButtonElement>("button[data-event-selected='true']");button?.scrollIntoView({block:"nearest",inline:"nearest"});button?.focus();}
+    const button=this.root.querySelector<HTMLButtonElement>("button[data-event-selected='true']");
+    if(reveal)button?.scrollIntoView({block:"nearest",inline:"nearest"});
+    button?.focus({preventScroll:!reveal});
+  }
+  private dismissDetails(focusChart=false){
+    if(!this.state.selected)return;
+    this.state.selected="";this.changed();this.renderBody();
+    if(focusChart)this.chart?.focus();
   }
   private navigate(direction:number){
     const events=this.events().filter(event=>this.port.world()!.lanes.some(l=>l.path===event.lane&&l.enabled)||event.position===undefined).sort((a,b)=>(a.position??Infinity)-(b.position??Infinity)||a.order-b.order||a.name.localeCompare(b.name));
@@ -106,7 +166,9 @@ export class WorldTimelineUI {
     if(!this.body||this.disposed)return;
     const world=this.port.world();if(!world)return;
     const events=this.events(),{start,span}=this.domain();
-    this.status!.replaceChildren(this.node("span","",`${events.length} of ${world.events.length} events`),this.button("‹",()=>this.pan(-1),"Earlier years"),this.button("›",()=>this.pan(1),"Later years"),this.button("Previous event",()=>this.navigate(-1)),this.button("Next event",()=>this.navigate(1)));
+    this.status!.replaceChildren(this.node("span","",events.length===world.events.length?`${events.length} events`:`${events.length}/${world.events.length} events`));
+    const active=Object.values(this.state.filters).filter(value=>value.trim()).length;
+    if(this.filterToggle){this.filterToggle.textContent=active?`Filters (${active})`:"Filters";this.filterToggle.classList.toggle("is-active",active>0);this.filterToggle.setAttribute("aria-label",active?`Search and filters, ${active} active`:"Search and filters");}
     const errors=world.diagnostics.length;
     if(errors){
       const details=this.node("details","marginalia-timeline-issues"),summary=this.node("summary","",`${errors} ${errors===1?"issue":"issues"}`);details.append(summary);
@@ -122,8 +184,12 @@ export class WorldTimelineUI {
     }
     if(this.port.settings().displayCalendar&&!world.registry.calendars.some(c=>c.path===this.port.settings().displayCalendar&&c.offset!==undefined))this.status!.append(this.node("span","marginalia-timeline-warning","Saved display calendar is unavailable; using an available calendar."));
     this.body.replaceChildren();
-    const chart=this.node("div","marginalia-timeline-chart");chart.setAttribute("aria-label","World timeline by location");chart.tabIndex=0;this.chart=chart;
-    const width=Math.max(620,this.root.clientWidth-210),stage=this.node("div","marginalia-timeline-stage");stage.style.width=`${width+180}px`;chart.append(stage);this.body.append(chart);
+    const frame=this.node("div","marginalia-timeline-chart-frame"),chart=this.node("div","marginalia-timeline-chart");chart.setAttribute("aria-label","World timeline by location");chart.tabIndex=0;this.chart=chart;
+    chart.onclick=event=>{const target=event.target as Element|null;if(target&&!target.closest("button,a,input,select,summary"))this.dismissDetails();};
+    chart.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.dismissDetails(true);}};
+    const earlier=this.button("‹",()=>this.pan(-1),"Earlier years","marginalia-timeline-pan is-earlier"),later=this.button("›",()=>this.pan(1),"Later years","marginalia-timeline-pan is-later");
+    frame.append(chart,earlier,later);
+    const width=Math.max(620,this.root.clientWidth-210),stage=this.node("div","marginalia-timeline-stage");stage.style.width=`${width+180}px`;chart.append(stage);this.body.append(frame);
     const lanes=layoutTimeline(world,events,start,span,width);
     const bottom=lanes.length?lanes.at(-1)!.top+lanes.at(-1)!.height:140;stage.style.height=`${bottom}px`;
     const axis=this.node("div","marginalia-timeline-axis"),axisTitle=this.node("div","marginalia-timeline-axis-title",this.displayCalendar(world)?.name??"No display calendar");axis.append(axisTitle);
@@ -181,19 +247,20 @@ export class WorldTimelineUI {
     const card=this.button("",()=>this.select(event),`${event.name}, ${this.dateLabel(event)}`,`marginalia-timeline-event${selected?" is-selected":""}${!event.effective?" is-undated":""}`);
     card.dataset.eventPath=event.path;card.dataset.eventSelected=String(selected);card.setAttribute("aria-pressed",String(selected));
     card.append(this.node("strong","",event.name),this.node("span","marginalia-timeline-event-date",this.dateLabel(event)));
-    const badges=this.node("span","marginalia-timeline-badges");for(const participant of event.participants.slice(0,4)){const chip=this.node("span","marginalia-timeline-chip",`${participant.name.split(/\s+/).map(w=>w[0]).join("").slice(0,2)}${participant.effect==="Appears"?"+":participant.effect==="Disappears"?"−":""}`);chip.dataset.type=participant.type.toLowerCase();chip.title=`${participant.name}${participant.effect?": "+participant.effect:""}`;badges.append(chip);}
+    const badges=this.node("span","marginalia-timeline-badges");for(const participant of event.participants.slice(0,4)){const chip=this.node("span","marginalia-timeline-chip",`${participant.name.split(/\s+/).map(w=>w[0]).join("").slice(0,2)}${(participant.effects?.length??0)>1?"!":participant.effect==="Appears"?"+":participant.effect==="Disappears"?"−":""}`);chip.dataset.type=participant.type.toLowerCase();chip.title=`${participant.name}${(participant.effects?.length??0)>1?": Conflicting changes":participant.effect?": "+participant.effect:""}`;badges.append(chip);}
     if(event.participants.length>4)badges.append(this.node("span","",`+${event.participants.length-4}`));
     if(event.related.length)badges.append(this.node("span","marginalia-timeline-related",`${event.related.length} ${event.related.length===1?"reference":"references"}`));card.append(badges);return card;
   }
   private renderDetails(){
     if(!this.details)return;const world=this.port.world()!,event=world.events.find(e=>e.path===this.state.selected);
     this.details.replaceChildren();
-    if(!event){this.details.append(this.node("p","marginalia-timeline-muted","Select an event to see its dates, participants, locations and related writing."));return;}
-    const heading=this.node("div","marginalia-timeline-detail-heading");heading.append(this.node("div","marginalia-timeline-context",this.dateLabel(event)),this.node("h2","",event.name),this.button("Open event note",()=>this.port.open(event.path)));this.details.append(heading);
+    this.details.hidden=!event;
+    if(!event)return;
+    const heading=this.node("div","marginalia-timeline-detail-heading");heading.append(this.node("div","marginalia-timeline-context",this.dateLabel(event)),this.node("h2","",event.name),this.button("Open event note",()=>this.port.open(event.path)),this.button("×",()=>this.dismissDetails(true),"Close event details","marginalia-timeline-detail-close"));this.details.append(heading);
     const columns=this.node("div","marginalia-timeline-detail-columns");
     const participants=this.node("div");participants.append(this.node("h3","","Participants"));
     if(!event.participants.length)participants.append(this.node("p","marginalia-timeline-muted","No participant links in frontmatter."));
-    for(const p of event.participants)participants.append(this.button(p.name+(p.effect?` · ${p.effect}`:""),()=>this.port.open(p.path)));
+    for(const p of event.participants)participants.append(this.button(p.name+((p.effects?.length??0)>1?" · Conflicting changes":p.effect?` · ${p.effect}`:""),()=>this.port.open(p.path)));
     const location=this.node("div");location.append(this.node("h3","","Location"));if(!event.locations.length)location.append(this.node("p","marginalia-timeline-muted","Unknown"));for(const l of event.locations)location.append(this.button(l.name,()=>this.port.open(l.path)));if(event.lane===MULTIPLE)location.append(this.node("p","marginalia-timeline-warning","Multiple locations; no single location is assumed."));if(event.lane===UNPLACED&&event.locations.length)location.append(this.node("p","marginalia-timeline-warning","Some location links are unresolved."));
     columns.append(participants,location);
     if(event.related.length){const related=this.node("div");related.append(this.node("h3","","Related writing"));for(const reference of event.related)related.append(this.button(reference.name,()=>this.port.open(reference.path)));columns.append(related);}

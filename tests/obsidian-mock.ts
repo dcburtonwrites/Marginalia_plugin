@@ -19,6 +19,14 @@ export class MarkdownView {
   editor: any;
   mode = "source";
   stateChanges: any[] = [];
+  actions: any[] = [];
+  addAction(icon:string,title:string,callback:any) {
+    const action:any={icon,title,callback,parentElement:this.actions};
+    action.remove=()=>{const i=this.actions.indexOf(action);if(i>=0)this.actions.splice(i,1);};
+    action.after=(other:any)=>{other.remove();this.actions.splice(this.actions.indexOf(action)+1,0,other);};
+    Object.defineProperty(action,"nextSibling",{get:()=>this.actions[this.actions.indexOf(action)+1]});
+    this.actions.push(action);return action;
+  }
   constructor(file: any, editor: any) {
     this.file = file;
     this.editor = editor;

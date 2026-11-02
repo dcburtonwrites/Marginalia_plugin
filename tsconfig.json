@@ -26,6 +26,8 @@
     "tests/writing.test.ts",
     "tests/shortcuts.test.ts",
     "tests/workspace.test.ts",
-    "tests/timeline.test.ts"
+    "tests/timeline.test.ts",
+    "tests/timeline-librarian.test.ts",
+    "tests/librarian-review.test.ts"
   ]
 }

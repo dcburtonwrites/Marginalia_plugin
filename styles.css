@@ -1071,7 +1071,7 @@ body.is-mobile .marginalia-content-menu label {min-height:44px;}
   --tl-bg:var(--background-primary,#fff);--tl-panel:var(--background-secondary,#f5f4f1);
   --tl-line:var(--background-modifier-border,#d9d6d0);--tl-text:var(--text-normal,#292824);
   --tl-muted:var(--text-muted,#77736c);--tl-copper:#a8622e;--tl-event:#6a7d9f;--tl-location:#7d8f6a;
-  display:flex;flex-direction:column;min-height:0;height:100%;padding:0!important;
+  display:flex;flex-direction:column;min-height:0;height:100%;padding:0!important;container-type:inline-size;
   background:var(--tl-bg);color:var(--tl-text);font:13px var(--font-interface,system-ui,sans-serif);
 }
 .theme-dark .marginalia-world-timeline {--tl-copper:#d98e4a;--tl-event:#8fa3c9;--tl-location:#9db286;}
@@ -1081,24 +1081,43 @@ body.is-mobile .marginalia-content-menu label {min-height:44px;}
 .marginalia-world-timeline button {background:var(--tl-panel);cursor:pointer;min-height:30px;padding:5px 10px;white-space:nowrap;}
 .marginalia-world-timeline button:hover {border-color:var(--tl-copper);}
 .marginalia-world-timeline :focus-visible {outline:2px solid var(--tl-copper);outline-offset:2px;}
-.marginalia-timeline-header {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px 14px;border-bottom:1px solid var(--tl-line);flex-wrap:wrap;flex:none;}
+.marginalia-timeline-header {position:relative;display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--tl-line);flex-wrap:nowrap;flex:none;min-height:44px;}
+.marginalia-timeline-header>div:first-child {min-width:0;flex:0 1 auto;}
 .marginalia-timeline-context {font-size:11px;color:var(--tl-muted);}
-.marginalia-timeline-header h1 {font:500 24px "Source Serif 4",var(--font-serif,Georgia,serif);margin:3px 0 0;}
-.marginalia-timeline-controls,.marginalia-timeline-filters {display:flex;align-items:center;flex-wrap:wrap;gap:7px;}
+.marginalia-timeline-header h1 {font:500 20px/1.2 "Source Serif 4",var(--font-serif,Georgia,serif);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.marginalia-timeline-controls,.marginalia-timeline-filters,.marginalia-timeline-view-options {display:flex;align-items:center;flex-wrap:wrap;gap:7px;}
+.marginalia-timeline-controls {flex-wrap:nowrap;flex:none;}
+.marginalia-timeline-header button {min-height:26px;height:26px;padding:3px 8px;font-size:12px;}
+.marginalia-timeline-zoom {display:flex;gap:3px;align-items:center;}
+.marginalia-timeline-zoom button {width:26px;min-height:26px;height:26px;padding:0;font-size:16px;}
+.marginalia-timeline-view-options {padding:8px 16px;border-bottom:1px solid var(--tl-line);flex:none;}
+.marginalia-timeline-panel-zoom {display:none;}
+.marginalia-timeline-panel-toggle[aria-expanded=true],.marginalia-timeline-panel-toggle.is-active {color:var(--tl-copper);border-color:var(--tl-copper);}
+.marginalia-timeline-filters[hidden],.marginalia-timeline-view-options[hidden] {display:none;}
 .marginalia-timeline-select {display:flex;align-items:center;gap:6px;color:var(--tl-muted);font-size:12px;}
 .marginalia-world-timeline select {max-width:200px;height:30px;background:var(--tl-panel);padding:3px 22px 3px 8px;}
-.marginalia-timeline-filters {padding:10px 24px 4px;flex:none;}
+.marginalia-timeline-filters {padding:8px 16px;border-bottom:1px solid var(--tl-line);flex:none;}
 .marginalia-timeline-filters input[type=search] {width:255px;max-width:100%;height:30px;padding:5px 10px;background:var(--tl-bg);}
-.marginalia-timeline-status {padding:5px 24px 10px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;color:var(--tl-muted);font-size:11px;flex:none;}
-.marginalia-timeline-status>span:first-child {margin-right:auto;}
+.marginalia-timeline-status {padding:0;display:flex;align-items:center;flex-wrap:nowrap;gap:8px;color:var(--tl-muted);font-size:11px;flex:1;min-width:0;}
+.marginalia-timeline-status>span {white-space:nowrap;}
+.marginalia-timeline-status>.marginalia-timeline-warning {overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.marginalia-timeline-status>span:first-child {flex:none;}
 .marginalia-timeline-status button {font-size:11px;min-height:26px;padding:3px 7px;}
 .marginalia-timeline-issues {position:relative;}
 .marginalia-timeline-issues summary {cursor:pointer;color:var(--tl-copper);}
-.marginalia-timeline-issues[open] {width:100%;max-height:180px;overflow:auto;border-top:1px solid var(--tl-line);padding:8px 0;}
+.marginalia-timeline-issues[open] {position:absolute;top:100%;left:12px;right:12px;z-index:25;max-height:200px;overflow:auto;border:1px solid var(--tl-line);border-radius:4px;background:var(--tl-panel);padding:10px 12px;}
 .marginalia-timeline-issues p {margin:4px 0;display:flex;gap:8px;align-items:baseline;}
 .marginalia-timeline-issues p span {overflow-wrap:anywhere;}
 .marginalia-timeline-body {flex:1;min-height:180px;overflow:auto;display:flex;flex-direction:column;border-top:1px solid var(--tl-line);}
-.marginalia-timeline-chart {position:relative;flex:1;min-height:240px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;}
+.marginalia-timeline-chart-frame {position:relative;display:flex;flex:1;min-height:240px;overflow:hidden;}
+.marginalia-timeline-chart {position:relative;flex:1;min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;}
+.marginalia-world-timeline .marginalia-timeline-pan {position:absolute;top:50%;transform:translateY(-50%);z-index:12;width:30px;height:38px;min-height:38px;padding:0;font-size:24px;opacity:0;pointer-events:none;background:var(--tl-panel);box-shadow:0 2px 8px #0002;}
+.marginalia-timeline-pan.is-earlier {left:188px;}
+.marginalia-timeline-pan.is-later {right:12px;}
+.marginalia-timeline-chart-frame:hover .marginalia-timeline-pan,.marginalia-timeline-chart-frame:has(:focus-visible) .marginalia-timeline-pan {opacity:1;pointer-events:auto;}
+@media (hover:none) {.marginalia-world-timeline .marginalia-timeline-pan {opacity:1;pointer-events:auto;}}
+@container (max-width:480px) {.marginalia-timeline-toolbar-zoom {display:none;}.marginalia-timeline-panel-zoom {display:flex;}.marginalia-timeline-header {gap:8px;padding-inline:12px;}}
+@container (max-width:420px) {.marginalia-timeline-status>span:first-child {display:none;}}
 .marginalia-timeline-stage {position:relative;min-width:100%;}
 .marginalia-timeline-axis {position:sticky;top:0;z-index:8;height:56px;background:var(--tl-bg);border-bottom:1px solid var(--tl-line);}
 .marginalia-timeline-axis-title {position:sticky;left:0;z-index:9;display:flex;align-items:center;width:180px;height:56px;padding:0 18px;background:var(--tl-bg);font-size:11px;color:var(--tl-muted);border-right:1px solid var(--tl-line);overflow:hidden;}
@@ -1131,6 +1150,7 @@ body.is-mobile .marginalia-content-menu label {min-height:44px;}
 .marginalia-timeline-detail-heading h2 {font:500 18px "Source Serif 4",var(--font-serif,Georgia,serif);margin:0;}
 .marginalia-timeline-detail-heading .marginalia-timeline-context {width:100%;}
 .marginalia-timeline-detail-heading button {margin-left:auto;}
+.marginalia-timeline-detail-heading .marginalia-timeline-detail-close {margin-left:0;padding:2px 8px;font-size:20px;line-height:1;}
 .marginalia-timeline-detail-columns {display:flex;flex-wrap:wrap;gap:24px;margin-top:8px;}
 .marginalia-timeline-detail-columns>div {flex:1;min-width:180px;}
 .marginalia-timeline-details h3 {font-size:11px;color:var(--tl-muted);font-weight:500;margin:0 0 5px;}
@@ -1147,3 +1167,55 @@ body.is-mobile .marginalia-content-menu label {min-height:44px;}
 .marginalia-timeline-lanes-modal .setting-item {gap:12px;}
 .marginalia-timeline-lanes-modal .setting-item-control {flex-wrap:wrap;gap:8px;}
 .marginalia-timeline-lanes-modal input[type=text] {width:145px;}
+
+.marginalia-timeline-details[hidden] {display:none;}
+.marginalia-entry-summary {padding:14px 20px;border-bottom:1px solid var(--tl-line);display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;flex:none;background:var(--tl-panel);}
+.marginalia-entry-summary h2 {width:100%;font-size:11px;font-weight:500;color:var(--tl-muted);margin:0;}
+.marginalia-entry-state {font-size:14px;font-weight:500;}
+.marginalia-entry-state.is-conflict,.marginalia-entry-state.is-absent {color:var(--text-warning,var(--tl-copper));}
+.marginalia-entry-state.is-present {color:var(--tl-location);}
+.marginalia-entry-state.is-unknown {color:var(--tl-muted);}
+.marginalia-entry-location {display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-left:auto;}
+.marginalia-entry-location button {font-size:12px;min-height:26px;padding:3px 7px;}
+.marginalia-entry-history {flex:1;min-height:0;overflow:auto;padding:16px 20px;}
+.marginalia-entry-history-list {list-style:none;padding:0;margin:0;}
+.marginalia-entry-history-row {display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;border-bottom:1px solid var(--tl-line);padding:14px 0;margin:0;}
+.marginalia-entry-history-date {color:var(--tl-muted);font-size:12px;overflow-wrap:anywhere;padding-top:4px;}
+.marginalia-entry-history-content>button {font:500 16px "Source Serif 4",var(--font-serif,Georgia,serif);border:0;background:transparent;padding:0;min-height:24px;white-space:normal;text-align:left;}
+.marginalia-entry-history-content p {font-size:12px;margin:5px 0;line-height:1.5;}
+.marginalia-entry-history-content p button {font-size:12px;padding:2px 6px;min-height:24px;margin:0 5px 3px 0;}
+.marginalia-entry-overridden {border-left:2px solid var(--tl-copper);padding-left:8px;}
+.marginalia-entry-issues {padding:8px 0;color:var(--tl-copper);font-size:12px;}
+.marginalia-entry-issues summary {cursor:pointer;}
+@container (max-width:500px) {.marginalia-entry-history-row {grid-template-columns:1fr;gap:5px;}.marginalia-entry-location {margin-left:0;width:100%;}}
+
+/* Snapshot uses the existing timeline palette and a quiet evidence table. */
+.marginalia-snapshot {flex:1;min-height:0;display:flex;flex-direction:column;padding:14px 24px;gap:10px;overflow:auto;}
+.marginalia-snapshot-controls,.marginalia-snapshot-date,.marginalia-snapshot-scrub,.marginalia-snapshot-filters {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.marginalia-snapshot-date label {display:flex;align-items:center;gap:8px;}
+.marginalia-snapshot-date input {width:230px;max-width:100%;}
+.marginalia-snapshot-controls>button {margin-left:auto;}
+.marginalia-snapshot-scrub input[type=range] {flex:1;min-width:100px;}
+.marginalia-snapshot-scrub>span {font-size:11px;}
+.marginalia-snapshot>p {margin:0;font-size:12px;max-width:85ch;}
+.marginalia-snapshot-results {flex:1;min-height:150px;overflow:auto;}
+.marginalia-snapshot-count {font-size:12px;color:var(--tl-muted);margin:0 0 8px;}
+.marginalia-snapshot-table {width:100%;border-collapse:collapse;font-size:12px;}
+.marginalia-snapshot-table th {text-align:left;font-weight:500;color:var(--tl-muted);background:var(--tl-panel);position:sticky;top:0;z-index:1;}
+.marginalia-snapshot-table th,.marginalia-snapshot-table td {padding:9px 10px;border-bottom:1px solid var(--tl-line);vertical-align:top;}
+.marginalia-snapshot-table button {height:auto;min-height:24px;padding:2px 6px;margin:0 5px 3px 0;font-size:12px;white-space:normal;text-align:left;}
+.marginalia-snapshot-type {display:block;font-size:11px;color:var(--tl-muted);}
+.marginalia-snapshot-state.is-conflict {color:var(--text-warning);}
+.marginalia-snapshot-state.is-unknown,.marginalia-snapshot-state.is-absent {color:var(--tl-muted);}
+@container (max-width:600px) {.marginalia-snapshot {padding:12px;}.marginalia-snapshot-table th,.marginalia-snapshot-table td {padding:7px 5px;}.marginalia-snapshot-date input {width:180px;}}
+
+.marginalia-review-workspace-header,.marginalia-review-tools {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.marginalia-review-workspace-header h3 {margin:0;}
+.marginalia-review-setup {display:grid;gap:12px;margin:16px 0;}
+.marginalia-review-setup label {display:flex;flex-direction:column;gap:6px;}
+.marginalia-review-setup input,.marginalia-review-setup select {width:100%;}
+.marginalia-review-check {display:flex;align-items:flex-start;gap:8px;}
+.marginalia-development-chat .marginalia-message {margin-bottom:16px;}
+.marginalia-development-chat {overflow-wrap:anywhere;}
+.marginalia-review-path {overflow-wrap:anywhere;}
+.marginalia-review-setup [hidden] {display:none;}
