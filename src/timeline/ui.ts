@@ -1,10 +1,11 @@
+import {threadParticipants,threadGeometry,threadColor,threadSegmentVisible} from "./threads.ts";
 import {SnapshotUI} from "./snapshot-ui.ts";
 import {snapshotTimes} from "./snapshot.ts";
 import type {StateTimelines} from "./state.ts";
 import {formatDate,type Calendar,type TimelineDate} from "./calendar.ts";
 import {groupStyles,type TimelineSettings} from "./model.ts";
-import {matchingCanonEntries,emptyFilters,filterEvents,layoutTimeline,fittedTimelineExtent,displayCalendar,type WorldTimeline,type WorldEvent,type LayoutLane,type TimelineFilters,UNPLACED,MULTIPLE} from "./world.ts";
-export interface TimelineUIState {filters: TimelineFilters; start?: number; span?: number; selected: string; snapshot?:number}
+import {matchingCanonEntries,emptyFilters,filterEvents,layoutTimeline,fittedTimelineExtent,displayCalendar,type WorldTimeline,type WorldEvent,type LayoutLane,type TimelineFilters,type Reference,UNPLACED,MULTIPLE} from "./world.ts";
+export interface TimelineUIState {filters: TimelineFilters; start?: number; span?: number; selected: string; snapshot?:number; threads:boolean; threadImages:boolean}
 export function visibleLaneCenter(lanes:Pick<LayoutLane,'top'|'height'>[],scrollTop:number,height:number):number|undefined {
   if(!lanes.length)return;const top=Math.max(56,lanes[0].top-scrollTop),last=lanes.at(-1)!,bottom=Math.min(height,last.top+last.height-scrollTop);
   return bottom>top?(top+bottom)/2:undefined;
@@ -12,12 +13,15 @@ export function visibleLaneCenter(lanes:Pick<LayoutLane,'top'|'height'>[],scroll
 let nextTimelinePanel=0;
 export function readTimelineUIState(value: unknown): TimelineUIState {
   const raw=value&&typeof value==="object"?value as Record<string,unknown>:{},filters=raw.filters&&typeof raw.filters==="object"?raw.filters as Record<string,unknown>:{};
-  const normalized=emptyFilters();for(const key of Object.keys(normalized) as (keyof TimelineFilters)[])if(typeof filters[key]==="string")normalized[key]=filters[key];
-  return {filters:normalized,start:typeof raw.start==="number"&&Number.isFinite(raw.start)?raw.start:undefined,span:typeof raw.span==="number"&&Number.isFinite(raw.span)&&raw.span>0?raw.span:undefined,snapshot:typeof raw.snapshot==="number"&&Number.isFinite(raw.snapshot)?raw.snapshot:undefined,selected:typeof raw.selected==="string"?raw.selected:""};
+  const normalized=emptyFilters();for(const key of ['query','type','tag','project'] as const)if(typeof filters[key]==="string")normalized[key]=filters[key];
+  normalized.entries=[...new Set((Array.isArray(filters.entries)?filters.entries:typeof filters.entry==='string'&&filters.entry?[filters.entry]:[]).filter((value):value is string=>typeof value==='string'&&!!value.trim()))];
+  if(!Array.isArray(filters.entries)&&normalized.entries.length)normalized.query='';
+  return {threads:raw.threads===true,threadImages:raw.threadImages!==false,filters:normalized,start:typeof raw.start==="number"&&Number.isFinite(raw.start)?raw.start:undefined,span:typeof raw.span==="number"&&Number.isFinite(raw.span)&&raw.span>0?raw.span:undefined,snapshot:typeof raw.snapshot==="number"&&Number.isFinite(raw.snapshot)?raw.snapshot:undefined,selected:typeof raw.selected==="string"?raw.selected:""};
 }
 export interface TimelineUIPort {
   world(): WorldTimeline | undefined;
   states?():StateTimelines|undefined;
+  image?(entry:Reference):string|undefined;
   entry?(path:string):void;
   settings(): TimelineSettings;
   calendar(path: string): Promise<void>;
@@ -38,6 +42,8 @@ export class WorldTimelineUI {
   private width=0;
   private suggestionCleanup?:()=>void;
   private positionArrows?:()=>void;
+  private threadFocus?:string;
+  private pinnedThread?:string;
   private undatedLimit=100;
   private panel?:"filters"|"view";
   private panelId=`marginalia-timeline-panel-${++nextTimelinePanel}`;
@@ -75,6 +81,10 @@ export class WorldTimelineUI {
     const view=this.node("div","marginalia-timeline-view-options");view.id=`${this.panelId}-view`;view.hidden=this.panel!=="view";view.setAttribute("role","region");view.setAttribute("aria-label","Timeline view options");
     if(this.state.snapshot===undefined)view.append(this.zoomControls("marginalia-timeline-panel-zoom"));
     if(this.state.snapshot===undefined)view.append(this.button("Locations…",()=>this.port.lanes(),"Choose and group location lanes"));
+    if(this.state.snapshot===undefined){
+      const label=this.node('label','marginalia-timeline-threads-toggle'),toggle=this.node('input');toggle.type='checkbox';toggle.checked=this.state.threads;toggle.setAttribute('aria-label','Threads');toggle.onchange=()=>{this.state.threads=toggle.checked;this.threadFocus=undefined;if(!toggle.checked)this.pinnedThread=undefined;this.changed();this.draw();};label.append(toggle,this.node('span','','Threads'));view.append(label);
+      if(this.state.threads){const imagesLabel=this.node('label','marginalia-timeline-threads-toggle'),images=this.node('input');images.type='checkbox';images.checked=this.state.threadImages;images.setAttribute('aria-label','Use entry images');images.onchange=()=>{this.state.threadImages=images.checked;this.changed();this.renderBody();};imagesLabel.append(images,this.node('span','','Entry images'));view.append(imagesLabel);}
+    }
     const calendarLabel=this.node("label","marginalia-timeline-select","Display "),calendar=this.node("select");calendar.setAttribute("aria-label","Display calendar");calendar.dataset.tlControl="calendar";
     const calendars=world.registry.calendars.filter(c=>c.offset!==undefined);
     for(const c of calendars){const option=this.node("option","",c.name);option.value=c.path;calendar.append(option);}
@@ -105,15 +115,19 @@ export class WorldTimelineUI {
     let matches:ReturnType<typeof matchingCanonEntries>=[],highlight=-1;
     const close=()=>{list.hidden=true;search.setAttribute('aria-expanded','false');search.removeAttribute('aria-activedescendant');highlight=-1;};
     const mark=()=>{const rows=list.querySelectorAll<HTMLElement>('[role=option]');rows.forEach((row,i)=>row.setAttribute('aria-selected',String(i===highlight)));if(highlight>=0){search.setAttribute('aria-activedescendant',rows[highlight].id);rows[highlight].scrollIntoView({block:'nearest'});}else search.removeAttribute('aria-activedescendant');};
-    const choose=(entry:typeof matches[number])=>{this.state.filters.query=entry.name;this.state.filters.entry=entry.path;search.value=entry.name;close();this.changed();this.renderBody();search.focus({preventScroll:true});};
+    const chips=this.node('div','marginalia-timeline-canon-chips');chips.setAttribute('aria-label','Selected Canon entries');
+    const drawChips=()=>{chips.replaceChildren();chips.hidden=!(this.state.filters.entries?.length);
+      for(const path of this.state.filters.entries??[]){const entry=world.canon?.find(e=>e.path===path),name=entry?.name??path.split('/').at(-1)!.replace(/\.md$/i,'');const chip=this.node('span','marginalia-timeline-canon-chip');chip.title=path;chip.append(this.node('span','',name));const remove=this.button('×',()=>{this.state.filters.entries=this.state.filters.entries?.filter(p=>p!==path);this.state.filters.entry=undefined;this.changed();this.renderBody();drawChips();search.focus({preventScroll:true});},`Remove ${name} (${path})`);chip.append(remove);chips.append(chip);}
+    };
+    const choose=(entry:typeof matches[number])=>{this.state.filters.entries=[...new Set([...this.state.filters.entries??[],entry.path])];this.state.filters.entry=undefined;this.state.filters.query='';search.value='';close();this.changed();this.renderBody();drawChips();search.focus({preventScroll:true});};
     const suggest=()=>{
-      list.replaceChildren();highlight=-1;matches=matchingCanonEntries(world.canon??[],search.value).slice(0,12);if(!search.value.trim()){close();return;}
+      list.replaceChildren();highlight=-1;matches=matchingCanonEntries(world.canon??[],search.value).filter(e=>!this.state.filters.entries?.includes(e.path)).slice(0,12);if(!search.value.trim()){close();return;}
       for(const [i,entry] of matches.entries()){const option=this.button('',()=>choose(entry),`${entry.name} · ${entry.type} · ${entry.path}`,'marginalia-timeline-search-option');option.id=`${list.id}-${i}`;option.setAttribute('role','option');option.setAttribute('aria-selected','false');option.tabIndex=-1;option.append(this.node('strong','',entry.name),this.node('span','',`${entry.type} · ${entry.path}`));option.onmousedown=event=>event.preventDefault();list.append(option);}
       if(!matches.length)list.append(this.node('p','marginalia-timeline-muted','No matching Canon entries.'));
       search.removeAttribute('aria-activedescendant');list.hidden=false;search.setAttribute('aria-expanded','true');
     };
-    search.oninput=()=>{this.state.filters.query=search.value;this.state.filters.entry='';this.changed();this.renderBody();suggest();};
-    search.onfocus=()=>{if(search.value.trim()&&!this.state.filters.entry)suggest();};
+    search.oninput=()=>{this.state.filters.query=search.value;this.changed();this.renderBody();suggest();};
+    search.onfocus=()=>{if(search.value.trim())suggest();};
     search.onkeydown=event=>{
       if(event.key==='Escape'&&!list.hidden){event.preventDefault();event.stopPropagation();close();return;}
       if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();if(list.hidden)suggest();if(matches.length){highlight=event.key==='ArrowDown'?(highlight+1)%matches.length:(highlight<=0?matches.length-1:highlight-1);mark();}}
@@ -133,9 +147,9 @@ export class WorldTimelineUI {
       if(this.state.filters[key]&&!values.includes(this.state.filters[key])){const option=this.node("option","",this.state.filters[key]+" (unavailable)");option.value=this.state.filters[key];select.append(option);}
       select.value=this.state.filters[key];select.onchange=()=>{this.state.filters[key]=select.value;this.changed();this.renderBody();};filters.append(select);
     }
-    filters.append(this.button("Clear filters",()=>{this.state.filters=emptyFilters();this.changed();this.draw();}));this.root.append(filters);
+    filters.append(this.button("Clear filters",()=>{this.state.filters=emptyFilters();this.changed();this.draw();}),chips);drawChips();this.root.append(filters);
     this.body=this.node("div","marginalia-timeline-body");this.root.append(this.body);
-    this.details=this.node("section","marginalia-timeline-details");this.details.setAttribute("aria-label","Selected event details");this.details.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.dismissDetails(true);}};this.root.append(this.details);
+    this.details=this.node("section","marginalia-timeline-details");this.details.setAttribute("aria-label","Selected event details");this.details.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();if(this.pinnedThread){this.pinnedThread=undefined;this.highlightThread();}else this.dismissDetails(true);}};this.root.append(this.details);
     this.renderBody(scrollTop,scrollLeft);this.renderDetails();
     if(focus){const control=this.root.querySelector<HTMLInputElement>(`[data-tl-control="${focus}"]`);control?.focus();if(selection!==null&&selection!==undefined&&control?.type==="search")control.setSelectionRange(selection,selection);}
   }
@@ -164,7 +178,7 @@ export class WorldTimelineUI {
     return event.start&&event.end?`${render(event.start)} – ${render(event.end)}`:render(event.date!);
   }
   private events(){const world=this.port.world()!;return filterEvents(world,this.state.filters);}
-  private domain(){const world=this.port.world()!,extent=fittedTimelineExtent(world,this.events(),Math.max(240,(this.chart?.clientWidth||this.root.clientWidth)-180));return {start:this.state.start??extent[0],span:this.state.span??extent[1]-extent[0]};}
+  private domain(){const world=this.port.world()!,extent=fittedTimelineExtent(world,this.events().filter(e=>!this.state.threads||e.effective),Math.max(240,(this.chart?.clientWidth||this.root.clientWidth)-180));return {start:this.state.start??extent[0],span:this.state.span??extent[1]-extent[0]};}
   private zoom(factor:number){const {start,span}=this.domain(),calendar=this.displayCalendar(this.port.world()!);const unit=!calendar||calendar.precision==="year"?1:calendar.precision==="month"?1/calendar.months.length:1/(calendar.months.length*calendar.daysPerMonth);const next=Math.max(unit*3,Math.min(2e16,span*factor));this.state.start=start+(span-next)/2;this.state.span=next;this.changed();this.renderBody();}
   private pan(direction:number){
     const selector=`.marginalia-timeline-pan.${direction<0?"is-earlier":"is-later"}`,focused=this.root.ownerDocument.activeElement===this.root.querySelector(selector);
@@ -194,7 +208,7 @@ export class WorldTimelineUI {
     const world=this.port.world();if(!world)return;
     const events=this.events(),{start,span}=this.domain();
     this.status!.replaceChildren(this.node("span","",events.length===world.events.length?`${events.length} events`:`${events.length}/${world.events.length} events`));
-    const active=[this.state.filters.query,this.state.filters.type,this.state.filters.tag,this.state.filters.project].filter(value=>value.trim()).length;
+    const active=(this.state.filters.entries?.length??0)+[this.state.filters.entries?.length?'':this.state.filters.query,this.state.filters.type,this.state.filters.tag,this.state.filters.project].filter(value=>value.trim()).length;
     if(this.filterToggle){this.filterToggle.textContent=active?`Filters (${active})`:"Filters";this.filterToggle.classList.toggle("is-active",active>0);this.filterToggle.setAttribute("aria-label",active?`Search and filters, ${active} active`:"Search and filters");}
     const errors=world.diagnostics.length;
     if(errors){
@@ -210,9 +224,11 @@ export class WorldTimelineUI {
       details.ontoggle=()=>{if(details.open&&details.childElementCount===1)show(100);};this.status!.append(details);
     }
     if(this.port.settings().displayCalendar&&!world.registry.calendars.some(c=>c.path===this.port.settings().displayCalendar&&c.offset!==undefined))this.status!.append(this.node("span","marginalia-timeline-warning","Saved display calendar is unavailable; using an available calendar."));
-    this.body.replaceChildren();
+    this.body.replaceChildren();this.threadFocus=undefined;
+    if(this.pinnedThread&&!events.some(e=>(!e.effective||world.lanes.some(l=>l.enabled&&l.path===e.lane))&&threadParticipants(e,this.state.filters.entries??[]).some(p=>p.path===this.pinnedThread)))this.pinnedThread=undefined;
+    if(this.state.threads)this.body.append(this.node('p','marginalia-timeline-thread-note','Threads connect recorded event participation, including offscreen occurrences. Dotted links share a recorded time with no specified order.'));
     const frame=this.chart?.parentElement?.classList.contains("marginalia-timeline-chart-frame")?this.chart.parentElement:this.node("div","marginalia-timeline-chart-frame"),chart=this.chart??this.node("div","marginalia-timeline-chart");frame.replaceChildren();chart.replaceChildren();chart.setAttribute("aria-label","World timeline by location");chart.tabIndex=0;this.chart=chart;
-    chart.onclick=event=>{const target=event.target as Element|null;if(target&&!target.closest("button,a,input,select,summary"))this.dismissDetails();};
+    chart.onclick=event=>{const target=event.target as Element|null;if(target&&!target.closest("button,a,input,select,summary,[data-thread-entry]")){this.pinnedThread=undefined;this.highlightThread();this.dismissDetails();}};
     chart.onkeydown=event=>{if(event.key==="Escape"&&!event.defaultPrevented){event.preventDefault();this.dismissDetails(true);}};
     const earlier=this.button("‹",()=>this.pan(-1),"Earlier years","marginalia-timeline-pan is-earlier"),later=this.button("›",()=>this.pan(1),"Later years","marginalia-timeline-pan is-later");
     frame.append(chart,earlier,later);this.body.append(frame);
@@ -222,11 +238,14 @@ export class WorldTimelineUI {
       event.preventDefault();const delta=event.deltaX*(event.deltaMode===1?16:event.deltaMode===2?width:1);
       this.state.start=start+delta/width*span;this.state.span=span;this.changed();this.renderBody(chart.scrollTop,0);
     };
-    const lanes=layoutTimeline(world,events,start,span,width);
+    const lanes=layoutTimeline(world,events,start,span,width,this.state.threads?this.state.filters.entries??[]:undefined);
     const bottom=lanes.length?lanes.at(-1)!.top+lanes.at(-1)!.height:140;stage.style.height=`${bottom}px`;
     const axis=this.node("div","marginalia-timeline-axis"),axisTitle=this.node("div","marginalia-timeline-axis-title",this.displayCalendar(world)?.name??"No display calendar");axis.append(axisTitle);
     const ticks=this.ticks(start,span,width);for(const tick of ticks){const label=this.node("span","marginalia-timeline-tick",tick.label);label.style.left=`${180+tick.x}px`;axis.append(label);}stage.append(axis);
     const rows=this.node("div","marginalia-timeline-rows");stage.append(rows);
+    const geometry=this.state.threads?threadGeometry(lanes,this.state.filters.entries??[],{events,start,span,width}):undefined;
+    const svg=geometry?this.root.ownerDocument.createElementNS('http://www.w3.org/2000/svg','svg'):undefined;
+    if(svg){svg.classList.add('marginalia-timeline-thread-lines');svg.setAttribute('aria-hidden','true');svg.setAttribute('width',String(width));svg.setAttribute('height',String(bottom));stage.append(svg);}
     const mounted=new Map<string,{element:HTMLElement;signature:string}>();
     this.positionArrows=()=>{
       const center=visibleLaneCenter(lanes,chart.scrollTop,chart.clientHeight);
@@ -240,14 +259,22 @@ export class WorldTimelineUI {
       const wanted=new Set(visible.map(l=>l.path));
       for(const [path,item] of mounted)if(!wanted.has(path)){item.element.remove();mounted.delete(path);}
       for(const lane of visible){const signature=lane.events.length>20?`${Math.floor((top-lane.top)/76)}:${Math.floor((bottom-lane.top)/76)}`:"all";const old=mounted.get(lane.path);if(!old||old.signature!==signature){const row=this.renderLane(lane,width,ticks,top,bottom);if(old)old.element.replaceWith(row);else rows.append(row);mounted.set(lane.path,{element:row,signature});}}
+      if(svg&&geometry){svg.replaceChildren();for(const segment of geometry.segments){const {from,to}=segment;if(!threadSegmentVisible(segment,width,top,bottom))continue;
+        const middle=(from.x+to.x)/2,d=`M ${from.x} ${from.y} C ${middle} ${from.y}, ${middle} ${to.y}, ${to.x} ${to.y}`;
+        for(const hit of [true,false]){const path=this.root.ownerDocument.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.dataset.threadEntry=segment.entry.path;path.dataset.threadContinuation=String(!!(from.offscreen||to.offscreen));path.classList.add(hit?'marginalia-timeline-thread-hit':'marginalia-timeline-thread-line');path.setAttribute('stroke',hit?'transparent':threadColor(segment.entry.path));if(segment.sameTime&&!hit)path.setAttribute('stroke-dasharray','3 4');
+          if(hit){path.onclick=event=>{event.stopPropagation();if(event.detail<=1)this.pinThread(segment.entry.path);};path.ondblclick=event=>{event.stopPropagation();this.openThread(segment.entry.path);};}
+          svg.append(path);
+        }
+      }}
+      this.highlightThread(this.threadFocus);
     };
     chart.onscroll=renderRows;chart.scrollTop=scrollTop;chart.scrollLeft=scrollLeft;renderRows();
     if(!events.length)this.body.append(this.node("p","marginalia-timeline-empty",world.events.length?"No events match these filters.":"No Events yet. Add Date or Start/End to an Event note to place it on the timeline."));
     else if(!lanes.length)this.body.append(this.node("p","marginalia-timeline-empty","All location lanes are hidden. Choose Locations to show them."));
     else if(!lanes.some(lane=>lane.events.length)&&events.some(e=>e.position!==undefined))this.body.append(this.node("p","marginalia-timeline-empty","No dated events in the visible lanes and time window. Fit events or choose Locations to show more."));
-    const undated=events.filter(event=>event.position===undefined).sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name));
-    if(undated.length){const section=this.node("section","marginalia-timeline-undated");section.setAttribute("aria-label","Undated events");section.append(this.node("h2","","Undated"),this.node("p","marginalia-timeline-muted","Sequence follows predecessor links where they resolve. No dates are inferred."));const list=this.node("div","marginalia-timeline-undated-list");for(const event of undated.slice(0,this.undatedLimit))list.append(this.card(event));section.append(list);if(undated.length>this.undatedLimit)section.append(this.button(`Show more undated events (${undated.length-this.undatedLimit} remaining)`,()=>{this.undatedLimit+=100;this.renderBody();}));this.body.append(section);}
-    this.renderDetails();this.positionArrows?.();
+    const undated=events.filter(event=>this.state.threads?!event.effective:event.position===undefined).sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name));
+    if(undated.length){const section=this.node("section","marginalia-timeline-undated");section.setAttribute("aria-label","Undated events");section.append(this.node("h2","","Undated"),this.node("p","marginalia-timeline-muted","Sequence follows predecessor links where they resolve. No dates are inferred."));const list=this.node("div","marginalia-timeline-undated-list");for(const event of undated.slice(0,this.undatedLimit)){if(this.state.threads){const item=this.node("div","marginalia-timeline-undated-thread-event");item.append(this.card(event),this.renderParticipants(event));list.append(item);}else list.append(this.card(event));}section.append(list);if(undated.length>this.undatedLimit)section.append(this.button(`Show more undated events (${undated.length-this.undatedLimit} remaining)`,()=>{this.undatedLimit+=100;this.renderBody();}));this.body.append(section);}
+    this.renderDetails();this.positionArrows?.();this.highlightThread();
   }
   private ticks(start:number,span:number,width:number){
     const world=this.port.world()!,calendar=this.displayCalendar(world);if(!calendar)return [];
@@ -275,22 +302,41 @@ export class WorldTimelineUI {
     const plot=this.node("div","marginalia-timeline-lane-plot");plot.style.width=`${width}px`;
     for(const tick of ticks){const line=this.node("span","marginalia-timeline-gridline");line.style.left=`${tick.x}px`;plot.append(line);}
     for(const item of lane.events){
-      const y=lane.top+8+item.row*76;
-      if(lane.events.length>20&&(y+76<top||y>bottom)&&item.event.path!==this.state.selected)continue;
-      const wrap=this.node("div","marginalia-timeline-position");wrap.style.left=`${item.x}px`;wrap.style.top=`${8+item.row*76}px`;
+      const y=lane.top+(item.y??8+item.row*76);
+      if(lane.events.length>20&&(y+(item.height??76)<top||y>bottom)&&item.event.path!==this.state.selected)continue;
+      const wrap=this.node("div",`marginalia-timeline-position${this.state.threads?" is-thread-position":""}`);wrap.style.left=`${item.x}px`;wrap.style.top=`${item.y??8+item.row*76}px`;
       const range=this.node("span",`marginalia-timeline-range ${item.event.start?"is-span":"is-period"}`);range.style.width=`${item.markWidth}px`;
-      range.title=item.event.start?"Event span":"Authored date precision; exact placement within this period is unspecified.";wrap.append(range,this.card(item.event));plot.append(wrap);
+      range.title=item.event.start?"Event span":"Authored date precision; exact placement within this period is unspecified.";wrap.append(range,this.card(item.event));if(this.state.threads)wrap.append(this.renderParticipants(item.event));plot.append(wrap);
     }
     row.append(plot);return row;
   }
+  private highlightThread(path?:string){
+    this.threadFocus=path;const active=this.pinnedThread??path;
+    for(const element of this.root.querySelectorAll<HTMLElement>('[data-thread-entry]')){element.classList.toggle('is-thread-muted',!!active&&element.dataset.threadEntry!==active);element.classList.toggle('is-thread-highlighted',!!active&&element.dataset.threadEntry===active);if(element.classList.contains('marginalia-timeline-thread-node'))element.setAttribute('aria-pressed',String(element.dataset.threadEntry===this.pinnedThread));}
+  }
+  private pinThread(path:string){this.pinnedThread=this.pinnedThread===path?undefined:path;this.highlightThread();}
+  private openThread(path:string){this.pinnedThread=path;this.highlightThread();(this.port.entry??this.port.open)(path);
+  }
+  private renderParticipants(event:WorldEvent){
+    const grid=this.node('div','marginalia-timeline-thread-participants');grid.setAttribute('aria-label',`Participants in ${event.name}`);
+    for(const entry of threadParticipants(event,this.state.filters.entries??[])){
+      const effects=(entry.effects?.length??0)>1?'Conflicting changes':entry.effect??'',node=this.button('',()=>this.pinThread(entry.path),`${entry.name} · ${entry.type}${effects?' · '+effects:''} · ${event.name}`,'marginalia-timeline-thread-node');node.dataset.threadEntry=entry.path;node.style.setProperty('--thread-color',threadColor(entry.path));node.title=`${entry.name} · ${entry.type}${effects?' · '+effects:''}`;node.setAttribute('aria-description','Click to pin the thread; double-click or Ctrl/Command+Enter opens its timeline.');
+      node.onclick=event=>{if(event.detail<=1)this.pinThread(entry.path);};node.ondblclick=()=>this.openThread(entry.path);node.onkeydown=event=>{if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();this.openThread(entry.path);}else if(event.key==='Escape'){event.preventDefault();this.pinnedThread=undefined;this.highlightThread();}};
+      const icon=this.node('span','marginalia-timeline-thread-icon',entry.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2));const source=this.state.threadImages?this.port.image?.(entry):undefined;
+      if(source){const img=this.node('img');img.src=source;img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>img.remove();icon.append(img);}
+      if(effects)icon.append(this.node('sup','',effects==='Appears'?'+':effects==='Disappears'?'−':'!'));
+      node.append(icon,this.node('span','marginalia-timeline-thread-name',entry.name));node.onmouseenter=()=>this.highlightThread(entry.path);node.onmouseleave=()=>{if(this.root.ownerDocument.activeElement!==node)this.highlightThread();};node.onfocus=()=>this.highlightThread(entry.path);node.onblur=()=>this.highlightThread();grid.append(node);
+    }
+    return grid;
+  }
   private card(event:WorldEvent){
     const selected=event.path===this.state.selected;
-    const card=this.button("",()=>this.select(event),`${event.name}, ${this.dateLabel(event)}`,`marginalia-timeline-event${selected?" is-selected":""}${!event.effective?" is-undated":""}`);
+    const card=this.button("",()=>this.select(event),`${event.name}, ${this.dateLabel(event)}`,`marginalia-timeline-event${this.state.threads?" is-thread-event":""}${selected?" is-selected":""}${!event.effective?" is-undated":""}`);
     card.dataset.eventPath=event.path;card.dataset.eventSelected=String(selected);card.setAttribute("aria-pressed",String(selected));
-    card.append(this.node("strong","",event.name),this.node("span","marginalia-timeline-event-date",this.dateLabel(event)));
-    const badges=this.node("span","marginalia-timeline-badges");for(const participant of event.participants.slice(0,4)){const chip=this.node("span","marginalia-timeline-chip",`${participant.name.split(/\s+/).map(w=>w[0]).join("").slice(0,2)}${(participant.effects?.length??0)>1?"!":participant.effect==="Appears"?"+":participant.effect==="Disappears"?"−":""}`);chip.dataset.type=participant.type.toLowerCase();chip.title=`${participant.name}${(participant.effects?.length??0)>1?": Conflicting changes":participant.effect?": "+participant.effect:""}`;badges.append(chip);}
-    if(event.participants.length>4)badges.append(this.node("span","",`+${event.participants.length-4}`));
-    if(event.related.length)badges.append(this.node("span","marginalia-timeline-related",`${event.related.length} ${event.related.length===1?"reference":"references"}`));card.append(badges);return card;
+    card.append(this.node("strong","",event.name),this.node("span","marginalia-timeline-event-date",this.dateLabel(event)+(this.state.threads&&event.related.length?` · ${event.related.length} references`:"")));
+    const badges=this.node("span","marginalia-timeline-badges");for(const participant of (this.state.threads?[]:event.participants.slice(0,4))){const chip=this.node("span","marginalia-timeline-chip",`${participant.name.split(/\s+/).map(w=>w[0]).join("").slice(0,2)}${(participant.effects?.length??0)>1?"!":participant.effect==="Appears"?"+":participant.effect==="Disappears"?"−":""}`);chip.dataset.type=participant.type.toLowerCase();chip.title=`${participant.name}${(participant.effects?.length??0)>1?": Conflicting changes":participant.effect?": "+participant.effect:""}`;badges.append(chip);}
+    if(!this.state.threads&&event.participants.length>4)badges.append(this.node("span","",`+${event.participants.length-4}`));
+    if(!this.state.threads&&event.related.length)badges.append(this.node("span","marginalia-timeline-related",`${event.related.length} ${event.related.length===1?"reference":"references"}`));if(!this.state.threads)card.append(badges);return card;
   }
   private renderDetails(){
     if(!this.details)return;const world=this.port.world()!,event=world.events.find(e=>e.path===this.state.selected);

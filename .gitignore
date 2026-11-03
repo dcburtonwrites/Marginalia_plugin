@@ -5,3 +5,8 @@ test-results/
 *.tsbuildinfo
 dist/
 .rollback/
+
+# The buildless website is its source and is kept for review before here.now upload.
+!website/dist/
+!website/dist/**
+website/dist/downloads/*.zip

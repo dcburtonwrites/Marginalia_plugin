@@ -1,0 +1,17 @@
+# Threads
+
+Owner-approved contract · D-0067 · 2026-11-02
+
+Threads is an optional World Timeline view, enabled under View → Threads. Normal cards remain the default. The tab remembers Threads and its independent Entry images preference through existing native leaf state.
+
+Keep location swim lanes, groups, calendars, zoom, horizontal panning, event selection and existing filters. Put participant markers below each event card, including every participant type already indexed (Characters, Items, Affiliations, Systems and custom types). Locations remain lanes. Participant names accompany initials or local image icons; existing appearance/disappearance/conflict indicators remain visible. Use compact 44px Threads cards with markers immediately below, expanding collision rows to fit the complete marker grid without covering other event cards.
+
+Connect consecutive filtered dated occurrences of each original entry identity across enabled lanes, including clipped continuations when an endpoint is beyond the visible time window. Offscreen endpoints do not mount cards or expand visible lanes. Stable colors identify entries. Hover/focus previews a thread; single-click on a marker or line pins its highlight and dims others. A pin persists across zoom/pan and takes precedence over hover. Click again, click blank chart space or press Escape to clear it. Double-click opens its existing entry timeline; Ctrl/Command+Enter supports keyboard navigation. Selected Canon chips restrict both events and the visible threads to the selected entry identities; no chips shows all participant threads in the displayed events. Other filters keep their existing semantics.
+
+Connections show recorded participation, without inferring travel, continuous presence or lifecycle facts. Spanning events keep markers below their card; authored spans and date interpretations remain unchanged. Same-time connections are dotted and undirected, with no declared ordering. All events lacking usable authored dates appear in the bottom Undated region in Threads, even when predecessor links permit relational placement in the ordinary view. No connection joins undated markers into dated time.
+
+The configurable Timeline setting Entry icon property defaults to icon, for example `icon: "[[Assets/Mira.png]]"`. Accept a vault image path or image wikilink. Resolve existing local PNG/JPEG/GIF/WebP/AVIF/SVG files through the native vault resource API. Missing, unreadable, unsupported or external targets fall back to initials. The Entry images toggle uses images when available; switching it off uses initials. No image generation, network service, new dependency or original-note rewrite is involved.
+
+The isolated test fixture lives in `.preview/Marginalia Test Vault/Threads Demo`, with 12 dated events, one undated event, 20 distinct participants each appearing 2–5 times, four locations and two colored presentation groups. Include spans, simultaneous events, an undated predecessor chain, ten local SVG images and missing/unset icon examples. Existing test notes stay intact. Record fixture counts and hashes; regenerate only matching owned fixture bytes. Keep previous test-vault presentation preferences separately for review.
+
+Validate model geometry, overlapping cards, dense participants, exact identities and filters, same-time uncertainty, undated separation, safe image resolution/fallback, state persistence, browser interactions and native resource/history integration. Preserve all earlier regression/package/mobile checks.

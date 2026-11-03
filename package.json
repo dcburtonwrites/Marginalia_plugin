@@ -1,6 +1,6 @@
 {
   "name": "marginalia-obsidian",
-  "version": "0.20.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/core.test.ts tests/transport.test.ts tests/scripts.test.ts tests/writing.test.ts tests/shortcuts.test.ts tests/workspace.test.ts tests/timeline.test.ts tests/timeline-librarian.test.ts tests/librarian-review.test.ts && node scripts/test-host.mjs",
     "preview:build": "node scripts/preview.mjs",
-    "package": "npm run typecheck && npm run build && node scripts/package.mjs"
+    "package": "npm run typecheck && npm run build && node scripts/package.mjs",
+    "release:prepare": "npm run package && python3 scripts/prepare-release.py",
+    "website:check": "node scripts/check-website.mjs"
   },
   "devDependencies": {
     "@codemirror/commands": "^6.11.1",
@@ -20,5 +22,6 @@
   },
   "engines": {
     "node": ">=22.18"
-  }
+  },
+  "license": "MIT"
 }

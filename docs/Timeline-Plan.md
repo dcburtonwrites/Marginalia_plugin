@@ -213,3 +213,9 @@ D-0064 refines Locations to inline name/swatch/check/cancel editing, clickable c
 
 
 D-0065 adds Canon autocomplete to the World Timeline search input. Results show name/type/path and support click and keyboard selection. Selecting filters by entry identity; unselected text retains existing name search. The dropdown is bounded and uses original Canon metadata only.
+
+
+D-0066 extends Canon autocomplete to multiple unique selections displayed as removable chips. Match events connected to any selected entry while retaining type/tag/project constraints. Typing finds additional suggestions without replacing existing chips, already-selected entries are excluded, and Clear filters resets all. Old single-selection view state migrates to one chip.
+
+
+D-0068 keeps Threads connected to known offscreen occurrences in enabled/filtered lanes, without mounting offscreen cards or enlarging visible rows. Single-click pins an entry or line highlight; double-click opens its history. Pins survive zoom/pan and clear on another click, blank chart or Escape. Threads cards are compact 44px headers with no old badge space; ordinary cards retain their original layout.

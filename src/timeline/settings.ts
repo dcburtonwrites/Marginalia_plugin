@@ -29,6 +29,7 @@ export function renderTimelineSettings(root: HTMLElement, owner: Marginalia, red
     try {await owner.savePluginData(); owner.timelineFeature?.schedule(); if(render)redraw();}
     catch {owner.timelineSettings=previous;new Notice("Could not save timeline settings.");redraw();}
   };
+  new Setting(body).setName("Entry icon property").setDesc('Threads can use vault images from this frontmatter property, for example icon: "[[Assets/Mira.png]]". Missing images use initials.').addText(input=>input.setValue(owner.timelineSettings.iconField).setPlaceholder("icon").onChange(value=>save(s=>{s.iconField=value.trim()||"icon";})));
   const snapshot = timelineNotes(owner);
   const index = buildTimelineIndex(snapshot.notes,owner.timelineSettings);
   new Setting(body).setName("Primary calendar").setDesc("Automatic uses the note marked primary, or the only Calendar note. Choose explicitly to resolve conflicting primary flags.")

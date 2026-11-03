@@ -3,6 +3,8 @@ await build({
   entryPoints: ["src/main.ts"],
   bundle: true,
   external: ["obsidian", "electron", "@electron/remote", "node:*", "@codemirror/*", "@lezer/*"],
+  minify: true,
+  keepNames: true,
   format: "cjs",
   platform: "node",
   target: "es2022",

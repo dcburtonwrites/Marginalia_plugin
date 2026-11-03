@@ -1263,3 +1263,31 @@ body.is-mobile .marginalia-content-menu label {min-height:44px;}
 .marginalia-timeline-search-option span {font-size:11px;color:var(--tl-muted);overflow-wrap:anywhere;}
 .marginalia-world-timeline .marginalia-timeline-search-option[aria-selected=true],.marginalia-world-timeline .marginalia-timeline-search-option:hover {background:var(--tl-panel);}
 .marginalia-timeline-search-results p {margin:7px 8px;}
+
+.marginalia-timeline-canon-chips {display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;}
+.marginalia-timeline-canon-chips[hidden] {display:none;}
+.marginalia-timeline-canon-chip {display:inline-flex;align-items:center;gap:6px;max-width:100%;border:1px solid var(--tl-line);border-radius:5px;background:var(--tl-panel);padding:3px 5px 3px 9px;}
+.marginalia-timeline-canon-chip>span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.marginalia-world-timeline .marginalia-timeline-canon-chip button {border:0;background:none;min-height:22px;height:22px;width:22px;padding:0;flex:none;font-size:16px;}
+
+/* Threads preserves date cards and location lanes while connecting participant occurrences. */
+.marginalia-timeline-threads-toggle {display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+.marginalia-timeline-thread-note {flex:none;margin:0;padding:6px 16px;font-size:11px;color:var(--tl-muted);border-bottom:1px solid var(--tl-line);}
+.marginalia-timeline-thread-lines {position:absolute;left:180px;top:0;z-index:2;pointer-events:none;overflow:hidden;}
+.marginalia-timeline-thread-lines path {fill:none;stroke-width:1.4;opacity:.38;}
+.marginalia-timeline-position {z-index:3;}
+.marginalia-timeline-thread-participants {display:grid;grid-template-columns:repeat(3,56px);grid-auto-rows:48px;width:168px;margin-top:8px;}
+.marginalia-world-timeline .marginalia-timeline-thread-node {display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;background:none;border:0;padding:0;width:56px;height:48px;min-height:48px;white-space:normal;}
+.marginalia-timeline-thread-icon {position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid var(--thread-color);border-radius:50%;background:var(--tl-bg);font-size:10px;overflow:hidden;}
+.marginalia-timeline-thread-icon img {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.marginalia-timeline-thread-icon sup {position:absolute;right:0;bottom:0;background:var(--tl-panel);color:var(--tl-text);font-size:10px;line-height:12px;min-width:10px;}
+.marginalia-timeline-thread-name {max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;line-height:12px;}
+.marginalia-timeline-thread-lines path.is-thread-highlighted {opacity:1;stroke-width:3;}
+.marginalia-timeline-thread-node.is-thread-highlighted .marginalia-timeline-thread-icon {box-shadow:0 0 0 2px var(--tl-bg),0 0 0 3px var(--thread-color);}
+.marginalia-timeline-thread-lines path.is-thread-muted,.marginalia-timeline-thread-node.is-thread-muted {opacity:.13;}
+.marginalia-timeline-undated-thread-event {flex:none;width:176px;}
+
+.marginalia-world-timeline .marginalia-timeline-event.is-thread-event {height:44px;min-height:44px;}
+.marginalia-timeline-position.is-thread-position .marginalia-timeline-range {height:44px;}
+.marginalia-timeline-thread-lines path.marginalia-timeline-thread-line {pointer-events:none;}
+.marginalia-timeline-thread-lines path.marginalia-timeline-thread-hit {stroke-width:12;opacity:0;pointer-events:stroke;cursor:pointer;}

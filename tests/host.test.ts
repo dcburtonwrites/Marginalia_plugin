@@ -1395,3 +1395,11 @@ test("development applies only the individually accepted exact change and rebase
   const next=await h.plugin.applyDevelopmentEdit(packet,edit,signal);assert.equal(h.transactions.length,1);assert.ok(h.editorText().startsWith('---\ntype: Character\n---'));assert.ok(h.editorText().includes('She keeps the keys.'));await h.plugin.verify(next,signal);
   const prior=h.editorText();h.text.set(h.files[1].path,'New canon evidence.');await assert.rejects(h.plugin.applyDevelopmentEdit(next,{...edit,id:'two',kind:'delete',before:'She keeps the keys.',after:''},signal),/changed/);assert.equal(h.editorText(),prior);assert.equal(h.transactions.length,1);
 });
+
+test('Threads images resolve only existing local image files through native vault resources',async()=>{
+ const {timelineEntryImage}=await import('../src/timeline/view.ts');const image=new TFile('Assets/Mira.svg');image.extension='svg';let lookups=0;
+ const owner:any={app:{metadataCache:{getFirstLinkpathDest:(target:string,source:string)=>{lookups++;assert.equal(source,'Mira.md');return target==='Assets/Mira.svg'?image:target==='Notes.md'?new TFile('Notes.md'):undefined;}},vault:{getResourcePath:(file:TFile)=>'app://vault/'+file.path}}};
+ assert.equal(timelineEntryImage(owner,{path:'Mira.md',name:'Mira',type:'Character',icon:'[[Assets/Mira.svg]]'}),'app://vault/Assets/Mira.svg');
+ assert.equal(timelineEntryImage(owner,{path:'Mira.md',name:'Mira',type:'Character',icon:'Assets/Missing.png'}),undefined);
+ const before=lookups;assert.equal(timelineEntryImage(owner,{path:'Mira.md',name:'Mira',type:'Character',icon:'https://example.com/a.png'}),undefined);assert.equal(lookups,before);
+});

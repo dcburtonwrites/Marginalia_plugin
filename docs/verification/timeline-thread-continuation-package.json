@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 318,
+  "packageHashes": {
+    "main.js": "d161d08df859670dd473cdaa463217fd92063c6198337924540a67e95f56c7d1",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "ba99ad3699e067097ef5d3958bd729674567c25a1da0552463bd2797bb7e4578"
+  },
+  "browser": {
+    "threadsCardHeight": 44,
+    "singleClickStayedInWorld": true,
+    "pinRetainedAfterZoom": true,
+    "offscreenFirstCardUnmounted": true,
+    "continuingLineVisible": true,
+    "emptyWindowDatedCards": 0,
+    "emptyWindowContinuingLines": 1,
+    "lineClickToggledPin": [
+      0,
+      1
+    ],
+    "doubleClickHistoryRecords": 4
+  },
+  "native": {
+    "participant": "Sol Pike",
+    "pinnedOccurrencesBeforeZoom": 5,
+    "closeupTickLabels": [
+      460,
+      462,
+      464
+    ],
+    "onlyReturnConvoyVisible": true,
+    "continuationVisibleToLeftEdge": true,
+    "doubleClickOpenedHistoryRecords": 5,
+    "pinRetainedOnReturn": true
+  },
+  "preservedOriginals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  },
+  "fixtureNotesChanged": [],
+  "installedMatches": {
+    "Librarian Review Pilot": true,
+    "Marginalia Test Vault": true
+  }
+}

@@ -1,9 +1,10 @@
 {
   "id": "marginalia",
   "name": "Marginalia",
-  "version": "0.20.0",
+  "version": "0.5.0",
   "minAppVersion": "1.8.7",
-  "description": "App pages and comic script tools, with a local AI Librarian on desktop.",
+  "description": "Organize worldbuilding and comic scripts with app pages, custom timelines, participant threads, and an optional local AI Librarian.",
   "author": "Marginalia",
-  "isDesktopOnly": false
+  "isDesktopOnly": false,
+  "fundingUrl": "https://www.paypal.com/donate/?hosted_button_id=TAU2X5WLXWF8C"
 }

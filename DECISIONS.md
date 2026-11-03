@@ -417,3 +417,43 @@
 - Recommendation: Suggest matching Canon names with type/path disambiguation; support click or Up/Down/Enter selection and Escape dismissal. Select an exact path identity so duplicate display names stay distinct.
 - Decision: Owner requested: “when the user starts typing in the filter box, show a dropdown of Canon entries”.
 - Impact: Original Canon metadata supplies up to 12 prefix/substring suggestions without note-body reads or model calls. Selected entries filter events by matching event, participant, location or related-entry path. Further typing clears the selected identity and resumes free text. Template, generated, hidden and configured Brainstorms exclusions remain. Clear filters clears the identity; selected identity persists with native filter state.
+
+
+## D-0066 · Multiple Canon filter chips · 2026-11-02 · Timeline search
+- Question: Extend the Canon filter to multiple independently removable selections.
+- Options: One selected entry / multiple chips; match all selected entries / match any selected entry.
+- Recommendation: Multiple unique path identities, matching any selected entry while keeping type/tag/project filters. Use typing to find the next entry without replacing prior selections; show each selection as a removable chip.
+- Decision: Owner requested multiple Canon entries, “with each selection shown as a chip that can be removed individually.”
+- Impact: Supersedes D-0065's single selected path. Choosing an entry clears the search input for the next choice; already-selected entries are omitted from suggestions. While chips exist, input text searches suggestions without narrowing the current selected event set. Empty selection restores free text; Clear filters removes all chips. Existing single-entry leaf state migrates to one chip and persisted arrays are deduplicated. No note changes.
+
+
+## D-0067 · Threads timeline view · 2026-11-02 · Timeline enhancement
+- Question: Name and specify an optional participant-connection view, image sources, interaction, filtering, undated behavior and test data.
+- Options: Threads / Participant paths / Trails / Continuity / Tracking; keep location lanes / replace them; all participant types / characters only; selected-chip threads only / highlight while retaining all; local image property / initials alone; per-tab persisted choice / transient toggle.
+- Recommendation: Threads, retaining location lanes and placing all participant types beneath event cards. Show only selected Canon threads when chips exist; otherwise all. A configurable frontmatter property (default icon) resolves vault-local images, with initials fallback and an independent image toggle. Hover/focus highlights the whole thread; clicking opens the entry history. Span markers remain below cards; undated events stay separate without links into dated time. Remember Threads/images per timeline tab. Use 12 dated events, 20 participants with 2–5 occurrences, several locations/groups, spans, simultaneous and undated examples, with/without images.
+- Decision: Owner chose “Threads” and instructed: “Follow your recommendations for all seven questions and the test vault. Begin implementation.”
+- Impact: Optional SVG connection overlay and expanded marker rows, with default compact view unchanged. Dotted same-time links have no implied order; connections represent recorded participation rather than travel or continuous presence. Existing date/state/lifecycle precedence is unchanged. Local images resolve through native vault resources; no cloud dependency or note writer. Created a separate Threads Demo fixture with 12 dated events, 1 undated event, 20 mixed-type participants, four locations, two presentation groups and ten local SVG icons. Timeline structured editing remains deferred; version stays 0.20.0 pending overall feature acceptance.
+
+
+## D-0068 · Offscreen Threads and pinned selection · 2026-11-02 · Threads refinement
+- Question: Keep connected threads visible at close zoom, remove the unused badge space and change entry click behavior.
+- Options: Visible-event-only segments / clipped continuations to offscreen occurrences; fixed 64px cards / compact Threads cards; single-click navigation / single-click highlight and double-click navigation.
+- Recommendation: Add offscreen layout endpoints from filtered dated events in enabled lanes without mounting their cards or changing visible lane heights. Compact Threads cards to 44px. Pin highlights on single-click, preserve them across zoom/pan, and navigate on double-click; widen line click targets and support keyboard activation.
+- Decision: Owner requested all three changes, including single click to highlight an entry and double click to open the entry timeline.
+- Impact: Supersedes D-0067's visible-window-only coverage and single-click navigation. Connections can pass through a time window with no visible cards, but never extend beyond the last known pair or through excluded lanes/filters/undated records. Single-clicking a marker or line toggles a pinned highlight; blank chart space or Escape clears it. Double-click and Ctrl/Command+Enter open the existing history. Compact card/marker/row geometry remains aligned; the ordinary view stays unchanged.
+
+
+## D-0069 · Version 0.5.0 and unpublished release website · 2026-11-02 · Release preparation
+- Question: Prepare the accepted feature set for release and create a feature showcase, setup/use guide and Install page for eventual here.now hosting.
+- Options: MIT / GPL / undecided; external payment link / embedded checkout; static FormSubmit requests / mail draft.
+- Recommendation: MIT, an owner-provided hosted PayPal link, and a static FormSubmit form with explicit consent and recipient activation. Keep Community installation pending until approved.
+- Decision: Owner requested “Set this as v0.5 and prepare for release” and “Make the webpage, but don't publish it yet”; selected MIT and FormSubmit, and supplied https://www.paypal.com/donate/?hosted_button_id=TAU2X5WLXWF8C.
+- Impact: Version 0.5.0 supersedes the earlier 0.20/0.30 release target. Add license, versions map, release notes, local raw assets/ZIP/checksums and a three-page static website using the original app logo. Update release documentation for the current Community directory portal. No commit, tag, push, external email, submission, payment or publication is authorized by this preparation step. Form activation, public repository/release, minimum-version acceptance and Community approval remain explicit launch tasks. Existing deferred structured timeline editing remains deferred.
+
+
+## D-0070 · Website feature priority and transparent logo · 2026-11-02 · Website revision
+- Question: Remove the logo background and prioritize website features.
+- Options: Existing timeline-first presentation / World, Scripts, Timeline and Threads, Librarian.
+- Recommendation: Apply the owner's order to previews, initial selection, feature chapters and guide sections; explain Script Studio's current comics/graphic-novel scope directly.
+- Decision: Owner requested transparent logo artwork and the order Your World, Script Studio, Timeline and Threads, Librarian, highlighting comics and graphic novels.
+- Impact: Website only, plus README logo reference. Preserve the original logo, use the transparent derivative, update product copy and repackage the unpublished site. No plugin behavior/version change or publication.

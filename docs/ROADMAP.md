@@ -364,3 +364,42 @@ Each phase requires verification and owner review before the next phase.
 - [x] 308 passing tests, package/mobile/preview checks and browser/native dropdown/selection acceptance.
 
 [Verification](verification/timeline-canon-filter-2026-11-02.md). Version remains 0.20.0.
+
+
+### Multiple Canon chips · D-0066
+- [x] Multiple unique Canon selections, independently removable chips and match-any event filtering.
+- [x] Preserve other filters, exclude selected suggestions and migrate saved single-selection state.
+- [x] 310 passing tests, package/mobile/preview checks, browser selection/removal and native two-chip/removal acceptance.
+
+[Verification](verification/timeline-canon-chips-2026-11-02.md). Version remains 0.20.0.
+
+
+### Threads view · D-0067
+- [x] Optional per-tab Threads view preserving location lanes, full participant marker grids and stable identity connections.
+- [x] Canon-selected threads, hover/focus highlighting, entry-history navigation, spans and explicit undated/same-time behavior.
+- [x] Configurable local image property, initials fallback and remembered per-tab image choice.
+- [x] Separate native fixture: 12 dated + 1 undated events, 20 mixed participants occurring 2–5 times, four locations/two groups and ten local icons.
+- [x] 316 automated tests, package/typecheck/mobile checks, browser geometry/filter/toggle/focus/navigation and native image/filter/history/tab-retention acceptance.
+
+[Threads contract](Threads-Plan.md) · [Verification and limits](verification/timeline-threads-2026-11-02.md). Version remains 0.20.0; structured editing remains deferred.
+
+
+### Threads continuation and interaction · D-0068
+- [x] Connections continue beyond the current time window, including across lanes and through a window between known occurrences, with no hidden cards or row expansion.
+- [x] Compact 44px Threads cards with aligned marker grids and spans.
+- [x] Single-click pinned marker/line highlights, double-click history, widened line targets and keyboard/clear behavior.
+- [x] 318 passing tests, package/mobile checks, browser offscreen/empty-window/click checks and native Sol Pike close-up/double-click/retained-pin acceptance.
+
+[Verification](verification/timeline-thread-continuation-2026-11-02.md). Version remains 0.20.0.
+
+
+## Version 0.5.0 release preparation · D-0069
+Owner accepted the current Threads work and requested a 0.5 release, superseding earlier 0.20/0.30 target statements above. Structured timeline editing remains deferred.
+- [x] Version metadata, MIT license, donation URL, release notes and Community portal submission instructions.
+- [x] Verify minified package/regression tests and prepare raw assets, plugin ZIP and checksums.
+- [x] Verify the unpublished three-page website on desktop/mobile, internal navigation, donation destination and request validation without sending.
+- [ ] Before Community submission: dedicated minimum-version acceptance and public source/release verification; resolve any scanner feedback.
+- [ ] Before website launch: owner FormSubmit activation and approved delivery test; Community install flag only after listing approval.
+- [ ] Publication/submission: not performed; owner explicitly requested an unpublished website.
+
+[Release verification](verification/release-0.5.0-2026-11-02.md): 318 plugin tests, mobile bundle load, 57 website routes/assets/anchors and 13 simulated form cases pass. Nothing published.

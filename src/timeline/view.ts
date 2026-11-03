@@ -4,11 +4,16 @@ import type Marginalia from "../main.ts";
 import {timelineAvailable} from "./feature.ts";
 import {WorldTimelineUI,readTimelineUIState} from "./ui.ts";
 import {readTimeline,groupStyles,moveTimelineLane,type TimelineGroup,type LanePreference} from "./model.ts";
-import type {WorldTimeline} from "./world.ts";
+import {entryIconTarget} from "./threads.ts";
+import type {WorldTimeline,Reference} from "./world.ts";
 export const TIMELINE="marginalia-world-timeline";
 export function openTimelineNote(owner:Marginalia,path:string){
   if(!(owner.app.vault.getAbstractFileByPath(path) instanceof TFile)){new Notice("This note is no longer available.");return;}
   void owner.app.workspace.openLinkText(path,"",false);
+}
+export function timelineEntryImage(owner:Marginalia,entry:Reference):string|undefined {
+  const target=entryIconTarget(entry.icon);if(!target)return;const file=owner.app.metadataCache.getFirstLinkpathDest(target,entry.path);
+  if(file instanceof TFile&&/^(png|jpe?g|gif|webp|avif|svg)$/i.test(file.extension))return owner.app.vault.getResourcePath(file);
 }
 export async function openWorldTimeline(owner:Marginalia){
   if(!timelineAvailable(owner)||!owner.timelineSettings.enabled){new Notice("Enable Timelines in a desktop World vault first.");return;}
@@ -40,6 +45,7 @@ export class WorldTimelineView extends ItemView {
         states:()=>this.owner.timelineFeature?.states,
         entry:path=>{void openEntryTimeline(this.owner,path);},
         settings:()=>this.owner.timelineSettings,
+        image:entry=>timelineEntryImage(this.owner,entry),
         calendar:async path=>{
           const previous=this.owner.timelineSettings.displayCalendar;this.owner.timelineSettings.displayCalendar=path;
           try{await this.owner.savePluginData();}catch(error){this.owner.timelineSettings.displayCalendar=previous;throw error;}

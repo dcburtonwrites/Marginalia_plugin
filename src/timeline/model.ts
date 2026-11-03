@@ -6,7 +6,7 @@ export interface LanePreference { path: string; group: string; enabled: boolean 
 export const groupStyles = ["banded","blue","cyan","green","yellow","orange","red","purple","pink","gray"] as const;
 export type GroupStyle = typeof groupStyles[number];
 export interface TimelineGroup {name:string;style:GroupStyle}
-export interface TimelineSettings { enabled: boolean; primaryCalendar: string; fields: TrackedField[]; displayCalendar: string; lanes: LanePreference[]; groups:TimelineGroup[] }
+export interface TimelineSettings { enabled: boolean; iconField:string; primaryCalendar: string; fields: TrackedField[]; displayCalendar: string; lanes: LanePreference[]; groups:TimelineGroup[] }
 export interface TimelineNote { path: string; name: string; type?: string; fields: Record<string, unknown>; tags?: string[]; project?: string }
 export interface Diagnostic { code: string; path: string; field?: string; message: string }
 export const defaultFields: TrackedField[] = [
@@ -44,7 +44,7 @@ export function readTimeline(value: unknown): TimelineSettings {
   const groups:TimelineGroup[]=[],names=new Set<string>();
   for(const value of Array.isArray(raw.groups)?raw.groups:[]){if(!value||typeof value!=="object")continue;const row=value as Record<string,unknown>,name=typeof row.name==='string'?row.name.trim():'';if(!name||names.has(name))continue;names.add(name);groups.push({name,style:groupStyles.includes(row.style as GroupStyle)?row.style as GroupStyle:'banded'});}
   for(const lane of lanes)if(lane.group&&!names.has(lane.group)){names.add(lane.group);groups.push({name:lane.group,style:'banded'});}
-  return {enabled: raw.enabled === true, primaryCalendar: typeof raw.primaryCalendar === "string" ? raw.primaryCalendar : "", fields, displayCalendar:typeof raw.displayCalendar === "string" ? raw.displayCalendar : "",lanes,groups};
+  return {enabled: raw.enabled === true, iconField:typeof raw.iconField==='string'&&raw.iconField.trim()?raw.iconField.trim():'icon', primaryCalendar: typeof raw.primaryCalendar === "string" ? raw.primaryCalendar : "", fields, displayCalendar:typeof raw.displayCalendar === "string" ? raw.displayCalendar : "",lanes,groups};
 }
 export function applies(field: TrackedField, note: TimelineNote) {
   const type=note.type??strings(property(note.fields,"type"))[0];

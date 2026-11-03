@@ -359,3 +359,76 @@ test('selecting a Canon suggestion filters by entry identity rather than a dupli
  assert.equal(filterEvents(w,{...emptyFilters(),query:'Mira'}).length,2);
  assert.deepEqual(filterEvents(w,{...emptyFilters(),query:'Mira',entry:'A/Mira.md'}).map(e=>e.name),['First']);
 });
+
+test('multiple Canon selections match any selected identity while preserving other filters and can be removed independently',()=>{
+ const w=world([place(),note('Mira.md',{type:'Character'}),note('Orin.md',{type:'Character'}),{...event('Mira only',{Date:1,Cast:'[[Mira]]'}),tags:['atlas']},event('Orin only',{Date:2,Cast:'[[Orin]]'}),event('Both',{Date:3,Cast:['[[Mira]]','[[Orin]]']}),event('Neither',{Date:4})]);
+ const selected={...emptyFilters(),entries:['Mira.md','Orin.md']};
+ assert.deepEqual(filterEvents(w,selected).map(e=>e.name),['Mira only','Orin only','Both']);
+ assert.deepEqual(filterEvents(w,{...selected,entries:['Orin.md']}).map(e=>e.name),['Orin only','Both']);
+ assert.deepEqual(filterEvents(w,{...selected,tag:'atlas'}).map(e=>e.name),['Mira only']);
+ assert.equal(filterEvents(w,{...selected,query:'a new entry to suggest'}).length,3);
+ assert.equal(filterEvents(w,{...selected,entries:[]}).length,4);
+});
+
+test('saved Canon chips deduplicate paths and migrate the earlier single-selection filter without retaining its search text',()=>{
+ const migrated=readTimelineUIState({filters:{entry:'Characters/Mira.md',query:'Mira',tag:'atlas'}});
+ assert.deepEqual(migrated.filters.entries,['Characters/Mira.md']);assert.equal(migrated.filters.query,'');assert.equal(migrated.filters.tag,'atlas');
+ const state=readTimelineUIState({filters:{entries:['A/Mira.md','B/Mira.md','A/Mira.md',null,42,''],query:'next'}});
+ assert.deepEqual(state.filters.entries,['A/Mira.md','B/Mira.md']);assert.equal(state.filters.query,'next');
+ assert.deepEqual(readTimelineUIState(JSON.parse(JSON.stringify(state))).filters,state.filters);
+});
+
+
+test('Threads expands collision rows, connects original participant identities across lanes and excludes undated chains',async()=>{
+ const {threadGeometry,threadParticipants}=await import('../src/timeline/threads.ts');
+ const w=world([place(),note('Archive.md',{type:'Location'}),note('Mira.md',{type:'Character'}),note('Atlas.md',{type:'Item'}),event('First',{Date:1,Cast:['[[Mira]]','[[Atlas]]'],Locations:'[[Harbor]]'}),event('Undated',{'Preceded By':'[[First]]',Cast:'[[Mira]]',Locations:'[[Harbor]]'}),event('Last',{Date:4,'Preceded By':'[[Undated]]',Cast:'[[Mira]]',Locations:'[[Archive]]'})]);
+ const normal=layoutTimeline(w,w.events,0,6,900),threaded=layoutTimeline(w,w.events,0,6,900,[]),geometry=threadGeometry(threaded);
+ assert.ok(normal.flatMap(l=>l.events).some(p=>p.event.name==='Undated'));assert.ok(!threaded.flatMap(l=>l.events).some(p=>p.event.name==='Undated'));
+ assert.equal(geometry.points.length,3);assert.equal(geometry.segments.length,1);assert.equal(geometry.segments[0].entry.path,'Mira.md');assert.notEqual(geometry.segments[0].from.y,geometry.segments[0].to.y);assert.equal(threaded.find(l=>l.events.some(p=>p.event.path===geometry.segments[0].from.event))!.path,'Harbor.md');assert.equal(threaded.find(l=>l.events.some(p=>p.event.path===geometry.segments[0].to.event))!.path,'Archive.md');
+ assert.equal(threadParticipants(w.events[0],['Mira.md']).length,1);assert.equal(threadGeometry(layoutTimeline(w,w.events,0,6,900,['Mira.md']),['Mira.md']).points.length,2);
+ assert.ok(threaded.find(l=>l.path==='Harbor.md')!.height>88);
+});
+
+test('Threads reserves enough height for every participant row and retains same-time uncertainty',async()=>{
+ const {threadGeometry,threadEventHeight}=await import('../src/timeline/threads.ts');
+ const people=Array.from({length:20},(_,i)=>note(`P${i}.md`,{type:'Character'}));const w=world([place(),...people,event('First',{Date:1,Cast:people.map(p=>`[[${p.path}]]`),Locations:'[[Harbor]]'}),event('Same time',{Date:1,Cast:'[[P0]]',Locations:'[[Harbor]]'})]);
+ const layout=layoutTimeline(w,w.events,0,3,600,[]),items=layout.find(l=>l.path==='Harbor.md')!.events;
+ assert.equal(threadEventHeight(w.events[0]),56+7*48);assert.ok(items[1].y!>=items[0].y!+items[0].height!);
+ assert.equal(threadGeometry(layout).segments[0].sameTime,true);
+});
+
+test('entry icon targets accept vault images and reject external, filesystem, traversal and nonimage targets',async()=>{
+ const {entryIconTarget}=await import('../src/timeline/threads.ts');
+ assert.equal(entryIconTarget('[[Assets/Mira.png|Mira]]'),'Assets/Mira.png');assert.equal(entryIconTarget('![[Assets/Mira.svg]]'),'Assets/Mira.svg');assert.equal(entryIconTarget(['', 'Assets/Mira.webp']),'Assets/Mira.webp');
+ for(const value of ['https://example.com/a.png','data:image/png;base64,AA','file:///tmp/a.png','/tmp/a.png','../a.png','Assets/../a.png','Note.md','Assets\\a.png'])assert.equal(entryIconTarget(value),undefined);
+ const settings=readTimeline({iconField:'portrait'});const notes=[calendar(),note('Mira.md',{type:'Character',portrait:'[[Assets/Mira.png]]'}),event('Meeting',{Date:1,Cast:'[[Mira]]',portrait:'[[Assets/Event.png]]'})];const resolve=(target:string)=>notes.find(n=>n.path.replace(/\.md$/,'')===target)?.path;const index=buildTimelineIndex(notes,settings),w=buildWorldTimeline(notes,index,settings,resolve);
+ assert.equal(w.events[0].participants[0].icon,'Assets/Mira.png');assert.ok(!w.diagnostics.some(d=>d.code==='link-unresolved'));
+});
+
+test('Threads view and image choices round-trip independently from chronology and default to the compact view',()=>{
+ assert.equal(readTimelineUIState({}).threads,false);assert.equal(readTimelineUIState({}).threadImages,true);
+ const state=readTimelineUIState({threads:true,threadImages:false,filters:{entries:['Mira.md']},start:12,span:5});assert.deepEqual(readTimelineUIState(JSON.parse(JSON.stringify(state))),state);assert.equal(readTimeline({}).iconField,'icon');
+});
+
+test('the Threads demonstration has twelve dated events and twenty mixed participants with two to five occurrences each',async()=>{
+ const {threadsFixture}=await import('./fixtures/threads/fixture.ts');const {threadGeometry}=await import('../src/timeline/threads.ts');const notes=[calendar(),...threadsFixture('Calendar.md')],settings=readTimeline({});const resolve=(target:string)=>notes.find(n=>n.path.replace(/\.md$/,'')===target.replace(/\.md$/,''))?.path;const index=buildTimelineIndex(notes,settings),w=buildWorldTimeline(notes,index,settings,resolve);
+ assert.equal(w.events.filter(e=>e.effective).length,12);assert.equal(w.events.filter(e=>!e.effective).length,1);
+ const counts=new Map<string,number>();for(const e of w.events)for(const p of e.participants)counts.set(p.path,(counts.get(p.path)??0)+1);assert.equal(counts.size,20);assert.ok([...counts.values()].every(n=>n>=2&&n<=5));assert.equal(new Set(w.events.flatMap(e=>e.participants.map(p=>p.type))).size,4);
+ const graph=threadGeometry(layoutTimeline(w,w.events,438,28,1200,[]));assert.ok(graph.segments.length>20);assert.ok(graph.points.every(p=>p.event!=='Threads Demo/Events/The unopened dispatch.md'));
+});
+
+
+test('Threads retains offscreen connected occurrences across lanes without mounting extra cards or expanding visible lanes',async()=>{
+ const {threadGeometry,threadSegmentVisible}=await import('../src/timeline/threads.ts');
+ const w=world([place(),note('Archive.md',{type:'Location'}),note('Mira.md',{type:'Character'}),event('Earlier',{Date:1,Cast:'[[Mira]]',Locations:'[[Harbor]]'}),event('Here',{Date:11,Cast:'[[Mira]]',Locations:'[[Archive]]'}),event('Later',{Date:30,Cast:'[[Mira]]',Locations:'[[Harbor]]'}),event('Undated',{Cast:'[[Mira]]'})]);
+ const lanes=layoutTimeline(w,w.events,10,4,600,[]),before=JSON.stringify(lanes),graph=threadGeometry(lanes,[],{events:w.events,start:10,span:4,width:600});
+ assert.equal(lanes.flatMap(l=>l.events).length,1);assert.equal(graph.points.length,3);assert.equal(graph.segments.length,2);assert.equal(JSON.stringify(lanes),before);
+ assert.ok(graph.segments[0].from.offscreen);assert.ok(graph.segments[0].from.x<0);assert.ok(graph.segments[1].to.offscreen);assert.ok(graph.segments[1].to.x>600);assert.notEqual(graph.segments[0].from.y,graph.segments[0].to.y);assert.ok(graph.segments.every(s=>threadSegmentVisible(s,600,0,1000)));
+ assert.equal(threadGeometry(lanes,[],{events:w.events.filter(e=>e.name==='Here'),start:10,span:4,width:600}).segments.length,0);
+ w.lanes.find(l=>l.path==='Harbor.md')!.enabled=false;assert.equal(threadGeometry(layoutTimeline(w,w.events,10,4,600,[]),[],{events:w.events,start:10,span:4,width:600}).segments.length,0);
+});
+
+test('Threads can cross an empty time window between known occurrences but does not extend beyond its last connection',async()=>{
+ const {threadGeometry,threadSegmentVisible}=await import('../src/timeline/threads.ts');const w=world([place(),note('Mira.md',{type:'Character'}),event('Earlier',{Date:1,Cast:'[[Mira]]',Locations:'[[Harbor]]'}),event('Later',{Date:30,Cast:'[[Mira]]',Locations:'[[Harbor]]'})]);
+ for(const [start,expected] of [[10,true],[40,false]] as const){const graph=threadGeometry(layoutTimeline(w,w.events,start,4,600,[]),[],{events:w.events,start,span:4,width:600});assert.equal(graph.segments.length,1);assert.equal(threadSegmentVisible(graph.segments[0],600,0,1000),expected);}
+});

@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": 310,
+  "packageHashes": {
+    "main.js": "28d780373805b677232767d2db9a52366310e6bc92ddd4d25f630d375cd398f3",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "b88a901d31d12b2a64da2f79c1310ef1edfae8b183142e3b9045b91f1e76c488"
+  },
+  "browserChecks": {
+    "twoChips": [
+      "Mira",
+      "Orin"
+    ],
+    "combinedEvents": "11/12",
+    "afterRemovingMira": "7/12, Orin retained"
+  },
+  "nativeChecks": {
+    "twoChips": [
+      "Mira",
+      "Echo"
+    ],
+    "combinedEvents": "7/9",
+    "afterRemovingEcho": "5/9, Mira retained"
+  },
+  "originals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  }
+}

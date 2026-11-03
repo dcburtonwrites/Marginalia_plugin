@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-02",
+  "version": "0.20.0",
+  "tests": {
+    "pure": 224,
+    "host": 92,
+    "total": 316
+  },
+  "packageHashes": {
+    "main.js": "84c776f6cb0a00fe69ad345c35056bd7e3fae370458622bbfae3037a968a02bb",
+    "manifest.json": "78bc7c4aebd421b36ee2226a4b990f7a393f45182a7f05de4205045c5a7ef245",
+    "styles.css": "1e8a25c256f47dc97c91839349643d0f0185b39aafaea2ede4059b4a226f3483"
+  },
+  "fixture": {
+    "root": "Threads Demo",
+    "datedEvents": 12,
+    "undatedEvents": 1,
+    "participants": 20,
+    "minimumOccurrences": 2,
+    "maximumOccurrences": 5,
+    "occurrences": {
+      "Threads Demo/Participants/Mira Thorne.md": 4,
+      "Threads Demo/Participants/Orin Reed.md": 4,
+      "Threads Demo/Participants/Sera Vale.md": 4,
+      "Threads Demo/Participants/Tamsin Grey.md": 5,
+      "Threads Demo/Participants/Sun compass.md": 2,
+      "Threads Demo/Participants/Amber key.md": 3,
+      "Threads Demo/Participants/Tide lantern.md": 4,
+      "Threads Demo/Participants/Glass map.md": 5,
+      "Threads Demo/Participants/Lea Moss.md": 5,
+      "Threads Demo/Participants/Kestrel Snow.md": 2,
+      "Threads Demo/Participants/Bram Rook.md": 3,
+      "Threads Demo/Participants/Dara Wren.md": 4,
+      "Threads Demo/Participants/Sol Pike.md": 5,
+      "Threads Demo/Participants/Tidegate protocol.md": 5,
+      "Threads Demo/Participants/Neris Dawn.md": 2,
+      "Threads Demo/Participants/Rowan Ash.md": 3,
+      "Threads Demo/Participants/Ivo Flint.md": 4,
+      "Threads Demo/Participants/Harbor Watch.md": 2,
+      "Threads Demo/Participants/Ridge Guild.md": 3,
+      "Threads Demo/Participants/Beacon code.md": 4
+    },
+    "noteHashes": {
+      "Threads Demo/Locations/Threads Harbor.md": "990d1eebdae7191729614b88353371806ed709cf577f0a1c0f358d85256c2353",
+      "Threads Demo/Locations/Threads Archive.md": "18a6df6906cec454490248868f0b2760f87652fff435b5322fe9bc76381bd1ac",
+      "Threads Demo/Locations/Threads Ridge.md": "1eab63b3fe355a7b2d262cd6ebbb80690ea955167eccb01375fe29745ba28c85",
+      "Threads Demo/Locations/Threads Workshop.md": "b532a40963067d9816ddc3542f25688bc0b323379c76a0fc0c0d134933300cdc",
+      "Threads Demo/Participants/Mira Thorne.md": "35f45596178206df2a700b8c5989f4ffc6bd2cb380a0af1e44f2f8479250bbfe",
+      "Threads Demo/Participants/Orin Reed.md": "69303879e644403b97cbaa0e96cf2a3121e9088a1e64e052bed8c6bcfd186705",
+      "Threads Demo/Participants/Sera Vale.md": "c4c3b76632d91ec85f258185c9ff4936b27de17117a2c2c27acf1c4ecb397b6f",
+      "Threads Demo/Participants/Tamsin Grey.md": "b9e69ab0588d119c49e94f4d8e206c254332f64780ea6aad94d505bb20150283",
+      "Threads Demo/Participants/Neris Dawn.md": "8fff36b8fe3ef968174cfd7de49eac9a5dae902cf7807a4cd216a4aad76cb349",
+      "Threads Demo/Participants/Rowan Ash.md": "1b7712a698feac811f66236f2eb8ec3b49501a13fdd44fff9c086dfa6cdb8531",
+      "Threads Demo/Participants/Ivo Flint.md": "db5d95d68181a1dfaca28cf422186c2296e2947833e1840b48076aa9af47a6c0",
+      "Threads Demo/Participants/Lea Moss.md": "e691762b86b8ef122dfa6711e437f6704149899e520ebbf3ab809d40a32e68d7",
+      "Threads Demo/Participants/Kestrel Snow.md": "eb356aec93747acdcb43e71ae1cf482a3420a716f6c530e292c4bffcf997054e",
+      "Threads Demo/Participants/Bram Rook.md": "f32d8d56a05ac908e8296464e1792e70d9deeb21ff2d80b4cb28003c093cfa17",
+      "Threads Demo/Participants/Dara Wren.md": "1cf1f56b55c6cc45f5732b8337fdb008f482fecca2347886fe0175a5bdc6c856",
+      "Threads Demo/Participants/Sol Pike.md": "56b90660522691160757affb23d5ccc3d9e52195a740a9c356ba592b7223e7c9",
+      "Threads Demo/Participants/Sun compass.md": "077689870cc1e77d04b23038832d8e76a7863fb4e02a30282a963b9c31b6c04d",
+      "Threads Demo/Participants/Amber key.md": "8ffa5d21c502a210c59ee3380b7d55a727ad12e707ac50b3174cbc2b4a1c7cde",
+      "Threads Demo/Participants/Tide lantern.md": "e33e8dcba144a70e850efc2694785687fb0b2ad88f511ca9e8c5cc20bb686bf0",
+      "Threads Demo/Participants/Glass map.md": "70faeb9d74dbb3c085921ad0af1f07b64c3e71071257127455eb08eea578d0e9",
+      "Threads Demo/Participants/Harbor Watch.md": "e519a5646927782502cfd7df140925280845539901737746b9a71c72d9dc8c0c",
+      "Threads Demo/Participants/Ridge Guild.md": "845a2a3adfbec0578c4ea57700da06c9e0f548091275f0ca9046eae45c6da98a",
+      "Threads Demo/Participants/Beacon code.md": "e2490df8dc9b14c6e7efc79a80bcf3a0011dd5f9ccd006578569e6b611f60cfb",
+      "Threads Demo/Participants/Tidegate protocol.md": "78a28582cf61e7346f646ec185b219ba7b47cdff5b2983de52019d4438eebb5e",
+      "Threads Demo/Events/The first dispatch.md": "859152b4f61cb4a7b8cc5de73ed3645799cea2edab4e32911e7ff7bb47cc14bd",
+      "Threads Demo/Events/The tide survey.md": "a7a5e68c9aa3dd8dc9d7bb2718321734a9d35853120d4124599fc6ab1c456914",
+      "Threads Demo/Events/The archive opens.md": "c6d0e1b7002a5302361333168aac8bb2e86754e9f0f3dfbc440878c7f0013dff",
+      "Threads Demo/Events/The ridge crossing.md": "bcf290cfcaf9578103ba94ad0268f6c9d8fc0b8c183bc5703bdeaba3b7760029",
+      "Threads Demo/Events/The lantern assembly.md": "fa25e08061ed0b5797253d957bcd4d8aed7c93f1bc3b9edd2c10aaf4f9e8f30c",
+      "Threads Demo/Events/The signal test.md": "400a196555417e8fe2f9370885a35b1b2185969a46127e5bb74956e0bedf725f",
+      "Threads Demo/Events/The workshop accord.md": "89d68cb2ff495fa147666808f661ff10e4ae01a6d3d9bff8ff948ad872aab957",
+      "Threads Demo/Events/The harbor blockade.md": "037965bbee1948ff92e1445add06c799455f411cd71d562ec7c683acdd7dab22",
+      "Threads Demo/Events/The beacon repair.md": "f8e72586c154b897c8b1320b3a8e53e1e242b95f1a1890d08c14ef0c83329a86",
+      "Threads Demo/Events/The glass exchange.md": "1564e5c76b23123bf52929829d2899befc69447ae56ede59c640862d114983dc",
+      "Threads Demo/Events/The return convoy.md": "22c92c9be2a1eaa34f75caccdb9fb4ad2d88e42dbfc036f53781e0705c946f74",
+      "Threads Demo/Events/The shared watch.md": "30dcff9cf320eeaa840b79c21f5b3fb41fd722e81941fba82a2181d00c021cb4",
+      "Threads Demo/Events/The unopened dispatch.md": "a3125ecee4d5bb11f7be128c6d26f1822f9fa7e872e96cbaa45f6a159987b286"
+    },
+    "localIcons": 10,
+    "groups": [
+      "Coastal exchange",
+      "Highland works"
+    ]
+  },
+  "nativeChecks": {
+    "viewEnabled": true,
+    "localImagesRendered": true,
+    "selectedMiraThorneEvents": "4/22",
+    "entryHistoryOpened": "4 records",
+    "tabReturnedWithThreadsAndFilter": true,
+    "imagesToggle": true,
+    "crossLaneConnection": "Threads Harbor to Threads Archive; same-time segment dotted",
+    "savedLeafState": [
+      {
+        "threads": true,
+        "threadImages": true
+      }
+    ]
+  },
+  "browserChecks": {
+    "highlightedMiraLinks": 2,
+    "sameTimeLinks": 1,
+    "markersBelowCards": true,
+    "onlySelectedThread": true,
+    "imagesOffAndPreferenceRetained": true,
+    "compactModeRestored": true,
+    "undatedHasNoConnection": true,
+    "narrowPane": {
+      "width": 620,
+      "scrollWidth": 620,
+      "height": 498,
+      "scrollHeight": 498,
+      "undatedAtBottom": true
+    }
+  },
+  "preservedOriginals": {
+    "Librarian Review Pilot": {
+      "count": 5,
+      "changed": []
+    },
+    "Marginalia Test Vault": {
+      "count": 53,
+      "changed": []
+    }
+  },
+  "installedMatches": {
+    "Librarian Review Pilot": true,
+    "Marginalia Test Vault": true
+  }
+}
