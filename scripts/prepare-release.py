@@ -4,6 +4,8 @@ from hashlib import sha256
 import json
 import re
 import shutil
+import subprocess
+import sys
 from zipfile import ZipFile, ZIP_DEFLATED
 
 root = Path(__file__).resolve().parents[1]
@@ -38,6 +40,8 @@ checksums = ''.join(sha256((release / name).read_bytes()).hexdigest() + '  ' + n
 site = root / 'website/dist'
 (site / 'downloads').mkdir(exist_ok=True)
 shutil.copyfile(archive, site / 'downloads' / archive.name)
+subprocess.run([sys.executable, str(root / 'scripts/build-greek-demo.py')], cwd=root, check=True)
+subprocess.run(['node', '--experimental-strip-types', 'scripts/verify-greek-demo.ts'], cwd=root, check=True)
 site_archive = root / 'dist' / ('marginalia-website-' + version + '.zip')
 with ZipFile(site_archive, 'w', ZIP_DEFLATED) as zipped:
     for path in sorted(site.rglob('*')):

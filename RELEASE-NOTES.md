@@ -19,6 +19,4 @@ This package is prepared locally. Community approval, a public GitHub release an
 
 ## Installation
 
-After Community approval: Settings → Community plugins → Browse → Marginalia → Install → Enable.
-
-Until then, unzip `marginalia-0.5.0.zip` and copy its `marginalia` folder into your vault's configuration directory under `plugins` (normally `.obsidian/plugins`). Reload Obsidian and enable the plugin. The folder contains only `main.js`, `manifest.json` and `styles.css`; do not replace your existing `data.json` when updating.
+Install directly from the ZIP or GitHub release assets; a Community directory listing is not required. Unzip `marginalia-0.5.0.zip` and copy its `marginalia` folder into your vault's configuration directory under `plugins` (normally `.obsidian/plugins`). Reload Obsidian and enable the plugin. The folder contains only `main.js`, `manifest.json` and `styles.css`; do not replace your existing `data.json` when updating.

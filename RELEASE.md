@@ -25,13 +25,13 @@ npm run website:check
 - Physical Android, remaining iOS keyboard/IME behavior, Windows/Linux PDF output and hidden-file synchronization remain acceptance limits. Keep those limits in the release notes and do not advertise full platform parity.
 - Recheck plugin ID/name availability in the current Community directory at submission time. A similarly named `Marginalia MD` exists; this is a different annotation plugin. Do not submit to or claim another developer's repository.
 
-## Submit through the current Community directory
+## Optional future Community directory submission
 
 1. Create a public GitHub release from the reviewed source with tag **`0.5.0`**, exactly matching manifest.version, **without a `v` prefix**. Use RELEASE-NOTES.md as the description. Attach `main.js`, `manifest.json` and `styles.css` from dist/release-0.5.0 individually. The ZIP and checksums can be additional attachments.
 2. Sign in at [community.obsidian.md](https://community.obsidian.md) with your Obsidian account and connect the GitHub account that owns the repository.
 3. Add the plugin using `dcburtonwrites/Marginalia_plugin`. The portal reads manifest.json from the default branch HEAD; a local working copy is insufficient.
 4. Address the automated review results. Corrections need an incremented version and matching new release. Marginalia becomes installable through Community plugins only when review errors are resolved and the listing is published.
-5. After approval, set `communityListed: true` in website/dist/config.js, repackage the website and update the README's pending status. Do not enable the Obsidian install link prematurely.
+5. If directory distribution is chosen later, update the site and README deliberately after approval. Current installation uses a direct ZIP and GitHub release assets; there is no Community install link or listing flag.
 
 Official guidance checked November 2, 2026: [Submit your plugin](https://docs.obsidian.md/Plugins/Releasing/Submit%20your%20plugin), [Set up and claim](https://docs.obsidian.md/community-directory/set-up-and-claim), [requirements](https://docs.obsidian.md/community-directory/submission-requirements-for-plugins). The current route is the Community portal, replacing older community-plugins.json pull-request tutorials. No directory submission has been made.
 

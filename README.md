@@ -19,16 +19,22 @@ Build your world, write your scripts, and follow their threads inside Obsidian.
 
 ## Install
 
-After approval, install through **Settings → Community plugins → Browse → Marginalia → Install → Enable**. This listing is not yet available.
+Install using the ZIP download or the raw assets from [GitHub releases](https://github.com/dcburtonwrites/Marginalia_plugin/releases). No Community directory listing is required.
 
-For a manual installation:
+For the ZIP download:
 
 1. Download the prepared `marginalia-0.5.0.zip` release package and unzip it.
 2. Copy its `marginalia` folder into your vault's configuration directory under `plugins` (normally `.obsidian/plugins/marginalia`). It contains `main.js`, `manifest.json` and `styles.css`.
 3. Reload Obsidian, then enable Marginalia under Community plugins.
 4. Open **Settings → Marginalia**, choose World or Storyboard, configure vault routes/templates, and enable the modules you want.
 
+Alternatively, download `main.js`, `manifest.json` and `styles.css` individually from a GitHub release’s Assets and place them in the same `marginalia` plugin folder. Use release assets, not GitHub’s Source code ZIP.
+
 Back up your vault before reorganizing an existing project. When updating, replace only the three plugin files; preserve your existing `data.json`.
+
+## Explore the Greek Demo
+
+The website offers `marginalia-greek-demo-0.5.0.zip`: a complete separate vault with 72 notes, a linked cast, two calendars, 20 timeline events, participant Threads and a sample comic project. Five walkthroughs are pinned on Home. Unzip and choose **Open folder as vault** in Obsidian, review the trust prompt and enable Marginalia; reload if needed, then use Open Home. Do not merge its `.obsidian` folder into your existing vault. Ollama/models are optional and not bundled. See [demo documentation](demo/greek/README.md).
 
 ## Getting started
 
@@ -110,3 +116,7 @@ For fictional shared-component previews, run `npm run preview:build` and serve `
 ## Support
 
 [Donate through PayPal](https://www.paypal.com/donate/?hosted_button_id=TAU2X5WLXWF8C), or send requests to [deondoesmore@gmail.com](mailto:deondoesmore@gmail.com). Donations are optional. Licensed under [MIT](LICENSE).
+
+Website launch (D-0076): [Marginalia](https://karma-voyage-a7mb.here.now/) is now published through the owner’s here.now account. Plugin and Greek Demo downloads match the current 0.5.0 release. The private request receiver is tested; FormSubmit activation and full email/webhook verification are pending because the provider blocked automated access. See [launch verification](docs/verification/request-log-launch-2026-11-02.md).
+
+Final launch acceptance: https://karma-voyage-a7mb.here.now/ is deployed. The activated FormSubmit alias and Google receiver version 2 delivered a real test to email and one matching private Sheet row; earlier pending status is superseded. See docs/verification/request-log-launch-2026-11-02.md.

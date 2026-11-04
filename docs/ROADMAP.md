@@ -399,7 +399,36 @@ Owner accepted the current Threads work and requested a 0.5 release, superseding
 - [x] Verify minified package/regression tests and prepare raw assets, plugin ZIP and checksums.
 - [x] Verify the unpublished three-page website on desktop/mobile, internal navigation, donation destination and request validation without sending.
 - [ ] Before Community submission: dedicated minimum-version acceptance and public source/release verification; resolve any scanner feedback.
-- [ ] Before website launch: owner FormSubmit activation and approved delivery test; Community install flag only after listing approval.
+- [ ] Before website launch: owner FormSubmit activation and approved delivery test; publish the GitHub release assets. Installation uses ZIP/GitHub directly (D-0071).
 - [ ] Publication/submission: not performed; owner explicitly requested an unpublished website.
 
 [Release verification](verification/release-0.5.0-2026-11-02.md): 318 plugin tests, mobile bundle load, 57 website routes/assets/anchors and 13 simulated form cases pass. Nothing published.
+
+
+## Greek Demo download · D-0073
+- [x] Original mythology-inspired world, 72 notes including templates/tours, 20 events/participants, two calendars, grouped lanes and local icons.
+- [x] Three ordered comic scripts and Practice grouping, fresh plugin settings, Home pins and startup layout.
+- [x] Shared-model verification of all links/dates/state, script order/pages/panels and repeated cross-lane participation.
+- [x] Native Obsidian QA: Home pins, selected First Draft scope and populated issue-free timeline after trust/enable/reload.
+- [x] Install-page demo download, Home/guide links and unpublished hosting archive integration.
+- [ ] Publication remains unrequested; local AI generation and additional device acceptance are not part of this fixture check.
+
+
+## Compact Home and Greek previews · D-0074 / D-0075
+- [x] Recents beside Continue Writing, at most three two-line cards, reduced actual height, independently sized Continue panel and pins below.
+- [x] Native Greek Home/Script Studio/Threads/Librarian screenshots replace synthetic website previews and diagram.
+- [x] 318 tests, package/typecheck/mobile load, Greek fixture models and website checks pass; direct plugin/demo/website archive bytes synchronized.
+- [x] Correct inherited recents minimum height and refresh the final Home capture/downloads.
+
+[Verification](verification/home-greek-previews-2026-11-02.md). Nothing published; version remains 0.5.0.
+
+
+## Request log and here.now launch · D-0076
+- [x] Create private sheet with request columns in the recipient's Google account.
+- [x] Save validated Apps Script receiver and initialization function, prepare website webhook/UUID support and local receiver/provider tests.
+- [x] Owner Google script authorization; initialize and approve public receiver deployment. Direct append and same-ID deduplication verified.
+- [x] Configure real receiver URL.
+- [x] Owner activated FormSubmit; configured and published supplied public endpoint alias.
+- [x] Verify post-activation email delivery, including the alias test marker and Request ID.
+- [x] Verify matching forwarded Sheet row and email: receiver-format-check, Request ID 8bad050f-8b10-49ff-b349-2fea5e83dbb4. Receiver version 2 handles encoded/nested provider payloads.
+- [x] Owner here.now sign-in and website publication: https://karma-voyage-a7mb.here.now/. Three routes verified; plugin and demo downloads match prepared files. Live form reports provider failure and preserves input; successful delivery remains pending above.

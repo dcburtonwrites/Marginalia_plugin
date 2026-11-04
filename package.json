@@ -10,7 +10,8 @@
     "preview:build": "node scripts/preview.mjs",
     "package": "npm run typecheck && npm run build && node scripts/package.mjs",
     "release:prepare": "npm run package && python3 scripts/prepare-release.py",
-    "website:check": "node scripts/check-website.mjs"
+    "website:check": "node scripts/check-website.mjs",
+    "demo:build": "python3 scripts/build-greek-demo.py && node --experimental-strip-types scripts/verify-greek-demo.ts"
   },
   "devDependencies": {
     "@codemirror/commands": "^6.11.1",

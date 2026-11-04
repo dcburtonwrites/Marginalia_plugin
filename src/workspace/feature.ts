@@ -597,6 +597,10 @@ export class AppPage extends ItemView {
       continuing.append(this.card(latest));
     } else continuing.append(el("p", "", "Open a note to begin."));
     desk.append(continuing);
+    const recentSection = el("section", "marginalia-home-recents");
+    recentSection.append(el("h2", "", "Recently Opened"));
+    this.grid(recentSection, (recents.length ? recents : [...entries].sort((a, b) => b.modified - a.modified)).slice(0, 3));
+    desk.append(recentSection);
     const pins = el("section", "marginalia-home-pins");
     const pinsHeader = el("div", "marginalia-pins-heading");
     pinsHeader.append(
@@ -623,6 +627,8 @@ export class AppPage extends ItemView {
     const pinned = entries.filter((e) =>
       this.owner.workspaceSettings.pins.includes(e.path),
     );
+    const pinCards = el("div", "marginalia-entry-grid");
+    pins.append(pinCards);
     for (const entry of pinned) {
       const row = el("div", "marginalia-pin-row");
       row.append(this.card(entry));
@@ -633,7 +639,7 @@ export class AppPage extends ItemView {
           void this.owner.savePluginData().then(() => this.draw());
         }),
       );
-      pins.append(row);
+      pinCards.append(row);
     }
     const choose = el("input", "marginalia-page-search");
     choose.type = "search";
@@ -657,16 +663,7 @@ export class AppPage extends ItemView {
     };
     choose.onchange=pin;
     choose.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();pin();}});
-    desk.append(pins);
-    root.append(desk);
-    root.append(el("h2", "", "Recently Opened"));
-    this.grid(
-      root,
-      (recents.length
-        ? recents
-        : [...entries].sort((a, b) => b.modified - a.modified)
-      ).slice(0, 6),
-    );
+    root.append(desk, pins);
     root.append(el("h2", "", "Projects"));
     for (const project of allProjects)
       root.append(

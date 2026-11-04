@@ -457,3 +457,53 @@
 - Recommendation: Apply the owner's order to previews, initial selection, feature chapters and guide sections; explain Script Studio's current comics/graphic-novel scope directly.
 - Decision: Owner requested transparent logo artwork and the order Your World, Script Studio, Timeline and Threads, Librarian, highlighting comics and graphic novels.
 - Impact: Website only, plus README logo reference. Preserve the original logo, use the transparent derivative, update product copy and repackage the unpublished site. No plugin behavior/version change or publication.
+
+
+## D-0071 · Direct ZIP and GitHub installation · 2026-11-02 · Website revision
+- Question: Avoid making installation depend on Community directory distribution or a possible name change.
+- Options: Community-first installation / direct download plus GitHub release instructions.
+- Recommendation: Make the packaged ZIP the primary action and explain installing individual GitHub release assets as the alternative.
+- Decision: Owner requested “a file download and the github install instructions”, with concern about keeping the name.
+- Impact: Remove the website Community listing workflow, deep link and dormant flag. Preserve Marginalia branding, donation and request form. Update installation/release docs and rebuild the unpublished archive. Community submission remains an optional future route; no name-availability claim or publication.
+
+
+## D-0072 · Hide the contact recipient in the website UI · 2026-11-02 · Website revision
+- Question: Remove the author's visible email address from the Install page.
+- Options: Show the destination inbox / show only the request form.
+- Recommendation: Remove visible recipient copy, mailto links and error-message addresses while preserving the configured FormSubmit delivery.
+- Decision: Owner requested “remove my email from the install page. They don't need to know where it goes”.
+- Impact: Request copy, consent and errors omit the destination address; the form still uses the existing configured endpoint. No change to recipient, activation requirement or publication state. The address remains in client-side delivery configuration until an activated FormSubmit opaque endpoint is supplied; this is a display change, not a claim of server-side secrecy.
+
+
+## D-0073 · Downloadable Greek Demo vault · 2026-11-02 · Release website
+- Question: Provide a fully populated, preconfigured demo that shows the feature set and teaches it from Home.
+- Options: Loose sample notes / complete standalone Obsidian vault with bundled plugin/settings and pinned walkthroughs.
+- Recommendation: A separate editable Greek-mythology-inspired retelling with explicit illustrative dates, linked world entries, comic scripts, a populated Threads timeline and optional local-AI exercises. Fresh settings only; no borrowed user data or model installation.
+- Decision: Owner requested a fully built-out Greek Demo download, configured for Obsidian/Marginalia, including walkthrough entries visible on Home.
+- Impact: Reproducible build and model-based validation of a 72-note, 20-event, 20-participant vault, four scripts and five pinned tours. Add website download/cross-links and include it in release website packaging. Native acceptance uses a disposable QA copy. Obsidian's trust/enable step remains user-owned; local AI needs a separately installed model. No publication, creative-vault changes or source runtime changes.
+
+
+## D-0074 · Compact Home and matching Greek Demo previews · 2026-11-02 · Home and website
+- Question: Swap Pinned and Recently Opened on Home and use Greek Demo screenshots on the website.
+- Options: Tall pinned column / recent column capped at three notes with two preview lines, pins below.
+- Recommendation: Recently Opened beside Continue Writing, independent vertical sizing, at most three cards, scoped two-line previews and pinned references in the lower grid. Capture actual native demo screens for all four features.
+- Decision: Owner requested these Home changes first, then screenshots from the Greek Demo; additionally instructed “use this newest build for the plugin download file”.
+- Impact: Update shared Home view/styles, native captures, website images/captions, and rebuild the plugin ZIP, bundled demo plugin/ZIP and website archive together at 0.5.0. Preserve full recent history, pin editing, per-device layout and source notes. No deployment.
+
+
+## D-0075 · Shrink recent-card height as well as its preview · 2026-11-02 · Home correction
+- Question: Two-line preview text still inherited the generic card's 150px minimum height.
+- Options: Keep generic height / remove the minimum only in Home recents and reduce padding.
+- Recommendation: Scoped min-height:0 and 12px/14px padding, leaving ordinary Canon/pinned cards unchanged.
+- Decision: Owner observed “didn't reduce the card height”; correction implemented and verified natively before final screenshot and packaging.
+- Impact: Recent cards shrink to content. Refresh Greek Home website capture and plugin/demo/hosting downloads, retaining version 0.5.0.
+
+
+## D-0076 · Private Google request log and website publication authorization · 2026-11-02 · Launch
+- Question: Route each website request to email and one Google Sheets row, and publish the site to here.now.
+- Options: Email only / FormSubmit email plus Google Apps Script webhook into a private sheet.
+- Recommendation: Keep the existing form/email delivery, add a validated append-only receiver with retry IDs, and publish after an end-to-end test.
+- Decision: Owner signed the recipient account into the browser, authorized setting it up there, and stated “You can either publish to here.now now or after completing this”.
+- Impact: Supersedes the earlier no-publication boundary for the website only. Create the private sheet and script in the selected account, preserve user approval of Google authorization and public receiver deployment, connect the form, test email/row delivery and publish through here.now. Does not authorize public Google Sheet sharing, GitHub publication or credential exposure.
+
+D-0076 implementation follow-up: The owner’s live setup test failed. Use FormSubmit’s standard POST verification flow with an explicit page `_url` and cache-versioned scripts after the AJAX failure. Keep CAPTCHA enabled and require observed email/row delivery before declaring the integration complete.

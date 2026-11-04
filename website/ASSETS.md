@@ -1,15 +1,18 @@
-# Asset provenance
+# Website assets
 
-- `dist/assets/marginalia.png`: exact original app logo copied from `../Marginalia_codex/apps/marginalia/src-tauri/icons/dark/icon.png` (owner's local standalone-app project). This is the gold open-book, nib and star app artwork requested for the website; no new logo was generated.
-- `threads.png`: docs/verification/timeline-threads-2026-11-02.png, fictional Threads fixture in the shared preview. The website crops the test toolbar visually.
-- `canon.png`: design/verification/app-canon-dark.png, fictional app-page preview.
-- `scripts.png`: design/verification/script-studio-home.png, fictional Script Studio preview.
-- `librarian.png`: design/verification/librarian-dark.png, fictional Librarian preview.
-- Thread illustration: inline SVG in index.html, illustrating recorded participation across location lanes.
+## Product screenshots
+All four current feature previews are unaltered native Obsidian screenshots captured from the disposable Greek Demo QA copy after installing the newest build. The notes match the downloadable Greek Demo, whose source files were hash-verified before capture. The QA copy's runtime settings are not copied into the download.
 
-No external stock assets or web fonts. App artwork and source are included under the repository's MIT license at the owner's direction.
+- `dist/assets/greek-world.png`: Home, with Continue Writing, three recent cards with two preview lines, and pinned walkthroughs below.
+- `dist/assets/greek-scripts.png`: The Pomegranate Accord / First Draft, 01 The empty chair, with page/panel outline expanded and note properties collapsed.
+- `dist/assets/greek-threads.png`: World Timeline with Hermes selected as a Canon chip, showing his connections across location lanes.
+- `dist/assets/greek-librarian.png`: Seasonal Compact with the four Review actions and the honest Choose a model status. No generation was run or fabricated.
 
-## Transparent website logo revision
-`dist/assets/marginalia-transparent.png` is the website logo with the navy rounded-square background removed using the built-in image editing tool. The original `marginalia.png` remains preserved for reference. All three pages and the repository README use the transparent version.
+The previous synthetic Copper Sky/Threads fixture screenshots have been removed from the website assets. CSS preserves the native screenshots' aspect ratio without the former test-toolbar crop. The earlier illustrative thread diagram is also replaced by the actual Greek Demo Threads screenshot.
 
-Edit prompt: Remove the entire navy rounded-square background, leaving true transparent alpha around and between the gold artwork; preserve the gold open book, dimensional pages, central nib, four-point star and small sparks, colors, composition and proportions; no text, new background or added shadow.
+## Logo
+`dist/assets/marginalia.png` preserves the original app logo copied from the owner's standalone project at `../Marginalia_codex/apps/marginalia/src-tauri/icons/dark/icon.png`.
+
+`dist/assets/marginalia-transparent.png` is the active website/README logo, edited with the built-in image tool. Prompt: remove the entire navy rounded-square background, leaving transparent alpha around and between the gold artwork; preserve the gold open book, dimensional pages, central nib, four-point star and small sparks, colors, composition and proportions; no text, new background or added shadow.
+
+No external stock assets, downloaded portraits or web fonts. Demo symbol icons are original code-native SVGs. Source and artwork are included under the repository's MIT license at the owner's direction.

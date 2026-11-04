@@ -859,11 +859,16 @@ body.marginalia-theme.theme-dark {
 .marginalia-card-title {font-size:21px;}
 .marginalia-card-category {font-size:var(--font-ui-smaller);color:var(--text-muted);}
 .marginalia-card-preview {color:var(--text-muted);font-size:var(--font-ui-small);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.marginalia-home-desk {display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px;}
+.marginalia-home-desk {display:grid;align-items:start;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px;}
 .marginalia-continue {background:var(--background-secondary);border:1px solid var(--background-modifier-border);border-radius:8px;padding:20px;}
 .marginalia-continue h2 {margin-top:0;}
 .marginalia-continue .marginalia-entry-card {border:0!important;padding:0!important;}
-.marginalia-home-pins h2 {margin-top:0;}
+.marginalia-home-pins {margin-top:28px;}
+.marginalia-home-pins h2, .marginalia-home-recents h2 {margin-top:0;}
+.marginalia-home-recents .marginalia-entry-grid {display:flex;flex-direction:column;gap:12px;}
+.marginalia-app-page .marginalia-home-recents button.marginalia-entry-card {min-height:0;padding:12px 14px;}
+.marginalia-home-recents .marginalia-card-preview {-webkit-line-clamp:2;line-clamp:2;max-height:3em;}
+.marginalia-home-pins .marginalia-pin-row {margin-bottom:0;}
 .marginalia-pins-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;}
 .marginalia-pins-heading h2 {margin:0;}
 .marginalia-app-page button.marginalia-pin-edit {height:auto;padding:0;border:0;box-shadow:none;background:transparent;color:var(--text-accent);}
